@@ -32,6 +32,7 @@
     </p>
 
     <nav class="days" role="tablist" aria-label="Wochentag">
+      <span class="days-indicator" aria-hidden="true"></span>
       <button type="button" role="tab" data-day="monday">Mo</button>
       <button type="button" role="tab" data-day="tuesday">Di</button>
       <button type="button" role="tab" data-day="wednesday">Mi</button>
@@ -58,13 +59,15 @@
 
     <main id="board" class="board" hidden></main>
 
-    <a href="./alternativen.html" class="escape-link" id="escape-link" hidden>
-      <span class="escape-copy">
-        <span class="escape-label">Was anderes?!</span>
-        <span class="escape-sub">8 Spots · Elektrstraße &amp; Rosenkavalierplatz</span>
-      </span>
-      <span class="escape-arrow" aria-hidden="true">→</span>
-    </a>
+    <div class="escape-wrap" id="escape-wrap" hidden>
+      <a href="./alternativen.html" class="escape-link" id="escape-link">
+        <span class="escape-copy">
+          <span class="escape-label">Was anderes?!</span>
+          <span class="escape-sub">8 Spots · Elektrstraße &amp; Rosenkavalierplatz</span>
+        </span>
+        <span class="escape-arrow" aria-hidden="true">→</span>
+      </a>
+    </div>
 
     <footer class="colophon">
       <p id="stamp">Stand: —</p>

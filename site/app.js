@@ -25,9 +25,13 @@ const banner = document.querySelector("#banner");
 const empty = document.querySelector("#empty");
 const dayDate = document.querySelector("#day-date");
 const marketBanner = document.querySelector("#market-banner");
-const escapeLink = document.querySelector("#escape-link");
+const escapeWrap = document.querySelector("#escape-wrap");
+const daysNav = document.querySelector(".days");
+const dayIndicator = document.querySelector(".days-indicator");
 const kwEl = document.querySelector("#kw");
 const stamp = document.querySelector("#stamp");
+
+let enterTimer;
 
 function isoWeek(isoDate) {
   const date = new Date(`${isoDate}T12:00:00`);
@@ -106,7 +110,7 @@ function formatDishName(name) {
   return parts.map((part) => escapeHtml(part)).join(sep);
 }
 
-function dishRow(dish) {
+function dishRow(dish, index) {
   const diet =
     dish.diet && DIET[dish.diet]
       ? `<span class="pill ${dish.diet}">${DIET[dish.diet]}</span>`
@@ -115,7 +119,7 @@ function dishRow(dish) {
     ? `<span class="pill">${dish.category}</span>`
     : "";
   const price = dish.price ? `<span class="price">${dish.price}</span>` : "";
-  return `<article class="dish">
+  return `<article class="dish" style="--dish-i:${index}">
     <div class="name">${formatDishName(dish.name)}</div>
     ${price}
     <div class="meta">${category}${diet}</div>
@@ -135,7 +139,7 @@ function renderDay(data, day) {
   dayDate.innerHTML = block ? formatDate(block.date) : "";
   marketBanner.hidden = day !== "thursday";
   board.innerHTML = (block?.canteens ?? [])
-    .map((canteen) => {
+    .map((canteen, slipIndex) => {
       const meta = CANTEENS[canteen.id];
       const source = data.sources?.[canteen.id];
       const pizza =
@@ -147,11 +151,11 @@ function renderDay(data, day) {
         note = `<p class="note">Letzter bekannter Plan — Aktualisierung fehlgeschlagen.</p>`;
       }
       const body = canteen.dishes?.length
-        ? canteen.dishes.map(dishRow).join("")
+        ? canteen.dishes.map((dish, index) => dishRow(dish, index)).join("")
         : source?.status === "error"
           ? ""
           : `<p class="ghost">Heute nichts eingetragen.</p>`;
-      return `<section class="slip">
+      return `<section class="slip" style="--slip-i:${slipIndex}">
         <div class="slip-head">
           <div>
             <h2>${meta.name}</h2>
@@ -166,11 +170,53 @@ function renderDay(data, day) {
     .join("");
 }
 
-function selectDay(data, day) {
+function updateDayIndicator(activeButton, { instant = false } = {}) {
+  if (!dayIndicator || !activeButton || !daysNav) return;
+  const place = () => {
+    const navRect = daysNav.getBoundingClientRect();
+    const btnRect = activeButton.getBoundingClientRect();
+    const x = btnRect.left - navRect.left;
+    if (instant) dayIndicator.style.transition = "none";
+    dayIndicator.style.width = `${btnRect.width}px`;
+    dayIndicator.style.transform = `translate3d(${x}px, 0, 0)`;
+    if (instant) {
+      // Force reflow, then restore sliding transition for later clicks
+      void dayIndicator.offsetWidth;
+      dayIndicator.style.transition = "";
+    }
+  };
+  window.requestAnimationFrame(place);
+}
+
+function playEnterAnimation() {
+  board.classList.remove("is-entering");
+  dayDate.classList.remove("is-entering");
+  if (marketBanner && !marketBanner.hidden) {
+    marketBanner.classList.remove("is-entering");
+  }
+  window.clearTimeout(enterTimer);
+  window.requestAnimationFrame(() => {
+    board.classList.add("is-entering");
+    dayDate.classList.add("is-entering");
+    if (marketBanner && !marketBanner.hidden) {
+      marketBanner.classList.add("is-entering");
+    }
+    enterTimer = window.setTimeout(() => {
+      board.classList.remove("is-entering");
+      dayDate.classList.remove("is-entering");
+      if (marketBanner) marketBanner.classList.remove("is-entering");
+    }, 900);
+  });
+}
+
+function selectDay(data, day, { instantIndicator = false } = {}) {
   for (const button of document.querySelectorAll(".days button")) {
     button.setAttribute("aria-selected", String(button.dataset.day === day));
   }
+  const active = document.querySelector('.days button[aria-selected="true"]');
+  updateDayIndicator(active, { instant: instantIndicator });
   renderDay(data, day);
+  playEnterAnimation();
 }
 
 try {
@@ -185,14 +231,21 @@ try {
     banner.textContent = message;
   }
   board.hidden = false;
-  escapeLink.hidden = false;
+  escapeWrap.hidden = false;
   const start = todayKey();
-  selectDay(data, start);
-  board.classList.add("is-ready");
-  window.setTimeout(() => board.classList.remove("is-ready"), 700);
+  selectDay(data, start, { instantIndicator: true });
+  // After the days bar finishes its enter animation, re-measure the pill
+  window.setTimeout(() => {
+    const active = document.querySelector('.days button[aria-selected="true"]');
+    updateDayIndicator(active, { instant: true });
+  }, 750);
   for (const button of document.querySelectorAll(".days button")) {
     button.addEventListener("click", () => selectDay(data, button.dataset.day));
   }
+  window.addEventListener("resize", () => {
+    const active = document.querySelector('.days button[aria-selected="true"]');
+    updateDayIndicator(active, { instant: true });
+  });
 } catch {
   empty.hidden = false;
   stamp.textContent = "Stand: noch kein Crawl";
