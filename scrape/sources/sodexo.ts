@@ -3,7 +3,7 @@ import { dismissCookies, screenshot } from "../browser.ts";
 import { cleanText, inferDiet, parseGermanPrice, stripDietLabels } from "../lib.ts";
 import { CANTEENS, WEEKDAYS, type Dish, type Weekday } from "../types.ts";
 
-const SKIP_CATEGORIES = /add\s*on|dessert|beilage|topping|^pizza$/i;
+const SKIP_CATEGORIES = /add\s*on|beilage|topping|^pizza$/i;
 const SKIP_NAMES = /topping|add\s*on|al gusto|geschlossen/i;
 const UNAVAILABLE = /nicht\s*(verfügbar|im angebot)|ausverkauft|sold\s*out/i;
 
@@ -100,11 +100,12 @@ export async function scrapeSodexo(
     byDay[weekday] = dishes.map((raw) => {
       let diet = inferDiet(`${raw.name} ${raw.dietHint} ${raw.category}`);
       if (/ingreen/i.test(raw.category) && diet === "unknown") diet = "veggie";
+      const category = /dessert/i.test(raw.category) ? "Dessert" : raw.category;
       return {
         name: stripDietLabels(raw.name),
         price: raw.price || parseGermanPrice(raw.name),
         diet,
-        category: raw.category,
+        category,
       };
     });
   }
