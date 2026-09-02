@@ -19,6 +19,11 @@
   box-sizing: border-box;
 }
 
+/* Explicit display rules must not beat the hidden attribute */
+[hidden] {
+  display: none !important;
+}
+
 html {
   background: var(--paper);
 }
@@ -174,9 +179,8 @@ h1 {
   padding: 1rem 1.2rem;
   text-decoration: none;
   color: inherit;
-  background: var(--ticket);
-  border: 1px solid var(--rule);
-  border-left: 4px solid var(--sage);
+  background: var(--sage-soft);
+  border: 1px solid #9bb87a88;
   border-radius: 14px;
   box-shadow: 5px 8px 0 #1c140e10;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -192,7 +196,7 @@ h1 {
   rotate: -5deg;
   padding: 0.22rem 0.5rem;
   border-radius: 6px;
-  background: var(--sage-soft);
+  background: var(--ticket);
   color: var(--sage);
   border: 1px solid #9bb87a88;
   font-family: Fraunces, Georgia, serif;
@@ -275,21 +279,63 @@ h1 {
   transform: translateX(4px);
 }
 
-.back-link {
-  display: inline-block;
-  margin-bottom: 0.85rem;
-  color: var(--ink-soft);
-  font-size: 0.88rem;
-  text-decoration: none;
-  letter-spacing: 0.04em;
+.alt-masthead {
+  padding: 1.6rem 0 1rem;
 }
 
-.back-link:hover {
+.alt-masthead .brand {
+  display: inline-block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.alt-masthead .brand h1 {
+  font-size: clamp(1.7rem, 4.5vw, 2.6rem);
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+}
+
+.alt-masthead .brand:hover h1 {
   color: var(--stamp);
 }
 
-.alt-masthead {
-  padding-bottom: 0.6rem;
+.alt-masthead .page-title {
+  margin: 0.7rem 0 0.15rem;
+  font-family: Fraunces, Georgia, serif;
+  font-style: italic;
+  font-optical-sizing: auto;
+  font-weight: 560;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.back-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  padding: 0.55rem 0.95rem;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--ticket);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  box-shadow: 3px 5px 0 #1c140e12;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.back-cta:hover {
+  transform: translateY(-1px);
+  border-color: var(--stamp);
+  box-shadow: 4px 7px 0 #1c140e16;
+}
+
+.back-cta span[aria-hidden] {
+  color: var(--stamp);
 }
 
 .spot-grid {
@@ -517,8 +563,22 @@ h1 {
 }
 
 .dish .name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.45rem;
+  row-gap: 0.2rem;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.35;
+}
+
+.dish .sep {
+  flex-shrink: 0;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink-soft) 42%, transparent);
+  transform: translateY(0.02em);
 }
 
 .dish .meta {
@@ -610,7 +670,8 @@ h1 {
 
   .spot-card:hover,
   .escape-link:hover,
-  .market-banner:hover {
+  .market-banner:hover,
+  .back-cta:hover {
     transform: none;
   }
 }

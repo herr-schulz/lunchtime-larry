@@ -96,6 +96,16 @@ function bannerText(data) {
     .join(" ");
 }
 
+function formatDishName(name) {
+  const parts = String(name)
+    .split(/\s*[|/]\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length <= 1) return escapeHtml(name);
+  const sep = '<span class="sep" aria-hidden="true"></span>';
+  return parts.map((part) => escapeHtml(part)).join(sep);
+}
+
 function dishRow(dish) {
   const diet =
     dish.diet && DIET[dish.diet]
@@ -106,7 +116,7 @@ function dishRow(dish) {
     : "";
   const price = dish.price ? `<span class="price">${dish.price}</span>` : "";
   return `<article class="dish">
-    <div class="name">${escapeHtml(dish.name)}</div>
+    <div class="name">${formatDishName(dish.name)}</div>
     ${price}
     <div class="meta">${category}${diet}</div>
   </article>`;
