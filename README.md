@@ -24,7 +24,7 @@ npm run dev
 ## Extras auf der Seite
 
 - **Donnerstag:** dezenter Banner zum [Wochenmarkt Bogenhausen](https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/) (nur am Do sichtbar)
-- **Was anderes?!** — eigene Seite [`alternativen.html`](site/alternativen.html) mit Gehminuten & Tags (Pflege in `site/alternatives.js`)
+- **Was anderes?!** — eigene Seite [`alternativen.html`](site/alternativen.html) mit Gehminuten & Tags (Pflege in `site/locations.js`)
 
 ## GitHub Actions
 

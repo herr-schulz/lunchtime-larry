@@ -1,5 +1,5 @@
-/** Täglich erreichbare Alternativen — ab Elektrstraße 6 · Arabellapark */
-export const ALTERNATIVES = [
+/** Lunch-Locations ab Elektrstraße 6 · Arabellapark */
+export const LOCATIONS = [
   {
     name: "Paulaner's",
     vibe: "Bayerisch",
@@ -82,15 +82,7 @@ export const ALTERNATIVES = [
   },
 ];
 
-export const MARKET = {
-  url: "https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/",
-  title: "Wochenmarkt Bogenhausen",
-  where: "Rosenkavalierplatz",
-  when: "Do 8–18 Uhr",
-  note: "Gemüse, Fisch, Imbiss, Käse & mehr",
-};
-
-export function escapeHtml(value) {
+function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -98,7 +90,7 @@ export function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
-export function renderAltCard(spot, index = 0) {
+function renderLocationCard(spot, index = 0) {
   const tags = (spot.tags ?? [])
     .map((t) => `<span class="pill tag">${escapeHtml(t)}</span>`)
     .join("");
@@ -112,4 +104,14 @@ export function renderAltCard(spot, index = 0) {
     <div class="spot-tags">${tags}</div>
     <p class="spot-meta">${escapeHtml(spot.where)} · ${escapeHtml(spot.when)}</p>
   </a>`;
+}
+
+const grid = document.querySelector("#spot-grid");
+if (grid) {
+  grid.innerHTML = LOCATIONS.map((spot, i) => renderLocationCard(spot, i)).join(
+    "",
+  );
+  window.requestAnimationFrame(() => {
+    document.body.classList.add("spots-ready");
+  });
 }
