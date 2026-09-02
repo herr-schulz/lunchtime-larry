@@ -21,6 +21,11 @@ npm run dev
 
 `npm run scrape` schreibt `site/data/menu.json`. Die Seite liest genau diese Datei.
 
+## Extras auf der Seite
+
+- **Donnerstag:** grüner Banner zum [Wochenmarkt Bogenhausen](https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/) am Rosenkavalierplatz
+- **Was anderes?!** — ausklappbare Alternativen rund um Elektrstraße & Rosenkavalierplatz (Pflege in `site/alternatives.js`)
+
 ## GitHub Actions
 
 - Cron: `0 7 * * 1` (9:00 CEST / 8:00 CET)

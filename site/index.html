@@ -40,7 +40,37 @@
     </nav>
     <p class="day-date" id="day-date"></p>
 
+    <a
+      id="market-banner"
+      class="market-banner"
+      href="https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/"
+      target="_blank"
+      rel="noopener noreferrer"
+      hidden
+    >
+      <span class="market-badge">Do</span>
+      <span class="market-copy">
+        <strong>Wochenmarkt Bogenhausen</strong>
+        <span>Rosenkavalierplatz · 8–18 Uhr · Gemüse, Fisch, Imbiss &amp; Käse</span>
+      </span>
+      <span class="market-go" aria-hidden="true">→</span>
+    </a>
+
     <main id="board" class="board" hidden></main>
+
+    <section class="extras" id="extras" hidden>
+      <button
+        type="button"
+        id="alt-toggle"
+        class="alt-toggle"
+        aria-expanded="false"
+        aria-controls="alt-panel"
+      >
+        <span class="alt-toggle-label">Was anderes?!</span>
+        <span class="alt-toggle-sub">Alternativen um Elektrstraße &amp; Rosenkavalierplatz</span>
+      </button>
+      <div id="alt-panel" class="alt-panel" hidden></div>
+    </section>
 
     <footer class="colophon">
       <p id="stamp">Stand: —</p>

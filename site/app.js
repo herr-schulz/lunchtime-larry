@@ -1,3 +1,5 @@
+import { ALTERNATIVES } from "./alternatives.js";
+
 const CANTEENS = {
   stmuv: { name: "StMUV", short: "Umweltministerium" },
   sodexo: { name: "Dave B", short: "Arabeska" },
@@ -23,6 +25,10 @@ const board = document.querySelector("#board");
 const banner = document.querySelector("#banner");
 const empty = document.querySelector("#empty");
 const dayDate = document.querySelector("#day-date");
+const marketBanner = document.querySelector("#market-banner");
+const extras = document.querySelector("#extras");
+const altToggle = document.querySelector("#alt-toggle");
+const altPanel = document.querySelector("#alt-panel");
 const kwEl = document.querySelector("#kw");
 const stamp = document.querySelector("#stamp");
 
@@ -117,9 +123,26 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function renderAlternatives() {
+  altPanel.innerHTML = ALTERNATIVES.map(
+    (spot) => `<a class="alt-card" href="${escapeHtml(spot.url)}" target="_blank" rel="noopener noreferrer">
+      <h3>${escapeHtml(spot.name)}</h3>
+      <span class="vibe">${escapeHtml(spot.vibe)}</span>
+      <p class="note">${escapeHtml(spot.note)}</p>
+      <p class="where">${escapeHtml(spot.where)} · ${escapeHtml(spot.when)}</p>
+    </a>`,
+  ).join("");
+}
+
+function setAlternativesOpen(open) {
+  altToggle.setAttribute("aria-expanded", String(open));
+  altPanel.hidden = !open;
+}
+
 function renderDay(data, day) {
   const block = data.days[day];
   dayDate.innerHTML = block ? formatDate(block.date) : "";
+  marketBanner.hidden = day !== "thursday";
   board.innerHTML = (block?.canteens ?? [])
     .map((canteen) => {
       const meta = CANTEENS[canteen.id];
@@ -171,11 +194,15 @@ try {
     banner.textContent = message;
   }
   board.hidden = false;
+  extras.hidden = false;
+  renderAlternatives();
+  altToggle.addEventListener("click", () => {
+    setAlternativesOpen(altToggle.getAttribute("aria-expanded") !== "true");
+  });
   const start = DAYS[todayKey()] ? todayKey() : "monday";
   selectDay(data, start);
   board.classList.add("is-ready");
   window.setTimeout(() => board.classList.remove("is-ready"), 700);
-  selectDay(data, start);
   for (const button of document.querySelectorAll(".days button")) {
     button.addEventListener("click", () => selectDay(data, button.dataset.day));
   }
