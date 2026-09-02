@@ -1,7 +1,7 @@
 /** Lunch-Locations ab Elektrstraße 6 · Arabellapark */
 export const LOCATIONS = [
   {
-    name: "Paulaner's",
+    name: "Paulaner’s",
     vibe: "Bayerisch",
     note: "Business Lunch, Spinatknödel, Biergarten im Sommer",
     where: "Arabellastr. 6",

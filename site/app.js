@@ -1,8 +1,20 @@
 
 const CANTEENS = {
-  stmuv: { name: "StMUV", short: "Umweltministerium" },
-  sodexo: { name: "Dave B", short: "Arabeska" },
-  bella23: { name: "Bella 23", short: "Burda" },
+  stmuv: {
+    name: "StMUV",
+    short: "Umweltministerium",
+    url: "https://www.stmuv.bayern.de/speiseplan/",
+  },
+  sodexo: {
+    name: "Dave B",
+    short: "Arabeska",
+    url: "https://de.everyday.sodexo.com/menu/Arabeska/Restaurant%20Speiseplan%20Arabeska%20M%C3%BCnchen",
+  },
+  bella23: {
+    name: "Bella 23",
+    short: "Burda",
+    url: "https://www.bella23.de/#wochenkarte",
+  },
 };
 
 const DAYS = {
@@ -162,7 +174,9 @@ function renderDay(data, day) {
       return `<section class="slip" style="--slip-i:${slipIndex}">
         <div class="slip-head">
           <div>
-            <h2>${meta.name}</h2>
+            <h2>
+              <a class="slip-name" href="${meta.url}" target="_blank" rel="noopener noreferrer">${meta.name}</a>
+            </h2>
             <p class="where">${meta.short}</p>
           </div>
           ${pizza}
