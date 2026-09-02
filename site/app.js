@@ -13,6 +13,8 @@ const DAYS = {
   friday: "Freitag",
 };
 
+const DAY_KEYS = Object.keys(DAYS);
+
 const DIET = {
   vegan: "vegan",
   veggie: "veggie",
@@ -27,9 +29,11 @@ const dayDate = document.querySelector("#day-date");
 const marketBanner = document.querySelector("#market-banner");
 const escapeWrap = document.querySelector("#escape-wrap");
 const daysNav = document.querySelector(".days");
-const dayIndicator = document.querySelector(".days-indicator");
 const kwEl = document.querySelector("#kw");
 const stamp = document.querySelector("#stamp");
+
+const LIVE_MENU =
+  "https://herr-schulz.github.io/lunchtime-larry/data/menu.json";
 
 let enterTimer;
 
@@ -170,59 +174,60 @@ function renderDay(data, day) {
     .join("");
 }
 
-function updateDayIndicator(activeButton, { instant = false } = {}) {
-  if (!dayIndicator || !activeButton || !daysNav) return;
-  const place = () => {
-    const navRect = daysNav.getBoundingClientRect();
-    const btnRect = activeButton.getBoundingClientRect();
-    const x = btnRect.left - navRect.left;
-    if (instant) dayIndicator.style.transition = "none";
-    dayIndicator.style.width = `${btnRect.width}px`;
-    dayIndicator.style.transform = `translate3d(${x}px, 0, 0)`;
-    if (instant) {
-      // Force reflow, then restore sliding transition for later clicks
-      void dayIndicator.offsetWidth;
-      dayIndicator.style.transition = "";
-    }
-  };
-  window.requestAnimationFrame(place);
+function updateDayIndicator(day, { instant = false } = {}) {
+  if (!daysNav) return;
+  const index = Math.max(0, DAY_KEYS.indexOf(day));
+  if (instant) daysNav.classList.remove("is-ready");
+  daysNav.style.setProperty("--tab", String(index));
+  if (instant) {
+    void daysNav.offsetWidth;
+    daysNav.classList.add("is-ready");
+  } else {
+    daysNav.classList.add("is-ready");
+  }
 }
 
 function playEnterAnimation() {
   board.classList.remove("is-entering");
   dayDate.classList.remove("is-entering");
-  if (marketBanner && !marketBanner.hidden) {
-    marketBanner.classList.remove("is-entering");
-  }
+  if (marketBanner) marketBanner.classList.remove("is-entering");
   window.clearTimeout(enterTimer);
-  window.requestAnimationFrame(() => {
-    board.classList.add("is-entering");
-    dayDate.classList.add("is-entering");
-    if (marketBanner && !marketBanner.hidden) {
-      marketBanner.classList.add("is-entering");
-    }
-    enterTimer = window.setTimeout(() => {
-      board.classList.remove("is-entering");
-      dayDate.classList.remove("is-entering");
-      if (marketBanner) marketBanner.classList.remove("is-entering");
-    }, 900);
-  });
+  void board.offsetWidth;
+  board.classList.add("is-entering");
+  dayDate.classList.add("is-entering");
+  if (marketBanner && !marketBanner.hidden) {
+    marketBanner.classList.add("is-entering");
+  }
+  enterTimer = window.setTimeout(() => {
+    board.classList.remove("is-entering");
+    dayDate.classList.remove("is-entering");
+    if (marketBanner) marketBanner.classList.remove("is-entering");
+  }, 900);
 }
 
 function selectDay(data, day, { instantIndicator = false } = {}) {
   for (const button of document.querySelectorAll(".days button")) {
     button.setAttribute("aria-selected", String(button.dataset.day === day));
   }
-  const active = document.querySelector('.days button[aria-selected="true"]');
-  updateDayIndicator(active, { instant: instantIndicator });
+  updateDayIndicator(day, { instant: instantIndicator });
   renderDay(data, day);
   playEnterAnimation();
 }
 
+async function loadMenu() {
+  try {
+    const local = await fetch("./data/menu.json", { cache: "no-store" });
+    if (local.ok) return local.json();
+  } catch {
+    /* file:// or missing local copy */
+  }
+  const live = await fetch(LIVE_MENU, { cache: "no-store" });
+  if (!live.ok) throw new Error("missing");
+  return live.json();
+}
+
 try {
-  const response = await fetch("./data/menu.json", { cache: "no-store" });
-  if (!response.ok) throw new Error("missing");
-  const data = await response.json();
+  const data = await loadMenu();
   kwEl.textContent = isoWeek(data.weekStart);
   stamp.textContent = `Stand: ${formatStamp(data.scrapedAt)}`;
   const message = bannerText(data);
@@ -234,18 +239,9 @@ try {
   escapeWrap.hidden = false;
   const start = todayKey();
   selectDay(data, start, { instantIndicator: true });
-  // After the days bar finishes its enter animation, re-measure the pill
-  window.setTimeout(() => {
-    const active = document.querySelector('.days button[aria-selected="true"]');
-    updateDayIndicator(active, { instant: true });
-  }, 750);
   for (const button of document.querySelectorAll(".days button")) {
     button.addEventListener("click", () => selectDay(data, button.dataset.day));
   }
-  window.addEventListener("resize", () => {
-    const active = document.querySelector('.days button[aria-selected="true"]');
-    updateDayIndicator(active, { instant: true });
-  });
 } catch {
   empty.hidden = false;
   stamp.textContent = "Stand: noch kein Crawl";
