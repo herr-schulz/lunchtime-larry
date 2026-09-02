@@ -1,48 +1,57 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
-const src = await readFile("lunchtime-larry.svg", "utf8");
-const recolored = src
-  .replace("#8f1926", "#c4452d")
-  .replace('id="Ebene_1" data-name="Ebene 1" ', "");
+const larry = await readFile("site/larry.svg", "utf8");
+const favicon = await readFile("site/favicon.svg", "utf8");
 
-await writeFile("site/larry.svg", recolored);
+function inlineSvg(svg, size) {
+  return svg
+    .replace(/<\?xml[^>]*>\s*/, "")
+    .replace(/<svg /, `<svg width="${size}" height="${size}" `);
+}
 
-const icon = recolored
-  .replace(
-    "</defs>",
-    `</defs>
-  <rect width="96" height="96" rx="20" fill="#f2e2c4"/>
-  <g transform="translate(3.5 2.5) scale(0.93)">`,
-  )
-  .replace("</svg>", "</g>\n</svg>");
-
-await writeFile("site/favicon.svg", icon);
+/** Black Larry on transparent, unflipped, padded for Android's circular mask. */
+function androidIcon(size) {
+  const inner = larry
+    .replace(/<\?xml[^>]*>\s*/, "")
+    .replace(/<svg[^>]*>/, "")
+    .replace("</svg>", "");
+  const pad = 0.12;
+  const s = 1 - pad * 2;
+  const t = 96 * pad;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 96 96">
+  <g transform="translate(${t} ${t}) scale(${s})">${inner}</g>
+</svg>`;
+}
 
 const browser = await chromium.launch({ headless: true });
-const sizes = [
-  ["site/apple-touch-icon.png", 180],
-  ["site/icon-192.png", 192],
-  ["site/icon-512.png", 512],
-];
-for (const [out, size] of sizes) {
+
+async function raster(svg, out, size, { transparent }) {
   const page = await browser.newPage({
     viewport: { width: size, height: size },
     deviceScaleFactor: 1,
   });
   await page.setContent(
-    `<!doctype html><html><body style="margin:0">${icon}</body></html>`,
+    `<!doctype html>
+<html>
+<body style="margin:0;width:${size}px;height:${size}px;background:transparent;overflow:hidden">
+${inlineSvg(svg, size)}
+</body>
+</html>`,
     { waitUntil: "load" },
   );
-  await page.evaluate((s) => {
-    const svg = document.querySelector("svg");
-    if (svg) {
-      svg.setAttribute("width", String(s));
-      svg.setAttribute("height", String(s));
-    }
-  }, size);
-  await page.screenshot({ path: out, omitBackground: false });
+  await page.waitForSelector("svg");
+  await page.screenshot({
+    path: out,
+    omitBackground: transparent,
+    animations: "disabled",
+  });
   await page.close();
 }
+
+await raster(favicon, "site/apple-touch-icon.png", 180, { transparent: false });
+await raster(androidIcon(192), "site/icon-192.png", 192, { transparent: true });
+await raster(androidIcon(512), "site/icon-512.png", 512, { transparent: true });
+
 await browser.close();
 console.log("larry assets ready");
