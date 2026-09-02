@@ -51,7 +51,8 @@ body {
 .banner,
 .empty,
 .board,
-.extras,
+.escape-link,
+.spot-grid,
 .colophon {
   width: min(1180px, calc(100% - 2rem));
   margin-inline: auto;
@@ -102,10 +103,11 @@ h1 {
 
 .days {
   display: flex;
-  gap: 0.45rem;
+  gap: 0.35rem;
   margin-top: 1.6rem;
-  padding: 0.45rem;
+  padding: 0.4rem;
   background: var(--board);
+  border-radius: 14px;
   box-shadow: 0 18px 40px #1c140e33;
 }
 
@@ -119,7 +121,9 @@ h1 {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0.7rem 0.4rem;
+  border-radius: 10px;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .days button[aria-selected="true"] {
@@ -164,157 +168,258 @@ h1 {
 .market-banner {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  margin-top: 0.15rem;
-  margin-bottom: 0.35rem;
-  padding: 0.85rem 1rem;
+  gap: 0.9rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding: 1rem 1.2rem;
   text-decoration: none;
   color: inherit;
-  background: linear-gradient(135deg, #e8f0dc 0%, #dce8cc 100%);
-  border: 1px solid #9bb87a;
-  box-shadow: 4px 6px 0 #2f5d4522;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: var(--ticket);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--sage);
+  border-radius: 14px;
+  box-shadow: 5px 8px 0 #1c140e10;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .market-banner:hover {
-  transform: translateY(-1px);
-  box-shadow: 5px 8px 0 #2f5d4528;
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 0 #1c140e16;
 }
 
 .market-badge {
   flex-shrink: 0;
-  rotate: -6deg;
-  padding: 0.2rem 0.45rem;
-  background: var(--sage);
-  color: #f4f8ef;
+  rotate: -5deg;
+  padding: 0.22rem 0.5rem;
+  border-radius: 6px;
+  background: var(--sage-soft);
+  color: var(--sage);
+  border: 1px solid #9bb87a88;
   font-family: Fraunces, Georgia, serif;
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   letter-spacing: 0.06em;
 }
 
 .market-copy {
   display: flex;
   flex-direction: column;
-  gap: 0.12rem;
+  gap: 0.18rem;
   min-width: 0;
 }
 
 .market-copy strong {
   font-family: Fraunces, Georgia, serif;
-  font-size: 1.05rem;
+  font-size: 1.08rem;
+  font-weight: 600;
 }
 
 .market-copy span:last-child {
-  color: var(--sage);
+  color: var(--ink-soft);
   font-size: 0.86rem;
 }
 
 .market-go {
   margin-left: auto;
   color: var(--sage);
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 600;
 }
 
-.extras {
-  margin-top: 0.5rem;
-  padding-bottom: 2.8rem;
-}
-
-.alt-toggle {
-  width: 100%;
+.escape-link {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.15rem;
-  padding: 0.95rem 1.1rem;
-  border: 2px dashed var(--stamp);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.25rem;
+  margin-bottom: 2.4rem;
+  padding: 1rem 1.15rem;
+  text-decoration: none;
+  color: inherit;
   background: var(--ticket);
-  color: var(--ink);
-  cursor: pointer;
-  box-shadow: 5px 7px 0 #1c140e12;
-  transition: background 0.15s ease, transform 0.15s ease;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: 6px 10px 0 #1c140e14;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.alt-toggle:hover {
-  background: #fffdf5;
-  transform: translateY(-1px);
+.escape-link:hover {
+  transform: translateY(-2px);
+  border-color: var(--stamp);
+  box-shadow: 7px 12px 0 #1c140e18;
 }
 
-.alt-toggle[aria-expanded="true"] {
-  border-style: solid;
-  border-bottom: 0;
-  box-shadow: none;
-  margin-bottom: 0;
-}
-
-.alt-toggle-label {
+.escape-label {
+  display: block;
   font-family: Fraunces, Georgia, serif;
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-.alt-toggle-sub {
+.escape-sub {
+  display: block;
+  margin-top: 0.12rem;
   color: var(--ink-soft);
   font-size: 0.86rem;
 }
 
-.alt-panel {
+.escape-arrow {
+  flex-shrink: 0;
+  font-size: 1.35rem;
+  color: var(--stamp);
+  transition: transform 0.18s ease;
+}
+
+.escape-link:hover .escape-arrow {
+  transform: translateX(4px);
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 0.85rem;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+}
+
+.back-link:hover {
+  color: var(--stamp);
+}
+
+.alt-masthead {
+  padding-bottom: 0.6rem;
+}
+
+.spot-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.65rem;
-  padding: 0.85rem;
-  background: var(--ticket);
-  border: 2px solid var(--stamp);
-  border-top: 1px dashed var(--rule);
-  box-shadow: 5px 7px 0 #1c140e12;
+  gap: 1rem;
+  padding-bottom: 2.5rem;
 }
 
-.alt-card {
+.spot-card {
+  position: relative;
   display: block;
-  padding: 0.75rem 0.8rem;
+  padding: 1.05rem 1.1rem 1.15rem;
   text-decoration: none;
   color: inherit;
-  background: #fffdf7;
+  background: var(--ticket);
   border: 1px solid var(--rule);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  box-shadow: 6px 10px 0 #1c140e14;
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
 }
 
-.alt-card:hover {
+.spots-ready .spot-card {
+  animation: spot-in 0.5s ease forwards;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+.spot-card::before,
+.spot-card::after {
+  content: "";
+  position: absolute;
+  left: 0.7rem;
+  right: 0.7rem;
+  height: 10px;
+  background:
+    radial-gradient(circle at 8px 5px, var(--paper) 5px, transparent 5.5px) 0 0 / 16px 10px;
+}
+
+.spot-card::before {
+  top: -5px;
+}
+
+.spot-card::after {
+  bottom: -5px;
+  transform: rotate(180deg);
+}
+
+.spot-card:hover {
+  transform: translateY(-3px);
   border-color: var(--mustard);
-  background: #fff9ec;
+  box-shadow: 8px 14px 0 #1c140e18;
 }
 
-.alt-card h3 {
+.spots-ready .spot-card:hover {
+  transform: translateY(-3px);
+}
+
+.spot-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.spot-top h3 {
   margin: 0;
   font-family: Fraunces, Georgia, serif;
-  font-size: 1.08rem;
+  font-size: 1.35rem;
+  line-height: 1.1;
 }
 
-.alt-card .vibe {
-  display: inline-block;
-  margin-top: 0.25rem;
-  padding: 0.04rem 0.35rem;
+.spot-walk {
+  flex-shrink: 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
   background: #efe2cb;
+  color: var(--mustard);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.spot-vibe {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--sage-soft);
+  color: var(--sage);
   font-size: 0.66rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-.alt-card .note {
-  margin: 0.35rem 0 0;
+.spot-note {
+  margin: 0.55rem 0 0;
   color: var(--ink-soft);
-  font-size: 0.82rem;
-  line-height: 1.35;
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
-.alt-card .where {
-  margin-top: 0.45rem;
+.spot-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+}
+
+.pill.tag {
+  background: #efe2cb;
+  color: var(--ink-soft);
+}
+
+.spot-meta {
+  margin: 0.65rem 0 0;
   font-size: 0.78rem;
   color: var(--mustard);
   font-weight: 600;
+}
+
+@keyframes spot-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .slip {
@@ -490,13 +595,22 @@ h1 {
     grid-template-columns: 1fr;
   }
 
-  .alt-panel {
+  .spot-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .slip {
-    animation: none;
+  .slip,
+  .spot-card {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .spot-card:hover,
+  .escape-link:hover,
+  .market-banner:hover {
+    transform: none;
   }
 }

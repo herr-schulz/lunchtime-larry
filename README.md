@@ -23,8 +23,8 @@ npm run dev
 
 ## Extras auf der Seite
 
-- **Donnerstag:** grüner Banner zum [Wochenmarkt Bogenhausen](https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/) am Rosenkavalierplatz
-- **Was anderes?!** — ausklappbare Alternativen rund um Elektrstraße & Rosenkavalierplatz (Pflege in `site/alternatives.js`)
+- **Donnerstag:** dezenter Banner zum [Wochenmarkt Bogenhausen](https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/) (nur am Do sichtbar)
+- **Was anderes?!** — eigene Seite [`alternativen.html`](site/alternativen.html) mit Gehminuten & Tags (Pflege in `site/alternatives.js`)
 
 ## GitHub Actions
 
