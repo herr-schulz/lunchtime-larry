@@ -9,23 +9,38 @@
       content="Feste Lunch-Alternativen rund um Elektrstraße 6 und Rosenkavalierplatz im Arabellapark."
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#f2e2c4" />
+    <meta name="apple-mobile-web-app-title" content="Larry" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=3" />
+    <link rel="stylesheet" href="./styles.css?v=5" />
   </head>
   <body class="page-alternatives">
     <div class="grain" aria-hidden="true"></div>
     <header class="masthead alt-masthead">
-      <p class="kicker">Arabellapark · Alternativen</p>
-      <a class="brand" href="./">
-        <h1>Lunchtime Larry</h1>
-      </a>
-      <p class="page-title">Was anderes?!</p>
-      <p class="lede">Feste Alternativen, wenn die Kantine nicht reizt — täglich erreichbar.</p>
+      <img
+        class="mascot"
+        src="./larry.svg"
+        alt=""
+        width="96"
+        height="96"
+      />
+      <div class="masthead-copy">
+        <p class="kicker">Arabellapark · Alternativen</p>
+        <a class="brand" href="./">
+          <h1>Lunchtime Larry</h1>
+        </a>
+        <p class="page-title">Was anderes?!</p>
+        <p class="lede">Feste Alternativen, wenn die Kantine nicht reizt — täglich erreichbar.</p>
+      </div>
     </header>
 
     <main class="spot-grid" id="spot-grid"></main>

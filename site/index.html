@@ -9,20 +9,35 @@
       content="Was gibt’s heute in StMUV, Dave B und Bella 23? Wochenspeiseplan für den Arabellapark."
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#f2e2c4" />
+    <meta name="apple-mobile-web-app-title" content="Larry" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=4" />
+    <link rel="stylesheet" href="./styles.css?v=5" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
     <header class="masthead">
-      <p class="kicker">Arabellapark · KW <span id="kw">—</span></p>
-      <h1>Lunchtime Larry</h1>
-      <p class="lede">Drei Kantinen. Eine Woche. Kein Azure.</p>
+      <img
+        class="mascot"
+        src="./larry.svg"
+        alt=""
+        width="96"
+        height="96"
+      />
+      <div class="masthead-copy">
+        <p class="kicker">Arabellapark · KW <span id="kw">—</span></p>
+        <h1>Lunchtime Larry</h1>
+        <p class="lede">Drei Kantinen. Eine Woche. Kein Azure.</p>
+      </div>
     </header>
 
     <div id="banner" class="banner" hidden></div>
@@ -83,6 +98,6 @@
         <a href="https://www.bella23.de/#wochenkarte">Bella 23</a>
       </p>
     </footer>
-    <script src="./app.js?v=4" type="module"></script>
+    <script src="./app.js?v=5" type="module"></script>
   </body>
 </html>
