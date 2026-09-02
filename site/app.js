@@ -37,11 +37,15 @@ function isoWeek(isoDate) {
 }
 
 function formatDate(iso) {
-  return new Intl.DateTimeFormat("de-DE", {
-    weekday: "long",
+  const date = new Date(`${iso}T12:00:00`);
+  const weekday = new Intl.DateTimeFormat("de-DE", { weekday: "long" }).format(
+    date,
+  );
+  const when = new Intl.DateTimeFormat("de-DE", {
     day: "numeric",
     month: "long",
-  }).format(new Date(`${iso}T12:00:00`));
+  }).format(date);
+  return `<span class="weekday">${weekday}</span><span class="when">${when}</span>`;
 }
 
 function formatStamp(iso) {
@@ -115,7 +119,7 @@ function escapeHtml(value) {
 
 function renderDay(data, day) {
   const block = data.days[day];
-  dayDate.textContent = block ? formatDate(block.date) : "";
+  dayDate.innerHTML = block ? formatDate(block.date) : "";
   board.innerHTML = (block?.canteens ?? [])
     .map((canteen) => {
       const meta = CANTEENS[canteen.id];
