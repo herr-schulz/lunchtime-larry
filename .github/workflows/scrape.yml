@@ -1,0 +1,88 @@
+name: Scrape and publish
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.ready.outputs.ready }}
+    env:
+      TZ: Europe/Berlin
+      PREV_MENU_URL: https://herr-schulz.github.io/lunchtime-larry/data/menu.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(npx playwright --version)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Chromium deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - run: npm run scrape
+        id: scrape
+
+      - id: ready
+        if: always()
+        run: |
+          if [ -f site/data/menu.json ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scrape-debug
+          path: debug/
+          if-no-files-found: ignore
+
+      - uses: actions/upload-pages-artifact@v3
+        if: always() && steps.ready.outputs.ready == 'true'
+        with:
+          path: site
+
+  deploy:
+    needs: scrape
+    if: needs.scrape.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,22 @@
+{
+  "name": "lunchtime-larry",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Weekly canteen menus for Arabellapark — scraped Mondays, served as a static lunch board.",
+  "type": "module",
+  "scripts": {
+    "scrape": "tsx scrape/index.ts",
+    "dev": "npx --yes serve site -p 4173"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "playwright": "^1.55.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

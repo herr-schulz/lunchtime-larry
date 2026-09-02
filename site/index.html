@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lunchtime Larry — Arabellapark</title>
+    <meta
+      name="description"
+      content="Was gibt’s heute in StMUV, Dave B und Bella 23? Wochenspeiseplan für den Arabellapark."
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="masthead">
+      <p class="kicker">Arabellapark · KW <span id="kw">—</span></p>
+      <h1>Lunchtime Larry</h1>
+      <p class="lede">Drei Kantinen. Eine Woche. Kein Azure.</p>
+    </header>
+
+    <div id="banner" class="banner" hidden></div>
+    <p id="empty" class="empty" hidden>
+      Noch kein Speiseplan. Larry crawlt montags um 9 Uhr — oder du startest den
+      Lauf unter Actions manuell.
+    </p>
+
+    <nav class="days" role="tablist" aria-label="Wochentag">
+      <button type="button" role="tab" data-day="monday">Mo</button>
+      <button type="button" role="tab" data-day="tuesday">Di</button>
+      <button type="button" role="tab" data-day="wednesday">Mi</button>
+      <button type="button" role="tab" data-day="thursday">Do</button>
+      <button type="button" role="tab" data-day="friday">Fr</button>
+    </nav>
+    <p class="day-date" id="day-date"></p>
+
+    <main id="board" class="board" hidden></main>
+
+    <footer class="colophon">
+      <p id="stamp">Stand: —</p>
+      <p>
+        Quellen:
+        <a href="https://www.stmuv.bayern.de/speiseplan/">StMUV</a>
+        ·
+        <a
+          href="https://de.everyday.sodexo.com/menu/Arabeska/Restaurant%20Speiseplan%20Arabeska%20M%C3%BCnchen"
+          >Dave B / Arabeska</a
+        >
+        ·
+        <a href="https://www.bella23.de/#wochenkarte">Bella 23</a>
+      </p>
+    </footer>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

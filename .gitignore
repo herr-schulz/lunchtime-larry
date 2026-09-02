@@ -1,0 +1,11 @@
+node_modules/
+debug/
+site/data/menu.json
+playwright-report/
+test-results/
+blob-report/
+*.png
+.DS_Store
+Thumbs.db
+.env
+.env.*
