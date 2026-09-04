@@ -1,0 +1,55 @@
+name: Publish site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "scripts/stamp-assets.mjs"
+      - ".github/workflows/publish.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      PREV_MENU_URL: https://herr-schulz.github.io/lunchtime-larry/data/menu.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Restore current menu
+        run: |
+          mkdir -p site/data
+          if curl -fsSL "$PREV_MENU_URL" -o site/data/menu.json; then
+            echo "restored menu.json"
+          else
+            echo "no live menu — deploying the board without it"
+            rm -f site/data/menu.json
+          fi
+
+      - run: npm run stamp
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

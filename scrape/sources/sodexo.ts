@@ -1,21 +1,15 @@
 import type { Page } from "playwright";
 import { dismissCookies, screenshot } from "../browser.ts";
-import { cleanText, inferDiet, parseGermanPrice, stripDietLabels } from "../lib.ts";
+import { cleanText } from "../lib.ts";
 import { CANTEENS, WEEKDAYS, type Dish, type Weekday } from "../types.ts";
-
-const SKIP_CATEGORIES = /add\s*on|beilage|topping|^pizza$/i;
-const SKIP_NAMES = /topping|add\s*on|al gusto|geschlossen/i;
-const UNAVAILABLE = /nicht\s*(verfügbar|im angebot)|ausverkauft|sold\s*out/i;
-
-function tabToWeekday(label: string): Weekday | undefined {
-  const lower = label.toLowerCase();
-  if (lower.startsWith("mo")) return "monday";
-  if (lower.startsWith("di")) return "tuesday";
-  if (lower.startsWith("mi")) return "wednesday";
-  if (lower.startsWith("do")) return "thursday";
-  if (lower.startsWith("fr")) return "friday";
-  return undefined;
-}
+import {
+  SKIP_CATEGORIES,
+  SKIP_NAMES,
+  UNAVAILABLE,
+  mapSodexoDishes,
+  tabToWeekday,
+  type SodexoRaw,
+} from "./sodexoParse.ts";
 
 export async function scrapeSodexo(
   page: Page,
@@ -47,7 +41,18 @@ export async function scrapeSodexo(
     if (!weekday) continue;
 
     await tab.click();
-    await page.waitForTimeout(800);
+    await page.waitForFunction(
+      (expected) => {
+        const active = document.querySelector(
+          "app-menu-container .mdc-tab--active, app-menu-container .mdc-tab[aria-selected='true']",
+        );
+        const cards = document.querySelectorAll(".product-card");
+        const activeLabel = (active?.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+        return cards.length > 0 && activeLabel.startsWith(expected);
+      },
+      label.slice(0, 2).toLowerCase(),
+      { timeout: 12_000 },
+    );
     await page.locator(".product-card").first().waitFor({ timeout: 12_000 });
 
     const dishes = await page.evaluate(
@@ -55,7 +60,7 @@ export async function scrapeSodexo(
         const skipCatRe = new RegExp(skipCat, "i");
         const skipNameRe = new RegExp(skipName, "i");
         const unavailableRe = new RegExp(unavailable, "i");
-        const out: { name: string; price?: string; category: string; dietHint: string }[] = [];
+        const out: SodexoRaw[] = [];
 
         for (const category of document.querySelectorAll("app-category")) {
           const heading = category.querySelector("h2, h3, h4, h5");
@@ -65,7 +70,7 @@ export async function scrapeSodexo(
           for (const card of category.querySelectorAll(".product-card")) {
             const style = getComputedStyle(card);
             const text = (card.textContent || "").replace(/\s+/g, " ").trim();
-            if (Number(style.opacity) < 0.7) continue;
+            if (style.opacity !== "" && Number(style.opacity) < 0.7) continue;
             if (style.filter.includes("grayscale")) continue;
             if (unavailableRe.test(text)) continue;
             if (card.className.toLowerCase().match(/sold|unavailable|disabled|out-of-stock/)) {
@@ -97,17 +102,7 @@ export async function scrapeSodexo(
       },
     );
 
-    byDay[weekday] = dishes.map((raw) => {
-      let diet = inferDiet(`${raw.name} ${raw.dietHint} ${raw.category}`);
-      if (/ingreen/i.test(raw.category) && diet === "unknown") diet = "veggie";
-      const category = /dessert/i.test(raw.category) ? "Dessert" : raw.category;
-      return {
-        name: stripDietLabels(raw.name),
-        price: raw.price || parseGermanPrice(raw.name),
-        diet,
-        category,
-      };
-    });
+    byDay[weekday] = mapSodexoDishes(dishes);
   }
 
   const dishCount = WEEKDAYS.reduce((n, d) => n + byDay[d].length, 0);

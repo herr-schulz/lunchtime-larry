@@ -1,3 +1,5 @@
+import canteenData from "../site/canteens.json" with { type: "json" };
+
 export const WEEKDAYS = [
   "monday",
   "tuesday",
@@ -8,8 +10,10 @@ export const WEEKDAYS = [
 
 export type Weekday = (typeof WEEKDAYS)[number];
 export type Diet = "vegan" | "veggie" | "meat" | "fish" | "unknown";
-export type CanteenId = "stmuv" | "sodexo" | "bella23";
 export type SourceStatus = "ok" | "error" | "stale";
+
+export const CANTEENS = canteenData;
+export type CanteenId = keyof typeof CANTEENS;
 
 export interface Dish {
   name: string;
@@ -41,27 +45,6 @@ export interface MenuData {
   sources: Record<CanteenId, SourceMeta>;
   days: Record<Weekday, DayMenu>;
 }
-
-export const CANTEENS: Record<
-  CanteenId,
-  { name: string; short: string; url: string }
-> = {
-  stmuv: {
-    name: "StMUV",
-    short: "Umweltministerium",
-    url: "https://www.stmuv.bayern.de/speiseplan/",
-  },
-  sodexo: {
-    name: "Dave B",
-    short: "Arabeska",
-    url: "https://de.everyday.sodexo.com/menu/Arabeska/Restaurant%20Speiseplan%20Arabeska%20M%C3%BCnchen",
-  },
-  bella23: {
-    name: "Bella 23",
-    short: "Burda",
-    url: "https://www.bella23.de/#wochenkarte",
-  },
-};
 
 export const USER_AGENT =
   "LunchtimeLarry/1.0 (+https://github.com/herr-schulz/lunchtime-larry)";

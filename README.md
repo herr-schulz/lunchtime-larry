@@ -1,8 +1,10 @@
 # Lunchtime Larry
 
-Wochenspeiseplan für drei Kantinen im Münchner Arabellapark. Montags um 9 Uhr (Europe/Berlin) crawlt GitHub Actions die Original-Seiten und veröffentlicht eine statische Tafel auf GitHub Pages.
+Wochenspeiseplan für drei Kantinen im Münchner Arabellapark. Montags und mittwochs um 9 Uhr (Europe/Berlin) crawlt GitHub Actions die Original-Seiten und veröffentlicht eine statische Tafel auf GitHub Pages.
 
 **Live:** https://herr-schulz.github.io/lunchtime-larry
+
+![CI](https://github.com/herr-schulz/lunchtime-larry/actions/workflows/ci.yml/badge.svg)
 
 | Kantine | Quelle |
 | --- | --- |
@@ -15,6 +17,7 @@ Wochenspeiseplan für drei Kantinen im Münchner Arabellapark. Montags um 9 Uhr 
 ```bash
 npm install
 npx playwright install chromium
+npm test
 npm run scrape
 npm run dev
 ```
@@ -28,9 +31,11 @@ npm run dev
 
 ## GitHub Actions
 
-- Cron: `0 7 * * 1` (9:00 CEST / 8:00 CET)
-- Manuell: Repo → **Actions** → *Scrape and publish* → **Run workflow**
-- Schlägt eine Quelle fehl, geht die Seite trotzdem online: Banner oben, betroffene Karte mit Hinweis. Gibt es für dieselbe Woche noch einen alten Stand, bleibt der als Fallback sichtbar.
+- **CI:** Typecheck und Parser-Tests bei Push und Pull Request
+- **Scrape:** Cron `0 7 * * 1,3` (Mo + Mi, 9:00 CEST / 8:00 CET) und manuell unter Actions → *Scrape and publish*
+- **Publish:** Push auf `main`, der `site/` ändert — nimmt den letzten `menu.json` von Pages mit, ohne die Kantinen-Seiten erneut anzufassen
+- Android-Homescreen: nach einem Icon-Update die Verknüpfung einmal entfernen und neu anlegen, sonst bleibt der alte Splash-Cache.
+- Schlägt eine Quelle fehl oder liefert eine unplausible Woche (leer, nur Desserts, stark ausgedünnt), geht die Seite trotzdem online: Banner oben, betroffene Karte mit Hinweis. Gibt es für dieselbe Woche noch einen alten Stand, bleibt der als Fallback sichtbar.
 
 ## Teams
 

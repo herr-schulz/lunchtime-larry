@@ -2,10 +2,8 @@ name: Scrape and publish
 
 on:
   schedule:
-    - cron: "0 7 * * 1"
+    - cron: "0 7 * * 1,3"
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -14,7 +12,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   scrape:
@@ -70,6 +68,9 @@ jobs:
           name: scrape-debug
           path: debug/
           if-no-files-found: ignore
+
+      - run: npm run stamp
+        if: always() && steps.ready.outputs.ready == 'true'
 
       - uses: actions/upload-pages-artifact@v3
         if: always() && steps.ready.outputs.ready == 'true'

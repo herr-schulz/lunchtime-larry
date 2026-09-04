@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { launchBrowser, screenshot } from "./browser.ts";
 import { formatIsoDateTime, weekStartBerlin, weekdayDates } from "./lib.ts";
+import { assessSource } from "./sanity.ts";
 import { scrapeBella23 } from "./sources/bella23.ts";
 import { scrapeSodexo } from "./sources/sodexo.ts";
 import { scrapeStmuv } from "./sources/stmuv.ts";
@@ -37,19 +38,17 @@ async function loadPrevious(): Promise<MenuData | undefined> {
 
 function emptyDays(weekStart: string): MenuData["days"] {
   const dates = weekdayDates(weekStart);
-  return Object.fromEntries(
-    WEEKDAYS.map((day) => [
-      day,
-      {
-        date: dates[day],
-        canteens: [
-          { id: "stmuv" as const, dishes: [] },
-          { id: "sodexo" as const, dishes: [] },
-          { id: "bella23" as const, dishes: [] },
-        ],
-      },
-    ]),
-  ) as MenuData["days"];
+  const days = {} as MenuData["days"];
+  for (const day of WEEKDAYS) {
+    days[day] = {
+      date: dates[day],
+      canteens: (Object.keys(CANTEENS) as CanteenId[]).map((id) => ({
+        id,
+        dishes: [],
+      })),
+    };
+  }
+  return days;
 }
 
 function dishesFor(
@@ -72,17 +71,24 @@ async function main() {
   const { browser, context } = await launchBrowser();
   const results: SourceResult[] = [];
 
-  const jobs: { id: CanteenId; run: (page: Awaited<ReturnType<typeof context.newPage>>) => Promise<Record<Weekday, Dish[]>> }[] =
-    [
-      { id: "stmuv", run: scrapeStmuv },
-      { id: "sodexo", run: scrapeSodexo },
-      { id: "bella23", run: scrapeBella23 },
-    ];
+  const jobs: {
+    id: CanteenId;
+    run: (page: Awaited<ReturnType<typeof context.newPage>>) => Promise<Record<Weekday, Dish[]>>;
+  }[] = [
+    { id: "stmuv", run: scrapeStmuv },
+    { id: "sodexo", run: scrapeSodexo },
+    { id: "bella23", run: scrapeBella23 },
+  ];
 
   for (const job of jobs) {
     const page = await context.newPage();
     try {
       const dishes = await job.run(page);
+      const previousDishes = previous ? dishesFor(previous.days, job.id) : undefined;
+      const health = assessSource(dishes, previousDishes);
+      if (!health.ok) {
+        throw new Error(health.reason);
+      }
       results.push({ id: job.id, ok: true, dishes });
       console.log(`ok ${job.id}`);
     } catch (error) {

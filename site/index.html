@@ -2,7 +2,10 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Lunchtime Larry — Arabellapark</title>
     <meta
       name="description"
@@ -14,6 +17,7 @@
     <meta name="theme-color" content="#f2e2c4" />
     <meta name="apple-mobile-web-app-title" content="Larry" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,7 +25,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=35" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -29,7 +33,7 @@
       <div class="masthead-lockup">
         <img
           class="mascot"
-          src="./larry.svg?v=2"
+          src="./larry.svg"
           alt="Lunchtime Larry"
           width="96"
           height="96"
@@ -42,19 +46,74 @@
       </div>
     </header>
 
-    <div id="banner" class="banner" hidden></div>
     <p id="empty" class="empty" hidden>
       Noch kein Speiseplan. Larry crawlt montags um 9 Uhr — oder du startest den
       Lauf unter Actions manuell.
     </p>
 
-    <nav class="days" role="tablist" aria-label="Wochentag" style="--tab: 0">
-      <button type="button" role="tab" data-day="monday">Mo</button>
-      <button type="button" role="tab" data-day="tuesday">Di</button>
-      <button type="button" role="tab" data-day="wednesday">Mi</button>
-      <button type="button" role="tab" data-day="thursday">Do</button>
-      <button type="button" role="tab" data-day="friday">Fr</button>
+    <div class="day-switch">
+      <nav class="days" role="tablist" aria-label="Wochentag" style="--tab: 0">
+      <button
+        type="button"
+        role="tab"
+        id="tab-monday"
+        data-day="monday"
+        aria-controls="board"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        Mo
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="tab-tuesday"
+        data-day="tuesday"
+        aria-controls="board"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        Di
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="tab-wednesday"
+        data-day="wednesday"
+        aria-controls="board"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        Mi
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="tab-thursday"
+        data-day="thursday"
+        aria-controls="board"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        Do
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="tab-friday"
+        data-day="friday"
+        aria-controls="board"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        Fr
+      </button>
     </nav>
+      <div id="notices" class="notices" hidden>
+        <div id="banner" class="toast toast-warn" hidden></div>
+        <div id="hits" class="toast toast-hit" hidden></div>
+      </div>
+    </div>
     <p class="day-date" id="day-date"></p>
 
     <a
@@ -73,7 +132,13 @@
       <span class="market-go" aria-hidden="true">→</span>
     </a>
 
-    <main id="board" class="board" hidden></main>
+    <main
+      id="board"
+      class="board"
+      role="tabpanel"
+      aria-labelledby="tab-monday"
+      hidden
+    ></main>
 
     <div class="escape-wrap" id="escape-wrap" hidden>
       <a href="./alternativen.html" class="escape-link" id="escape-link">
@@ -89,6 +154,6 @@
     <footer class="colophon">
       <p id="stamp">Stand: —</p>
     </footer>
-    <script src="./app.js?v=6" type="module"></script>
+    <script src="./app.js" type="module"></script>
   </body>
 </html>

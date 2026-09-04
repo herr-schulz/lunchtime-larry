@@ -8,7 +8,8 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["node"]
   },
-  "include": ["scrape/**/*.ts"]
+  "include": ["scrape/**/*.ts", "site/canteens.json"]
 }
