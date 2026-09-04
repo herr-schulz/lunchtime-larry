@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "votes": {
+      "$day": {
+        ".read": true,
+        ".validate": "$day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+        "$slot": {
+          ".write": "auth != null && $slot.matches(/^[0-5]$/) && (!data.exists() || data.child('uid').val() == auth.uid) && (!newData.exists() || newData.child('uid').val() == auth.uid)",
+          ".validate": "newData.hasChildren(['uid', 'nick', 'canteen', 'at']) && newData.child('uid').val() == auth.uid && newData.child('nick').isString() && newData.child('nick').val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && !newData.child('nick').val().matches(/.*[0-9].*/) && newData.child('canteen').val().matches(/^(stmuv|sodexo|bella23)$/) && newData.child('at').isNumber() && newData.child('at').val() >= now - 300000 && newData.child('at').val() <= now + 60000"
+        }
+      }
+    }
+  }
+}

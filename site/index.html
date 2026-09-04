@@ -14,10 +14,10 @@
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <meta name="theme-color" content="#f2e2c4" />
+    <meta name="theme-color" content="#241910" />
     <meta name="apple-mobile-web-app-title" content="Larry" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,15 +25,16 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=0286920e" />
   </head>
   <body>
+    <div class="status-bleed" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
     <header class="masthead">
       <div class="masthead-lockup">
         <img
           class="mascot"
-          src="./larry.svg"
+          src="./larry.svg?v=ec31f806"
           alt="Lunchtime Larry"
           width="96"
           height="96"
@@ -45,11 +46,6 @@
         </div>
       </div>
     </header>
-
-    <p id="empty" class="empty" hidden>
-      Noch kein Speiseplan. Larry crawlt montags um 9 Uhr — oder du startest den
-      Lauf unter Actions manuell.
-    </p>
 
     <div class="day-switch">
       <nav class="days" role="tablist" aria-label="Wochentag" style="--tab: 0">
@@ -114,7 +110,9 @@
         <div id="hits" class="toast toast-hit" hidden></div>
       </div>
     </div>
-    <p class="day-date" id="day-date"></p>
+    <div class="day-band">
+      <p class="day-date" id="day-date"></p>
+    </div>
 
     <a
       id="market-banner"
@@ -140,6 +138,21 @@
       hidden
     ></main>
 
+    <section id="empty" class="empty" hidden>
+      <article class="slip empty-slip">
+        <div class="slip-head">
+          <div>
+            <h2>Nichts zu stempeln</h2>
+            <p class="where">Larry war noch nicht in der Küche</p>
+          </div>
+        </div>
+        <ul class="empty-list">
+          <li>Noch kein Speiseplan.</li>
+          <li>Larry crawlt montags um 9 Uhr.</li>
+        </ul>
+      </article>
+    </section>
+
     <div class="escape-wrap" id="escape-wrap" hidden>
       <a href="./alternativen.html" class="escape-link" id="escape-link">
         <span class="escape-kicker">Keine Kantine?</span>
@@ -153,7 +166,32 @@
 
     <footer class="colophon">
       <p id="stamp">Stand: —</p>
+      <p>
+        <button type="button" id="nick-edit" class="nick-edit" hidden></button>
+      </p>
     </footer>
-    <script src="./app.js" type="module"></script>
+    <dialog id="nick-dialog" class="nick-dialog">
+      <form method="dialog" id="nick-form">
+        <p class="nick-kicker">Mittagstisch</p>
+        <h2>Dein Spitzname</h2>
+        <label>
+          Name ohne Zahlen
+          <input
+            id="nick-input"
+            name="nick"
+            maxlength="20"
+            autocomplete="nickname"
+            pattern="[A-Za-zÄÖÜäöüß' \-]{1,20}"
+            title="Nur Buchstaben, max. 20 Zeichen"
+            required
+          />
+        </label>
+        <menu>
+          <button type="submit" value="ok">Los</button>
+          <button type="button" id="nick-cancel" value="cancel">Abbrechen</button>
+        </menu>
+      </form>
+    </dialog>
+    <script src="./app.js?v=29e2a560" type="module"></script>
   </body>
 </html>

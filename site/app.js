@@ -1,12 +1,23 @@
 import CANTEENS from "./canteens.json" with { type: "json" };
-import { alertIcon, heartIcon, heartIconFilled } from "./icons.js";
+import { alertIcon, checkCircleSvg, heartIcon, heartIconFilled } from "./icons.js?v=bef72b85";
 import {
   dishKey,
   displayDishName,
   findLikedDishes,
   isLiked,
   toggleLikeSet,
-} from "./likes.js";
+} from "./likes.js?v=a3524205";
+import {
+  loadNick,
+  nicksFor,
+  normalizeNick,
+  saveNick,
+} from "./vote.js?v=789701db";
+import {
+  ensureVoteUser,
+  listenVotes,
+  toggleVote,
+} from "./voteClient.js?v=4475f686";
 
 const DAYS = {
   monday: "Montag",
@@ -38,6 +49,11 @@ const escapeWrap = document.querySelector("#escape-wrap");
 const daysNav = document.querySelector(".days");
 const kwEl = document.querySelector("#kw");
 const stamp = document.querySelector("#stamp");
+const nickEdit = document.querySelector("#nick-edit");
+const nickDialog = document.querySelector("#nick-dialog");
+const nickForm = document.querySelector("#nick-form");
+const nickInput = document.querySelector("#nick-input");
+const nickCancel = document.querySelector("#nick-cancel");
 
 const LIVE_MENU =
   "https://herr-schulz.github.io/lunchtime-larry/data/menu.json";
@@ -45,6 +61,12 @@ const LIVE_MENU =
 let enterTimer;
 let currentDay = "monday";
 let likes = loadLikes();
+let voteState = {
+  counts: { stmuv: 0, sodexo: 0, bella23: 0 },
+  records: {},
+  mine: null,
+  uid: null,
+};
 
 function loadLikes() {
   try {
@@ -104,6 +126,10 @@ function todayKey() {
     .toLowerCase();
   if (day === "saturday" || day === "sunday") return "friday";
   return day;
+}
+
+function votingOpen() {
+  return currentDay === todayKey();
 }
 
 function bannerText(data) {
@@ -211,6 +237,9 @@ function renderDay(data, day) {
       const source = data.sources?.[canteen.id];
       const pizza =
         canteen.id === "sodexo" ? `<span class="pizza">Pizza täglich</span>` : "";
+      const voteBtn = votingOpen()
+        ? `<button type="button" class="vote-mark" data-vote="${canteen.id}" aria-pressed="false"><span class="vote-nicks"></span>${checkCircleSvg()}</button>`
+        : "";
       let note = "";
       if (source?.status === "error") {
         note = `<p class="note">Speiseplan gerade nicht geladen.</p>`;
@@ -222,7 +251,7 @@ function renderDay(data, day) {
         : source?.status === "error"
           ? ""
           : `<p class="ghost">Heute nichts eingetragen.</p>`;
-      return `<section class="slip" style="--slip-i:${slipIndex}">
+      return `<section class="slip" style="--slip-i:${slipIndex}" data-canteen="${canteen.id}">
         <div class="slip-head">
           <div>
             <h2>
@@ -230,14 +259,18 @@ function renderDay(data, day) {
             </h2>
             <p class="where">${meta.short}</p>
           </div>
-          ${pizza}
+          <div class="slip-aside">
+            ${voteBtn}
+          </div>
         </div>
         ${note}
         ${body}
+        ${pizza}
       </section>`;
     })
     .join("");
   renderHits(data, day);
+  applyVoteUi();
 }
 
 function updateDayIndicator(day, { instant = false } = {}) {
@@ -323,6 +356,102 @@ function bindDayNav(data) {
   });
 }
 
+function replayCheck(el) {
+  if (!el) return;
+  el.classList.remove("is-drawn");
+  void el.offsetWidth;
+  el.classList.add("is-drawn");
+}
+
+function applyVoteUi() {
+  const open = votingOpen();
+  for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
+    const id = slip.dataset.canteen;
+    const mine = open && voteState.mine === id;
+    const names = nicksFor(voteState.records, id);
+    slip.classList.toggle("is-voted", mine);
+    const mark = slip.querySelector(".vote-mark");
+    if (!mark) continue;
+    mark.hidden = !open;
+    mark.setAttribute("aria-pressed", String(mine));
+    const label = names.length
+      ? names.join(" · ")
+      : mine
+        ? "Deine Stimme"
+        : "Hierhin";
+    mark.setAttribute("aria-label", label);
+    const nicks = mark.querySelector(".vote-nicks");
+    if (nicks) nicks.textContent = names.join(" · ");
+    if (mine) {
+      if (!mark.classList.contains("is-drawn")) replayCheck(mark);
+    } else {
+      mark.classList.remove("is-drawn");
+    }
+  }
+}
+
+function syncNickButton() {
+  if (!nickEdit) return;
+  const nick = loadNick();
+  if (!nick) {
+    nickEdit.hidden = true;
+    nickEdit.textContent = "";
+    return;
+  }
+  nickEdit.hidden = false;
+  nickEdit.textContent = `Name: ${nick}`;
+}
+
+function askNick() {
+  if (!nickDialog || !nickInput) return Promise.resolve("");
+  nickInput.value = loadNick();
+  nickDialog.showModal();
+  nickInput.focus();
+  return new Promise((resolve) => {
+    const onClose = () => {
+      nickDialog.removeEventListener("close", onClose);
+      resolve(nickDialog.returnValue === "ok" ? saveNick(nickInput.value) : "");
+    };
+    nickDialog.addEventListener("close", onClose, { once: true });
+  });
+}
+
+async function handleVote(canteen) {
+  if (!votingOpen()) return;
+  let nick = loadNick();
+  if (!nick) {
+    nick = await askNick();
+    if (!nick) return;
+    syncNickButton();
+  }
+  try {
+    voteState.mine = await toggleVote(
+      canteen,
+      voteState.mine,
+      voteState.records,
+    );
+  } catch (err) {
+    console.warn(err);
+  }
+}
+
+function bindNickUi() {
+  nickInput?.addEventListener("input", () => {
+    const cleaned = normalizeNick(nickInput.value);
+    if (nickInput.value !== cleaned) nickInput.value = cleaned;
+  });
+  nickForm?.addEventListener("submit", () => {
+    nickDialog.returnValue = "ok";
+  });
+  nickCancel?.addEventListener("click", () => {
+    nickDialog.close("cancel");
+  });
+  nickEdit?.addEventListener("click", async () => {
+    const nick = await askNick();
+    if (nick) syncNickButton();
+  });
+}
+
 function applyLikeState(dish, on) {
   const shown = displayDishName(dish.dataset.name || "");
   dish.classList.toggle("is-liked", on);
@@ -330,9 +459,19 @@ function applyLikeState(dish, on) {
   dish.setAttribute("aria-label", on ? `${shown}, Favorit` : shown);
 }
 
+function hapticPulse() {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  try {
+    navigator.vibrate?.(16);
+  } catch {
+    /* desktop / iOS Safari ignore vibrate */
+  }
+}
+
 function toggleDishLike(data, dish) {
   const name = dish.dataset.name;
   if (!name) return;
+  hapticPulse();
   likes = toggleLikeSet(name, likes);
   saveLikes();
   const on = isLiked(name, likes);
@@ -359,6 +498,11 @@ function bindBoardGestures(data) {
     if (!origin || origin.id !== event.pointerId) return;
     if (Math.abs(event.clientX - origin.x) > 28) swiped = true;
   });
+  board.addEventListener("click", (event) => {
+    const vote = event.target.closest(".vote-mark[data-vote]");
+    if (!vote || !votingOpen()) return;
+    handleVote(vote.dataset.vote);
+  });
   board.addEventListener("pointerup", (event) => {
     if (!origin || origin.id !== event.pointerId) return;
     const { x, y, type } = origin;
@@ -372,19 +516,25 @@ function bindBoardGestures(data) {
       if (next >= 0 && next < DAY_KEYS.length) selectDay(data, DAY_KEYS[next]);
       return;
     }
+    if (event.target.closest("a, .vote-mark")) return;
     const dish = event.target.closest(".dish");
-    if (!dish || event.target.closest("a")) return;
-    if (type === "touch") {
-      const now = performance.now();
-      if (lastTap && lastTap.key === dish.dataset.key && now - lastTap.t < 340) {
-        lastTap = null;
-        toggleDishLike(data, dish);
-      } else {
-        lastTap = { key: dish.dataset.key, t: now };
+    if (dish) {
+      if (type === "touch") {
+        const now = performance.now();
+        if (lastTap && lastTap.key === dish.dataset.key && now - lastTap.t < 340) {
+          lastTap = null;
+          toggleDishLike(data, dish);
+        } else {
+          lastTap = { key: dish.dataset.key, t: now };
+        }
+        return;
       }
+      toggleDishLike(data, dish);
       return;
     }
-    toggleDishLike(data, dish);
+    const slip = event.target.closest(".slip");
+    const canteen = slip?.dataset.canteen;
+    if (canteen && votingOpen()) handleVote(canteen);
   });
   board.addEventListener("pointercancel", () => {
     origin = null;
@@ -429,6 +579,20 @@ try {
   selectDay(data, start, { instantIndicator: true });
   bindDayNav(data);
   bindBoardGestures(data);
+  bindNickUi();
+  syncNickButton();
+  const onVotes = (next) => {
+    voteState = next;
+    applyVoteUi();
+  };
+  (async () => {
+    try {
+      if (loadNick()) await ensureVoteUser();
+    } catch {
+      /* offline or missing database */
+    }
+    listenVotes(onVotes);
+  })();
 } catch {
   empty.hidden = false;
   stamp.textContent = "Stand: noch kein Crawl";

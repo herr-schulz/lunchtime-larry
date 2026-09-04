@@ -70,6 +70,10 @@ body {
     var(--paper);
 }
 
+.status-bleed {
+  display: none;
+}
+
 .grain {
   pointer-events: none;
   position: fixed;
@@ -82,7 +86,7 @@ body {
 
 .masthead,
 .day-switch,
-.day-date,
+.day-band,
 .market-banner,
 .empty,
 .board,
@@ -94,7 +98,7 @@ body {
   margin-inline: auto;
 }
 
-.day-date,
+.day-band,
 .market-banner,
 .empty,
 .board,
@@ -253,11 +257,30 @@ h1 {
 }
 
 .empty {
-  margin-top: 1rem;
-  padding: 0.85rem 1rem;
-  border: 1px dashed var(--ink-soft);
-  background: var(--ticket);
+  margin-top: 0.35rem;
+  padding-bottom: 1.85rem;
+}
+
+.empty-slip {
+  max-width: 22rem;
+  margin-inline: auto;
+}
+
+.empty-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.empty-list li {
+  padding: 0.55rem 0;
+  border-bottom: 1px dotted var(--rule);
   color: var(--ink);
+}
+
+.empty-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0.15rem;
 }
 
 .days {
@@ -325,17 +348,23 @@ h1 {
   color: var(--ink);
 }
 
+.day-band {
+  position: relative;
+  z-index: 1;
+  margin-block: 1.45rem 0.65rem;
+}
+
+.day-switch:has(#notices:not([hidden])) + .day-band {
+  margin-top: 0.85rem;
+}
+
 .day-date {
   display: flex;
   align-items: baseline;
   gap: 0.55rem;
-  margin-block: 1.45rem 0.65rem;
+  margin: 0;
   padding-block: 0.45rem;
   color: var(--ink);
-}
-
-.day-switch:has(#notices:not([hidden])) + .day-date {
-  margin-top: 0.85rem;
 }
 
 .day-date .weekday {
@@ -856,17 +885,206 @@ h1 {
   font-size: 0.82rem;
 }
 
-.pizza {
+.slip-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  flex: 0 1 auto;
+  max-width: min(9.5rem, 46%);
+  min-width: 1.9rem;
+}
+
+.vote-mark {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.1rem 0 0;
+  border: 0;
+  background: none;
+  color: var(--stamp);
+  opacity: 0.5;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  position: relative;
+  z-index: 2;
+}
+
+.vote-mark.is-drawn {
+  opacity: 1;
+}
+
+.vote-mark .vote-check {
+  width: 1.7rem;
+  height: 1.7rem;
   flex-shrink: 0;
-  rotate: 8deg;
+}
+
+.vote-nicks {
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-align: right;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.vote-check-ring,
+.vote-check-tick {
+  stroke-dasharray: 1;
+}
+
+.vote-check-ring {
+  stroke-dashoffset: 0;
+}
+
+.vote-check-tick {
+  stroke-dashoffset: 1;
+}
+
+.is-drawn .vote-check-ring {
+  animation: ink-ring 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.is-drawn .vote-check-tick {
+  animation: ink-tick 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+@keyframes ink-ring {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ink-tick {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.nick-edit {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.nick-dialog {
+  width: min(22rem, calc(100% - 2rem));
+  padding: 1.15rem 1.2rem 1.05rem;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  background: var(--ticket);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.nick-dialog::backdrop {
+  background: color-mix(in srgb, var(--ink) 28%, transparent);
+}
+
+.nick-kicker {
+  margin: 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+
+.nick-dialog h2 {
+  margin: 0.35rem 0 0.85rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.35rem;
+}
+
+.nick-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.nick-dialog input {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.nick-dialog menu {
+  display: flex;
+  gap: 0.55rem;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.nick-dialog menu button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.nick-dialog menu button[value="ok"] {
+  border: 0;
+  background: var(--board);
+  color: var(--tab-muted);
+}
+
+.nick-dialog menu button[value="cancel"],
+.nick-dialog menu #nick-cancel {
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.pizza {
+  display: block;
+  width: max-content;
+  margin: 1.15rem auto 0.15rem;
+  z-index: 1;
+  pointer-events: none;
   border: 2px solid var(--stamp);
   color: var(--stamp);
+  background: var(--ticket);
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 0.72rem;
-  padding: 0.18rem 0.45rem;
+  font-size: 0.78rem;
+  padding: 0.22rem 0.5rem;
+  transform: rotate(-8deg);
 }
 
 .note {
@@ -1047,6 +1265,12 @@ body:not(.page-alternatives) .colophon {
     grid-template-columns: 1fr;
   }
 
+  .day-band {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .masthead {
     padding-top: 1.15rem;
     padding-bottom: 0.9rem;
@@ -1054,9 +1278,23 @@ body:not(.page-alternatives) .colophon {
 
   .day-switch {
     position: sticky;
-    top: max(0.5rem, env(safe-area-inset-top, 0px));
+    top: env(safe-area-inset-top, 0px);
     z-index: 6;
     margin-top: 1.15rem;
+  }
+
+  body {
+    padding-top: 0;
+  }
+
+  .status-bleed {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 9;
+    height: env(safe-area-inset-top, 0px);
+    background: var(--board);
+    pointer-events: none;
   }
 
   .days {
@@ -1130,5 +1368,11 @@ body:not(.page-alternatives) .colophon {
   .market-banner:hover,
   .back-cta:hover {
     transform: none;
+  }
+
+  .is-drawn .vote-check-ring,
+  .is-drawn .vote-check-tick {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }

@@ -13,7 +13,11 @@ export const heartIconFilled = lucideSvg(
   { filled: true, className: "lucide dish-heart" },
 );
 
-/** Lucide `triangle-alert` — https://lucide.dev/icons/triangle-alert */
 export const alertIcon = lucideSvg(
   '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
 );
+
+/** Lucide circle + check, drawn via CSS stroke. */
+export function checkCircleSvg(className = "vote-check") {
+  return `<svg class="${className}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1"/><path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1"/></svg>`;
+}

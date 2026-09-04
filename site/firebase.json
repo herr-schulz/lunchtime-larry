@@ -1,0 +1,9 @@
+{
+  "apiKey": "AIzaSyAWiM133vIOWYnsUgfmCohBtP8lNPIVAWw",
+  "authDomain": "lunchtime-larry.firebaseapp.com",
+  "databaseURL": "https://lunchtime-larry-default-rtdb.europe-west1.firebasedatabase.app",
+  "projectId": "lunchtime-larry",
+  "storageBucket": "lunchtime-larry.firebasestorage.app",
+  "messagingSenderId": "733852471760",
+  "appId": "1:733852471760:web:979cb1845bb05b126fe9d5"
+}

@@ -12,14 +12,29 @@ async function hashFile(name) {
 
 const likesHash = await hashFile("likes.js");
 const iconsHash = await hashFile("icons.js");
+const voteHash = await hashFile("vote.js");
+const voteClientHash = await hashFile("voteClient.js");
+const firebaseHash = await hashFile("firebase.json");
 const appPath = join(site, "app.js");
 const appBefore = await readFile(appPath, "utf8");
 const appAfter = appBefore
   .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
-  .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`);
+  .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
+  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/voteClient\.js)(?:\?v=[^"']*)?/g, `./voteClient.js?v=${voteClientHash}`);
 if (appAfter !== appBefore) {
   await writeFile(appPath, appAfter);
   console.log("stamped app.js imports");
+}
+
+const voteClientPath = join(site, "voteClient.js");
+const voteClientBefore = await readFile(voteClientPath, "utf8");
+const voteClientAfter = voteClientBefore
+  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/firebase\.json)(?:\?v=[^"']*)?/g, `./firebase.json?v=${firebaseHash}`);
+if (voteClientAfter !== voteClientBefore) {
+  await writeFile(voteClientPath, voteClientAfter);
+  console.log("stamped voteClient.js imports");
 }
 
 const assets = ["styles.css", "app.js", "locations.js", "larry.svg", "canteens.json"];
