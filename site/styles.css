@@ -1093,8 +1093,28 @@ h1 {
   text-wrap: pretty;
 }
 
+.weekend-when {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-optical-sizing: auto;
+  font-weight: 560;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.weekend-when strong {
+  font-weight: 700;
+}
+
 .weekend-copy + .weekend-copy {
-  margin-top: 0.55rem;
+  margin-top: 0.7rem;
+}
+
+.weekend-when + .weekend-copy {
+  margin-top: 0.7rem;
 }
 
 .nick-dialog label {
@@ -1165,7 +1185,7 @@ h1 {
 .pizza {
   display: block;
   width: max-content;
-  margin: 1.15rem auto 0.15rem;
+  margin: 1.35rem auto 1rem;
   z-index: 1;
   pointer-events: none;
   border: 2px solid var(--stamp);
@@ -1373,7 +1393,17 @@ body:not(.page-alternatives) .colophon {
     position: sticky;
     top: env(safe-area-inset-top, 0px);
     z-index: 6;
-    margin-top: 1.15rem;
+    width: 100%;
+    max-width: none;
+    margin-top: 0.15rem;
+    margin-inline: 0;
+    /* Match the 1rem side gutters above the nav while stuck */
+    padding: 1rem 1rem 0;
+    background:
+      radial-gradient(1200px 500px at 10% -10%, var(--paper-glow) 0%, transparent 55%),
+      radial-gradient(900px 400px at 110% 0%, var(--paper-glow-2) 0%, transparent 50%),
+      var(--paper);
+    background-attachment: fixed;
   }
 
   body {
@@ -1392,6 +1422,11 @@ body:not(.page-alternatives) .colophon {
 
   .days {
     box-shadow: 0 16px 32px var(--board-shadow);
+  }
+
+  .pizza {
+    margin-top: 1.65rem;
+    margin-bottom: 1.35rem;
   }
 
   .escape-wrap {
