@@ -11,5 +11,5 @@
     "allowImportingTsExtensions": true,
     "types": ["node"]
   },
-  "include": ["scrape/**/*.ts", "site/canteens.json"]
+  "include": ["scrape/**/*.ts", "site/*.d.ts", "site/canteens.json"]
 }

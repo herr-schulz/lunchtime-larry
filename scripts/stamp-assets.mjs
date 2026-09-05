@@ -37,7 +37,7 @@ if (voteClientAfter !== voteClientBefore) {
   console.log("stamped voteClient.js imports");
 }
 
-const assets = ["styles.css", "app.js", "locations.js", "larry.svg", "canteens.json"];
+const assets = ["styles.css", "app.js", "locations.js", "larry.svg", "leisure-larry.svg", "canteens.json"];
 const hashes = Object.fromEntries(
   await Promise.all(assets.map(async (name) => [name, await hashFile(name)])),
 );

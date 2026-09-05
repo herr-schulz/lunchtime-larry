@@ -25,7 +25,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=dc19513c" />
+    <link rel="stylesheet" href="./styles.css?v=9f0dce21" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -170,7 +170,7 @@
         <button type="button" id="nick-edit" class="nick-edit" hidden></button>
       </p>
     </footer>
-    <dialog id="nick-dialog" class="nick-dialog">
+    <dialog id="nick-dialog" class="nick-dialog" tabindex="-1">
       <form method="dialog" id="nick-form">
         <p class="nick-kicker">Mittagstisch</p>
         <h2>Dein Spitzname</h2>
@@ -181,6 +181,10 @@
             name="nick"
             maxlength="20"
             autocomplete="nickname"
+            enterkeyhint="done"
+            autocapitalize="words"
+            autocorrect="off"
+            spellcheck="false"
             pattern="[A-Za-zÄÖÜäöüß' \-]{1,20}"
             title="Nur Buchstaben, max. 20 Zeichen"
             required
@@ -192,18 +196,27 @@
         </menu>
       </form>
     </dialog>
-    <dialog id="weekend-dialog" class="weekend-dialog">
+    <dialog id="weekend-dialog" class="weekend-dialog" tabindex="-1">
       <form method="dialog" id="weekend-form">
+        <img
+          class="weekend-larry"
+          src="./leisure-larry.svg?v=b1c5c23e"
+          alt=""
+          width="96"
+          height="96"
+          decoding="async"
+        />
         <p class="weekend-kicker">Wochenende</p>
-        <h2>Larry hat frei</h2>
+        <h2>Larry hat heute frei</h2>
         <p class="weekend-copy">
-          Neue Speisepläne kommen montags um 9 Uhr.
+          Neue Speisepläne kommen immer montags um 9 Uhr. Schau doch dann
+          nochmal vorbei.
         </p>
         <menu>
           <button type="submit" value="ok">Alles klar</button>
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=a87ae1e1" type="module"></script>
+    <script src="./app.js?v=7ee29ff3" type="module"></script>
   </body>
 </html>

@@ -412,7 +412,10 @@ function askNick() {
   if (!nickDialog || !nickInput) return Promise.resolve("");
   nickInput.value = loadNick();
   nickDialog.showModal();
-  nickInput.focus();
+  // Defer focus so iOS lays out the modal before the keyboard opens.
+  requestAnimationFrame(() => {
+    nickInput.focus({ preventScroll: true });
+  });
   return new Promise((resolve) => {
     const onClose = () => {
       nickDialog.removeEventListener("close", onClose);
@@ -450,6 +453,7 @@ function maybeWeekendNote() {
     /* private mode */
   }
   weekendDialog.showModal();
+  weekendDialog.focus({ preventScroll: true });
   weekendDialog.addEventListener(
     "close",
     () => {
