@@ -1045,8 +1045,8 @@ h1 {
 }
 
 .weekend-larry {
-  width: 5.5rem;
-  height: 5.5rem;
+  width: 11rem;
+  height: 11rem;
   margin: 0.15rem 0 0.65rem;
   object-fit: contain;
   animation: weekend-larry-in 0.55s var(--ease-out-expo) both;
@@ -1091,6 +1091,10 @@ h1 {
   font-size: 0.92rem;
   line-height: 1.4;
   text-wrap: pretty;
+}
+
+.weekend-copy + .weekend-copy {
+  margin-top: 0.55rem;
 }
 
 .nick-dialog label {
