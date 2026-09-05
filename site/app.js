@@ -8,6 +8,9 @@ import {
   toggleLikeSet,
 } from "./likes.js?v=a3524205";
 import {
+  berlinDate,
+  isVoteDay,
+  lastVoteDate,
   loadNick,
   nicksFor,
   normalizeNick,
@@ -17,7 +20,7 @@ import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=4475f686";
+} from "./voteClient.js?v=ab467126";
 
 const DAYS = {
   monday: "Montag",
@@ -54,9 +57,12 @@ const nickDialog = document.querySelector("#nick-dialog");
 const nickForm = document.querySelector("#nick-form");
 const nickInput = document.querySelector("#nick-input");
 const nickCancel = document.querySelector("#nick-cancel");
+const weekendDialog = document.querySelector("#weekend-dialog");
 
 const LIVE_MENU =
   "https://herr-schulz.github.io/lunchtime-larry/data/menu.json";
+
+const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
 
 let enterTimer;
 let currentDay = "monday";
@@ -435,6 +441,38 @@ async function handleVote(canteen) {
   }
 }
 
+function maybeWeekendNote() {
+  if (isVoteDay() || !weekendDialog) return;
+  const key = lastVoteDate();
+  try {
+    if (localStorage.getItem(WEEKEND_NOTE_KEY) === key) return;
+  } catch {
+    /* private mode */
+  }
+  weekendDialog.showModal();
+  weekendDialog.addEventListener(
+    "close",
+    () => {
+      try {
+        localStorage.setItem(WEEKEND_NOTE_KEY, key);
+      } catch {
+        /* ignore */
+      }
+    },
+    { once: true },
+  );
+}
+
+function watchBerlinMidnight(onRoll) {
+  let stamp = berlinDate();
+  window.setInterval(() => {
+    const next = berlinDate();
+    if (next === stamp) return;
+    stamp = next;
+    onRoll();
+  }, 30_000);
+}
+
 function bindNickUi() {
   nickInput?.addEventListener("input", () => {
     const cleaned = normalizeNick(nickInput.value);
@@ -581,18 +619,26 @@ try {
   bindBoardGestures(data);
   bindNickUi();
   syncNickButton();
+  maybeWeekendNote();
   const onVotes = (next) => {
     voteState = next;
     applyVoteUi();
   };
-  (async () => {
+  const startVotes = async () => {
     try {
       if (loadNick()) await ensureVoteUser();
     } catch {
       /* offline or missing database */
     }
     listenVotes(onVotes);
-  })();
+  };
+  startVotes();
+  watchBerlinMidnight(() => {
+    const day = todayKey();
+    if (currentDay !== day) selectDay(data, day, { instantIndicator: true });
+    else applyVoteUi();
+    startVotes();
+  });
 } catch {
   empty.hidden = false;
   stamp.textContent = "Stand: noch kein Crawl";

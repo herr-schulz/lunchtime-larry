@@ -857,7 +857,7 @@ h1 {
 .slip-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 0.6rem;
   border-bottom: 1px solid var(--rule);
   padding-bottom: 0.7rem;
@@ -903,7 +903,7 @@ h1 {
   gap: 0.35rem;
   max-width: 100%;
   margin: 0;
-  padding: 0.1rem 0 0;
+  padding: 0;
   border: 0;
   background: none;
   color: var(--stamp);
@@ -920,6 +920,7 @@ h1 {
 }
 
 .vote-mark .vote-check {
+  display: block;
   width: 1.7rem;
   height: 1.7rem;
   flex-shrink: 0;
@@ -995,7 +996,8 @@ h1 {
   text-underline-offset: 0.18em;
 }
 
-.nick-dialog {
+.nick-dialog,
+.weekend-dialog {
   width: min(22rem, calc(100% - 2rem));
   padding: 1.15rem 1.2rem 1.05rem;
   border: 1px solid var(--rule);
@@ -1005,11 +1007,13 @@ h1 {
   box-shadow: none;
 }
 
-.nick-dialog::backdrop {
+.nick-dialog::backdrop,
+.weekend-dialog::backdrop {
   background: color-mix(in srgb, var(--ink) 28%, transparent);
 }
 
-.nick-kicker {
+.nick-kicker,
+.weekend-kicker {
   margin: 0;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1017,11 +1021,19 @@ h1 {
   color: var(--ink-soft);
 }
 
-.nick-dialog h2 {
-  margin: 0.35rem 0 0.85rem;
+.nick-dialog h2,
+.weekend-dialog h2 {
+  margin: 0.35rem 0 0.55rem;
   font-family: var(--font-display);
   font-style: italic;
   font-size: 1.35rem;
+}
+
+.weekend-copy {
+  margin: 0 0 1rem;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.4;
 }
 
 .nick-dialog label {
@@ -1041,14 +1053,16 @@ h1 {
   font: inherit;
 }
 
-.nick-dialog menu {
+.nick-dialog menu,
+.weekend-dialog menu {
   display: flex;
   gap: 0.55rem;
   margin: 1rem 0 0;
   padding: 0;
 }
 
-.nick-dialog menu button {
+.nick-dialog menu button,
+.weekend-dialog menu button {
   font: inherit;
   font-weight: 600;
   padding: 0.45rem 0.8rem;
@@ -1056,7 +1070,8 @@ h1 {
   cursor: pointer;
 }
 
-.nick-dialog menu button[value="ok"] {
+.nick-dialog menu button[value="ok"],
+.weekend-dialog menu button[value="ok"] {
   border: 0;
   background: var(--board);
   color: var(--tab-muted);

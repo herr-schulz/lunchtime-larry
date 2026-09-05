@@ -28,7 +28,7 @@ npm run dev
 
 - **Donnerstag:** dezenter Banner zum [Wochenmarkt Bogenhausen](https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/) (nur am Do sichtbar)
 - **Was anderes?!** — eigene Seite [`alternativen.html`](site/alternativen.html) mit Gehminuten & Tags (Pflege in `site/locations.js`)
-- **Heute hierhin:** Tipp auf den Kantinen-Zettel (nicht aufs Gericht). Auf dem Zettel: Haken plus die Namen. Spitznamen ohne Zahlen, max. 20 Zeichen. Gerichte merken bleibt das Herz. Stimmen gelten für den aktuellen Werktag (Europe/Berlin, am Wochenende Freitag). Maximal **6 Stimmen** pro Tag.
+- **Heute hierhin:** Tipp auf den Kantinen-Zettel (nicht aufs Gericht). Auf dem Zettel: Haken plus die Namen. Spitznamen ohne Zahlen, max. 20 Zeichen. Gerichte merken bleibt das Herz. Stimmen gelten für den aktuellen Werktag (Europe/Berlin, am Wochenende Freitag) und starten jeden Tag um Mitternacht auf einem neuen Datumspfad — ohne Extra-Job. Maximal **6 Stimmen** pro Tag.
 - **Herz merken:** kurzes Vibrieren auf Android (iOS Safari unterstützt `vibrate` nicht). Aus bei „Bewegung reduzieren“.
 
 ## Firebase
