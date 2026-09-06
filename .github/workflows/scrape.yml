@@ -72,6 +72,17 @@ jobs:
       - run: npm run stamp
         if: always() && steps.ready.outputs.ready == 'true'
 
+      - name: Deploy Firebase Hosting
+        if: always() && steps.ready.outputs.ready == 'true'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "No FIREBASE_TOKEN — skip Firebase Hosting deploy"
+            exit 0
+          fi
+          npx --yes firebase-tools@13 deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
+
       - uses: actions/upload-pages-artifact@v3
         if: always() && steps.ready.outputs.ready == 'true'
         with:

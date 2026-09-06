@@ -2,7 +2,7 @@
 
 Wochenspeiseplan für drei Kantinen im Münchner Arabellapark. Montags und mittwochs um 9 Uhr (Europe/Berlin) crawlt GitHub Actions die Original-Seiten und veröffentlicht eine statische Tafel.
 
-**Live:** https://lunchtime-larry.web.app · [GitHub Pages](https://herr-schulz.github.io/lunchtime-larry) bleibt als Fallback für `menu.json`.
+**Live:** https://lunchtime-larry.web.app · [GitHub Pages](https://herr-schulz.github.io/lunchtime-larry) bleibt als Fallback für `menu.json`. Der Scrape-Workflow kann Hosting zusätzlich per Secret `FIREBASE_TOKEN` aktualisieren (`firebase login:ci`).
 
 ![CI](https://github.com/herr-schulz/lunchtime-larry/actions/workflows/ci.yml/badge.svg)
 
@@ -28,14 +28,15 @@ npm run dev
 
 - **Donnerstag:** dezenter Banner zum [Wochenmarkt Bogenhausen](https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/) (nur am Do sichtbar)
 - **Was anderes?!** — eigene Seite [`alternativen.html`](site/alternativen.html) mit Gehminuten & Tags (Pflege in `site/locations.js`)
-- **Heute hierhin:** Tipp auf den Kantinen-Zettel (nicht aufs Gericht). Auf dem Zettel: Haken plus die Namen. Spitznamen ohne Zahlen, max. 20 Zeichen. Gerichte merken bleibt das Herz. Stimmen gelten für den aktuellen Werktag (Europe/Berlin, am Wochenende Freitag) und starten jeden Tag um Mitternacht auf einem neuen Datumspfad — ohne Extra-Job. Maximal **6 Stimmen** pro Tag.
+- **Heute hierhin:** Tipp auf den Haken am Kantinen-Zettel (nicht aufs Gericht). Auf dem Zettel: Haken plus die Namen. Spitznamen ohne Zahlen, max. 20 Zeichen — **dauerhaft nur in `localStorage`**. In Firebase steht der Nick nur im Tages-Ballot (für die Live-Anzeige) und verschwindet, sobald der Tagspfade gepurged wird. Stimmen liegen unter `votes/YYYY-MM-DD` (Europe/Berlin, am Wochenende Freitag). Beim App-Start setzt ein Client `meta/voteDay` fort und löscht ältere `votes/*`-Knoten. Maximal **6 Stimmen** pro Tag.
+- **Larry-Corner:** kurzer Ansager unten links (Winner, Vote-Hinweise, Eggs). Favoriten-Alarm bleibt unter den Tages-Tabs.
 - **Herz merken:** kurzes Vibrieren auf Android (iOS Safari unterstützt `vibrate` nicht). Aus bei „Bewegung reduzieren“.
 
 ## Firebase
 
 Projekt `lunchtime-larry` (Spark). Die Web-Config in [`site/firebase.json`](site/firebase.json) ist öffentlich — Schutz sitzt in [`database.rules.json`](database.rules.json): **6 feste Plätze** (0–5) pro Tag, Schreiben nur mit Anonymous Auth und nur auf den eigenen Platz, Nick/Kantine/Zeit validiert. Wer schon sitzt, darf umziehen oder zurückziehen.
 
-Die URL ist öffentlich; Anonymous Auth ist kein Login. Die 6er-Kappe ist der Missbrauchsschutz für die kleine Runde — ein Troll kann den Tag vollsetzen. Später ggf. PIN.
+Die URL ist öffentlich; Anonymous Auth ist kein Login. Die 6er-Kappe ist der Missbrauchsschutz für die kleine Runde — ein Troll kann den Tag vollsetzen. Später ggf. PIN. Spitznamen werden clientseitig normalisiert **und** in den Database Rules serverseitig geprüft (Buchstaben Pflicht, keine Ziffern, max. 20 Zeichen); Anzeige nur per `textContent`. Stimmen nur auf den aktiven `meta/voteDay`.
 
 Einmalig in der [Console](https://console.firebase.google.com/project/lunchtime-larry):
 
