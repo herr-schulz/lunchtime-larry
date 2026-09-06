@@ -38,6 +38,10 @@ export function lastVoteDate(now = new Date()) {
 export const MAX_NICK = 20;
 export const MAX_NICK_WORD = 12;
 
+/** Must stay in sync with database.rules.json nick checks. */
+export const NICK_CHAR_RE = /^[A-Za-zÄÖÜäöüß' -]{1,20}$/;
+export const NICK_LETTER_RE = /[A-Za-zÄÖÜäöüß]/;
+
 export function normalizeNick(value) {
   return String(value ?? "")
     .normalize("NFC")
@@ -52,9 +56,16 @@ export function normalizeNick(value) {
     .slice(0, MAX_NICK);
 }
 
+/** True only if the nick would pass Firebase RTDB rules. */
+export function isValidNick(value) {
+  const nick = normalizeNick(value);
+  return Boolean(nick) && NICK_CHAR_RE.test(nick) && NICK_LETTER_RE.test(nick);
+}
+
 export function loadNick() {
   try {
-    return normalizeNick(localStorage.getItem(NICK_KEY) || "");
+    const nick = normalizeNick(localStorage.getItem(NICK_KEY) || "");
+    return isValidNick(nick) ? nick : "";
   } catch {
     return "";
   }
@@ -62,6 +73,14 @@ export function loadNick() {
 
 export function saveNick(nick) {
   const next = normalizeNick(nick);
+  if (!isValidNick(next)) {
+    try {
+      localStorage.removeItem(NICK_KEY);
+    } catch {
+      /* ignore */
+    }
+    return "";
+  }
   localStorage.setItem(NICK_KEY, next);
   return next;
 }
@@ -78,7 +97,7 @@ export function nicksFor(records, canteen) {
   return Object.values(records ?? {})
     .filter((rec) => rec?.canteen === canteen)
     .map((rec) => normalizeNick(rec.nick))
-    .filter((nick) => nick && nick !== "-");
+    .filter((nick) => isValidNick(nick));
 }
 
 export function winnerOf(counts, names) {
@@ -94,6 +113,16 @@ export function winnerOf(counts, names) {
 
 export function votesPath(day = berlinDate()) {
   return `votes/${day}`;
+}
+
+/** Day keys under `votes/` that are older than the keep-day (ISO YYYY-MM-DD). */
+export function staleVoteDays(keys, keepDay) {
+  return (keys ?? []).filter(
+    (day) =>
+      typeof day === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(day) &&
+      day < keepDay,
+  );
 }
 
 export function mySlot(records, uid) {

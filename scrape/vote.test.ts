@@ -4,11 +4,13 @@ import {
   berlinWeekday,
   canAcceptVote,
   countVotes,
+  isValidNick,
   isVoteDay,
   lastVoteDate,
   MAX_VOTERS,
   normalizeNick,
   nicksFor,
+  staleVoteDays,
   votesPath,
   winnerOf,
 } from "../site/vote.js";
@@ -97,9 +99,28 @@ describe("normalizeNick", () => {
   });
 });
 
+describe("isValidNick", () => {
+  it("requires a letter and rejects filler-only names", () => {
+    expect(isValidNick("Sven")).toBe(true);
+    expect(isValidNick("Mary-Jane")).toBe(true);
+    expect(isValidNick("---")).toBe(false);
+    expect(isValidNick("   ")).toBe(false);
+    expect(isValidNick("sven2")).toBe(true);
+    expect(isValidNick("")).toBe(false);
+  });
+});
+
 describe("votesPath", () => {
   it("nests ballots under the Berlin date", () => {
     expect(votesPath("2026-09-04")).toBe("votes/2026-09-04");
+  });
+});
+
+describe("staleVoteDays", () => {
+  it("keeps only the active day and drops older ISO keys", () => {
+    expect(
+      staleVoteDays(["2026-09-05", "2026-09-04", "2026-09-01", "meta"], "2026-09-05"),
+    ).toEqual(["2026-09-04", "2026-09-01"]);
   });
 });
 

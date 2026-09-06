@@ -1,12 +1,19 @@
 {
   "rules": {
+    "meta": {
+      "voteDay": {
+        ".read": true,
+        ".write": "auth != null && newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && (!data.exists() || newData.val() >= data.val())"
+      }
+    },
     "votes": {
       "$day": {
         ".read": true,
         ".validate": "$day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+        ".write": "auth != null && !newData.exists() && root.child('meta/voteDay').exists() && $day < root.child('meta/voteDay').val()",
         "$slot": {
-          ".write": "auth != null && $slot.matches(/^[0-5]$/) && (!data.exists() || data.child('uid').val() == auth.uid) && (!newData.exists() || newData.child('uid').val() == auth.uid)",
-          ".validate": "newData.hasChildren(['uid', 'nick', 'canteen', 'at']) && newData.child('uid').val() == auth.uid && newData.child('nick').isString() && newData.child('nick').val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && !newData.child('nick').val().matches(/.*[0-9].*/) && newData.child('canteen').val().matches(/^(stmuv|sodexo|bella23)$/) && newData.child('at').isNumber() && newData.child('at').val() >= now - 300000 && newData.child('at').val() <= now + 60000"
+          ".write": "auth != null && root.child('meta/voteDay').exists() && $day == root.child('meta/voteDay').val() && $slot.matches(/^[0-5]$/) && (!data.exists() || data.child('uid').val() == auth.uid) && (!newData.exists() || newData.child('uid').val() == auth.uid)",
+          ".validate": "newData.hasChildren(['uid', 'nick', 'canteen', 'at']) && newData.child('uid').isString() && newData.child('uid').val() == auth.uid && newData.child('nick').isString() && newData.child('nick').val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && newData.child('nick').val().matches(/[A-Za-zÄÖÜäöüß]/) && newData.child('canteen').isString() && newData.child('canteen').val().matches(/^(stmuv|sodexo|bella23)$/) && newData.child('at').isNumber() && newData.child('at').val() >= now - 300000 && newData.child('at').val() <= now + 60000"
         }
       }
     }
