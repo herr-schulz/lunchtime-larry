@@ -1,45 +1,54 @@
 import CANTEENS from "./canteens.json" with { type: "json" };
-import { alertIcon, checkCircleSvg, heartIcon, heartIconFilled } from "./icons.js?v=bef72b85";
+import {
+  berlinHour,
+  DAY_KEYS,
+  formatDate,
+  formatStamp,
+  isoWeek,
+  todayKey,
+  watchBerlinMidnight,
+} from "./calendar.js?v=90d9b728";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=c641e16a";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=440970dd";
 import {
   dishKey,
+  dishLabel,
   displayDishName,
   findLikedDishes,
   isLiked,
   toggleLikeSet,
-} from "./likes.js?v=a3524205";
+} from "./likes.js?v=2839e39f";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=0d0bfddd";
 import {
-  berlinDate,
+  favoriteToday,
+  leisureMode as leisureLine,
+  likeAck,
+  menuFreshNote,
+  pizzaDaily,
+  voteFull,
+  voteOffline,
+  winnerLead,
+  winnerTie,
+} from "./larryLines.js?v=1769de5f";
+import { LOCATIONS } from "./locations.js?v=cb8d289e";
+import { loadMenu } from "./menuFetch.js?v=12bc7071";
+import {
   isVoteDay,
   lastVoteDate,
   loadNick,
   nicksFor,
   normalizeNick,
   saveNick,
-} from "./vote.js?v=789701db";
+  winnerOf,
+} from "./vote.js?v=a52b5e64";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=ab467126";
-
-const DAYS = {
-  monday: "Montag",
-  tuesday: "Dienstag",
-  wednesday: "Mittwoch",
-  thursday: "Donnerstag",
-  friday: "Freitag",
-};
-
-const DAY_KEYS = Object.keys(DAYS);
-
-const DIET = {
-  vegan: "vegan",
-  veggie: "veggie",
-  meat: "Fleisch",
-  fish: "Fisch",
-};
+} from "./voteClient.js?v=b2f9ffc6";
 
 const LIKES_KEY = "lunchtime-larry-likes";
+const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
 
 const board = document.querySelector("#board");
 const notices = document.querySelector("#notices");
@@ -49,6 +58,7 @@ const empty = document.querySelector("#empty");
 const dayDate = document.querySelector("#day-date");
 const marketBanner = document.querySelector("#market-banner");
 const escapeWrap = document.querySelector("#escape-wrap");
+const escapeSub = document.querySelector(".escape-sub");
 const daysNav = document.querySelector(".days");
 const kwEl = document.querySelector("#kw");
 const stamp = document.querySelector("#stamp");
@@ -58,11 +68,7 @@ const nickForm = document.querySelector("#nick-form");
 const nickInput = document.querySelector("#nick-input");
 const nickCancel = document.querySelector("#nick-cancel");
 const weekendDialog = document.querySelector("#weekend-dialog");
-
-const LIVE_MENU =
-  "https://herr-schulz.github.io/lunchtime-larry/data/menu.json";
-
-const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
+const mascot = document.querySelector(".masthead .mascot");
 
 let enterTimer;
 let currentDay = "monday";
@@ -73,6 +79,11 @@ let voteState = {
   mine: null,
   uid: null,
 };
+let lastWinnerKey = "";
+let leisureMode = false;
+let justLikedKey = "";
+const announcedFavHits = new Set();
+
 
 function loadLikes() {
   try {
@@ -87,126 +98,29 @@ function saveLikes() {
   localStorage.setItem(LIKES_KEY, JSON.stringify([...likes]));
 }
 
-function isoWeek(isoDate) {
-  const date = new Date(`${isoDate}T12:00:00`);
-  const utc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = new Date(utc).getUTCDay() || 7;
-  const thursday = new Date(utc);
-  thursday.setUTCDate(thursday.getUTCDate() + 4 - day);
-  const yearStart = Date.UTC(thursday.getUTCFullYear(), 0, 1);
-  return Math.ceil(((thursday - yearStart) / 86400000 + 1) / 7);
-}
-
-function formatDate(iso) {
-  const date = new Date(`${iso}T12:00:00`);
-  const weekday = new Intl.DateTimeFormat("de-DE", { weekday: "long" }).format(
-    date,
-  );
-  const when = new Intl.DateTimeFormat("de-DE", {
-    day: "numeric",
-    month: "long",
-  }).format(date);
-  return `<span class="weekday">${weekday}</span><span class="when">${when}</span>`;
-}
-
-function formatStamp(iso) {
-  if (!iso) return "—";
-  const date = new Date(iso.includes("T") ? iso : `${iso}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("de-DE", {
-    timeZone: "Europe/Berlin",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function todayKey() {
-  const day = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    timeZone: "Europe/Berlin",
-  })
-    .format(new Date())
-    .toLowerCase();
-  if (day === "saturday" || day === "sunday") return "friday";
-  return day;
-}
-
 function votingOpen() {
   return currentDay === todayKey();
 }
 
-function bannerText(data) {
+/** Menu freshness → Larry corner (not under nav). */
+function larryMenuNote(data) {
   const issues = Object.entries(data.sources || {}).filter(([, src]) =>
     ["error", "stale"].includes(src.status),
   );
-  if (!issues.length) return "";
-  if (issues.every(([, src]) => src.status === "error") && issues.length === 3) {
-    const last = data.lastSuccessAt ? formatStamp(data.lastSuccessAt) : null;
-    return last
-      ? `Heute kein frischer Speiseplan. Letzter Stand: ${last}.`
-      : "Heute kein frischer Speiseplan — der Crawl ist fehlgeschlagen.";
-  }
-  return issues
-    .map(([id, src]) => {
-      const name = CANTEENS[id]?.name ?? id;
-      if (src.status === "stale") {
-        return `${name}: letzter bekannter Plan (Aktualisierung fehlgeschlagen).`;
-      }
-      return `${name}: Speiseplan gerade nicht geladen.`;
-    })
-    .join(" ");
-}
-
-function formatDishName(name) {
-  const shown = displayDishName(name);
-  const parts = shown
-    .split(/\s*[|/]\s*/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  const heart = heartIconFilled;
-  if (parts.length <= 1) return `${escapeHtml(parts[0] || shown)}${heart}`;
-  const sep = '<span class="sep" aria-hidden="true"></span>';
-  const first = `${escapeHtml(parts[0])}${heart}`;
-  return [first, ...parts.slice(1).map((part) => escapeHtml(part))].join(sep);
-}
-
-function dishRow(dish, index) {
-  const key = dishKey(dish.name);
-  const kept = isLiked(dish.name, likes);
-  const diet =
-    dish.diet && DIET[dish.diet]
-      ? `<span class="pill ${dish.diet}">${DIET[dish.diet]}</span>`
-      : "";
-  const category = dish.category
-    ? `<span class="pill">${dish.category}</span>`
-    : "";
-  const price = dish.price ? `<span class="price">${dish.price}</span>` : "";
-  const shown = displayDishName(dish.name);
-  const label = kept ? `${shown}, Favorit` : shown;
-  return `<article class="dish${kept ? " is-liked" : ""}" style="--dish-i:${index}" data-name="${escapeHtml(dish.name)}" data-key="${escapeHtml(key)}" role="button" tabindex="0" aria-pressed="${kept}" aria-label="${escapeHtml(label)}">
-    <div class="name">${formatDishName(dish.name)}</div>
-    ${price}
-    <div class="meta">${category}${diet}</div>
-  </article>`;
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+  const scraped = data.scrapedAt ? new Date(data.scrapedAt) : null;
+  const old =
+    scraped && !Number.isNaN(scraped.getTime())
+      ? Date.now() - scraped.getTime() > 3 * 24 * 60 * 60 * 1000
+      : false;
+  return menuFreshNote({
+    old,
+    issueNames: issues.map(([id]) => CANTEENS[id]?.name ?? id),
+  });
 }
 
 function syncNotices() {
   if (!notices) return;
-  const open = Boolean(
-    (banner && !banner.hidden) || (hits && !hits.hidden),
-  );
-  notices.hidden = !open;
+  notices.hidden = !(hits && !hits.hidden);
 }
 
 function popToast(toast) {
@@ -225,7 +139,7 @@ function renderHits(data, day) {
     syncNotices();
     return;
   }
-  const html = `<p class="toast-kicker">${heartIcon}<span>Favoriten-Alarm</span></p><p class="toast-list">${found.map((item) => escapeHtml(item.label)).join(" · ")}</p>`;
+  const html = hitsHtml(found);
   const changed = hits.hidden || hits.innerHTML !== html;
   hits.hidden = false;
   hits.innerHTML = html;
@@ -237,46 +151,23 @@ function renderDay(data, day) {
   const block = data.days[day];
   dayDate.innerHTML = block ? formatDate(block.date) : "";
   marketBanner.hidden = day !== "thursday";
-  board.innerHTML = (block?.canteens ?? [])
-    .map((canteen, slipIndex) => {
-      const meta = CANTEENS[canteen.id];
-      const source = data.sources?.[canteen.id];
-      const pizza =
-        canteen.id === "sodexo" ? `<span class="pizza">Pizza täglich</span>` : "";
-      const voteBtn = votingOpen()
-        ? `<button type="button" class="vote-mark" data-vote="${canteen.id}" aria-pressed="false"><span class="vote-nicks"></span>${checkCircleSvg()}</button>`
-        : "";
-      let note = "";
-      if (source?.status === "error") {
-        note = `<p class="note">Speiseplan gerade nicht geladen.</p>`;
-      } else if (source?.status === "stale") {
-        note = `<p class="note">Letzter bekannter Plan — Aktualisierung fehlgeschlagen.</p>`;
-      }
-      const body = canteen.dishes?.length
-        ? canteen.dishes.map((dish, index) => dishRow(dish, index)).join("")
-        : source?.status === "error"
-          ? ""
-          : `<p class="ghost">Heute nichts eingetragen.</p>`;
-      return `<section class="slip" style="--slip-i:${slipIndex}" data-canteen="${canteen.id}">
-        <div class="slip-head">
-          <div>
-            <h2>
-              <a class="slip-name" href="${meta.url}" target="_blank" rel="noopener noreferrer">${meta.name}</a>
-            </h2>
-            <p class="where">${meta.short}</p>
-          </div>
-          <div class="slip-aside">
-            ${voteBtn}
-          </div>
-        </div>
-        ${note}
-        ${body}
-        ${pizza}
-      </section>`;
-    })
-    .join("");
+  board.innerHTML = boardHtml({
+    block,
+    canteens: CANTEENS,
+    sources: data.sources,
+    likes,
+    votingOpen: votingOpen(),
+  });
   renderHits(data, day);
   applyVoteUi();
+  maybeWeekendBoardHint(day);
+  maybeAnnounceFavoriteOnMenu(data, day);
+}
+
+function maybeWeekendBoardHint(day) {
+  if (!dayDate) return;
+  const weekend = !isVoteDay();
+  dayDate.classList.toggle("is-weekend", weekend && day === "friday");
 }
 
 function updateDayIndicator(day, { instant = false } = {}) {
@@ -371,28 +262,68 @@ function replayCheck(el) {
 
 function applyVoteUi() {
   const open = votingOpen();
+  const names = Object.fromEntries(
+    Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
+  );
+  const result = winnerOf(voteState.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
     const mine = open && voteState.mine === id;
-    const names = nicksFor(voteState.records, id);
+    const nickList = nicksFor(voteState.records, id);
     slip.classList.toggle("is-voted", mine);
+    slip.classList.toggle(
+      "is-leading",
+      open && result.status === "lead" && result.id === id,
+    );
     const mark = slip.querySelector(".vote-mark");
     if (!mark) continue;
     mark.hidden = !open;
     mark.setAttribute("aria-pressed", String(mine));
-    const label = names.length
-      ? names.join(" · ")
+    const label = nickList.length
+      ? nickList.join(" · ")
       : mine
         ? "Deine Stimme"
         : "Hierhin";
     mark.setAttribute("aria-label", label);
     const nicks = mark.querySelector(".vote-nicks");
-    if (nicks) nicks.textContent = names.join(" · ");
+    if (nicks) nicks.textContent = nickList.join(" · ");
     if (mine) {
       if (!mark.classList.contains("is-drawn")) replayCheck(mark);
     } else {
       mark.classList.remove("is-drawn");
     }
+  }
+  maybeAnnounceWinner(result, open);
+}
+
+function voteTotal() {
+  return Object.values(voteState.counts).reduce((sum, n) => sum + (n || 0), 0);
+}
+
+function winnerStorageKey() {
+  return `lunchtime-larry-winner-${lastVoteDate()}`;
+}
+
+function maybeAnnounceWinner(result, open) {
+  if (!open) return;
+  if (voteTotal() < 3) return;
+  if (berlinHour() < 12) return;
+  if (result.status !== "lead" && result.status !== "tie") return;
+
+  const key =
+    result.status === "lead" ? `lead:${result.id}` : "tie";
+  try {
+    if (localStorage.getItem(winnerStorageKey()) === key) return;
+    localStorage.setItem(winnerStorageKey(), key);
+  } catch {
+    if (lastWinnerKey === key) return;
+    lastWinnerKey = key;
+  }
+
+  if (result.status === "lead") {
+    sayLarry(winnerLead(result.name));
+  } else {
+    sayLarry(winnerTie());
   }
 }
 
@@ -405,7 +336,7 @@ function syncNickButton() {
     return;
   }
   nickEdit.hidden = false;
-  nickEdit.textContent = `Name: ${nick}`;
+  nickEdit.textContent = `Spitzname: ${nick}`;
 }
 
 function askNick() {
@@ -441,6 +372,12 @@ async function handleVote(canteen) {
     );
   } catch (err) {
     console.warn(err);
+    const msg = String(err?.message || err);
+    if (msg.includes("full")) {
+      sayLarry(voteFull());
+    } else {
+      sayLarry(voteOffline());
+    }
   }
 }
 
@@ -465,16 +402,6 @@ function maybeWeekendNote() {
     },
     { once: true },
   );
-}
-
-function watchBerlinMidnight(onRoll) {
-  let stamp = berlinDate();
-  window.setInterval(() => {
-    const next = berlinDate();
-    if (next === stamp) return;
-    stamp = next;
-    onRoll();
-  }, 30_000);
 }
 
 function bindNickUi() {
@@ -514,6 +441,7 @@ function toggleDishLike(data, dish) {
   const name = dish.dataset.name;
   if (!name) return;
   hapticPulse();
+  const wasLiked = isLiked(name, likes);
   likes = toggleLikeSet(name, likes);
   saveLikes();
   const on = isLiked(name, likes);
@@ -523,98 +451,90 @@ function toggleDishLike(data, dish) {
     applyLikeState(other, isLiked(other.dataset.name, likes));
   }
   renderHits(data, currentDay);
+  if (on && !wasLiked) {
+    const key = dishKey(name);
+    const label = dishLabel(name);
+    justLikedKey = key;
+    sayLarry(likeAck(label));
+    window.setTimeout(() => {
+      if (justLikedKey === key) justLikedKey = "";
+    }, 800);
+  }
+}
+
+function maybeAnnounceFavoriteOnMenu(data, day) {
+  const found = findLikedDishes(data.days?.[day], likes);
+  for (const item of found) {
+    if (!item.canteen) continue;
+    if (item.key === justLikedKey) continue;
+    const stampKey = `${day}:${item.key}`;
+    if (announcedFavHits.has(stampKey)) continue;
+    announcedFavHits.add(stampKey);
+    const place = CANTEENS[item.canteen]?.name ?? "der Kantine";
+    sayLarry(favoriteToday(item.label, place));
+    return;
+  }
 }
 
 function bindBoardGestures(data) {
-  if (!board) return;
-  let origin = null;
-  let swiped = false;
-  let lastTap = null;
-
-  board.addEventListener("pointerdown", (event) => {
-    if (event.target.closest("a")) return;
-    origin = { x: event.clientX, y: event.clientY, id: event.pointerId, type: event.pointerType };
-    swiped = false;
-  });
-  board.addEventListener("pointermove", (event) => {
-    if (!origin || origin.id !== event.pointerId) return;
-    if (Math.abs(event.clientX - origin.x) > 28) swiped = true;
-  });
-  board.addEventListener("click", (event) => {
-    const vote = event.target.closest(".vote-mark[data-vote]");
-    if (!vote || !votingOpen()) return;
-    handleVote(vote.dataset.vote);
-  });
-  board.addEventListener("pointerup", (event) => {
-    if (!origin || origin.id !== event.pointerId) return;
-    const { x, y, type } = origin;
-    origin = null;
-    const dx = event.clientX - x;
-    const dy = event.clientY - y;
-    if (swiped || (Math.abs(dx) >= 56 && Math.abs(dx) > Math.abs(dy) * 1.4)) {
-      lastTap = null;
-      const index = DAY_KEYS.indexOf(currentDay);
-      const next = dx < 0 ? index + 1 : index - 1;
-      if (next >= 0 && next < DAY_KEYS.length) selectDay(data, DAY_KEYS[next]);
-      return;
-    }
-    if (event.target.closest("a, .vote-mark")) return;
-    const dish = event.target.closest(".dish");
-    if (dish) {
-      if (type === "touch") {
-        const now = performance.now();
-        if (lastTap && lastTap.key === dish.dataset.key && now - lastTap.t < 340) {
-          lastTap = null;
-          toggleDishLike(data, dish);
-        } else {
-          lastTap = { key: dish.dataset.key, t: now };
-        }
-        return;
-      }
-      toggleDishLike(data, dish);
-      return;
-    }
-    const slip = event.target.closest(".slip");
-    const canteen = slip?.dataset.canteen;
-    if (canteen && votingOpen()) handleVote(canteen);
-  });
-  board.addEventListener("pointercancel", () => {
-    origin = null;
-    lastTap = null;
-  });
-  board.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    if (event.target.closest("a")) return;
-    const dish = event.target.closest(".dish");
-    if (!dish || event.target !== dish) return;
-    event.preventDefault();
-    toggleDishLike(data, dish);
+  wireBoardGestures({
+    board,
+    dayKeys: DAY_KEYS,
+    getDay: () => currentDay,
+    selectDay: (day) => selectDay(data, day),
+    toggleDishLike: (dish) => toggleDishLike(data, dish),
+    votingOpen,
+    onVote: (canteen) => handleVote(canteen),
+    onPizzaHold: () => sayLarry(pizzaDaily()),
   });
 }
 
-async function loadMenu() {
-  try {
-    const local = await fetch("./data/menu.json", { cache: "no-store" });
-    if (local.ok) return local.json();
-  } catch {
-    /* file:// or missing local copy */
-  }
-  const live = await fetch(LIVE_MENU, { cache: "no-store" });
-  if (!live.ok) throw new Error("missing");
-  return live.json();
+function bindMascotEgg() {
+  if (!mascot) return;
+  let taps = 0;
+  let reset = 0;
+  mascot.style.cursor = "pointer";
+  mascot.addEventListener("click", () => {
+    window.clearTimeout(reset);
+    taps += 1;
+    reset = window.setTimeout(() => {
+      taps = 0;
+    }, 1400);
+    if (taps < 5) return;
+    taps = 0;
+    if (leisureMode) return;
+    leisureMode = true;
+    const src = mascot.getAttribute("src") || "";
+    mascot.setAttribute("src", src.includes("leisure") ? src : "./leisure-larry.svg");
+    const kicker = document.querySelector(".masthead .kicker");
+    if (kicker && !kicker.dataset.leisure) {
+      kicker.dataset.leisure = "1";
+      kicker.textContent = `${kicker.textContent} · Feierabend`;
+    }
+    sayLarry(leisureLine());
+  });
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("./sw.js").catch(() => {
+    /* file:// or blocked */
+  });
 }
 
 try {
+  bindLarryCorner();
+  registerServiceWorker();
   const data = await loadMenu();
   kwEl.textContent = isoWeek(data.weekStart);
   stamp.textContent = `Stand: ${formatStamp(data.scrapedAt)}`;
-  const message = bannerText(data);
-  if (message) {
-    banner.hidden = false;
-    banner.innerHTML = `<p class="toast-kicker">${alertIcon}<span>Hinweis</span></p><p class="toast-list">${escapeHtml(message)}</p>`;
+  if (escapeSub) {
+    escapeSub.textContent = `${LOCATIONS.length} Spots · ein paar Minuten zu Fuß`;
   }
+  const note = larryMenuNote(data);
+  if (note) sayLarry(note);
+  if (banner) banner.hidden = true;
   syncNotices();
-  popToast(banner);
   board.hidden = false;
   escapeWrap.hidden = false;
   const start = todayKey();
@@ -622,6 +542,7 @@ try {
   bindDayNav(data);
   bindBoardGestures(data);
   bindNickUi();
+  bindMascotEgg();
   syncNickButton();
   maybeWeekendNote();
   const onVotes = (next) => {
@@ -648,4 +569,6 @@ try {
   stamp.textContent = "Stand: noch kein Crawl";
   const fallback = todayKey();
   syncTabs(DAY_KEYS.includes(fallback) ? fallback : "monday");
+  bindLarryCorner();
+  bindMascotEgg();
 }
