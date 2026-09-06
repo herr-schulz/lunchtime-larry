@@ -14,4 +14,4 @@ export function findLikedDishes(
     | null
     | undefined,
   likes: Set<string>,
-): Array<{ key: string; name: string; label: string }>;
+): Array<{ key: string; name: string; label: string; canteen?: string }>;
