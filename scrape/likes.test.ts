@@ -6,6 +6,8 @@ import {
   displayDishName,
   findLikedDishes,
   isLiked,
+  joinDishSides,
+  phraseDish,
   toggleLikeSet,
 } from "../site/likes.js";
 
@@ -76,17 +78,17 @@ describe("cross-canteen likes", () => {
     expect(dishLabel("Tages Dessert 1 Täglich aktualisiert")).toBe("Tagesdessert");
   });
 
-  it("shortens Dave B and Bella 23 titles at mit/und", () => {
+  it("uses the dish title without sides, except pasta keeps the first ingredient", () => {
+    expect(alarmLabel("Penne / Tomate / Zucchini")).toBe("Penne mit Tomate");
+    expect(alarmLabel("Rigatoni mit Pastinake und Pilze")).toBe("Rigatoni mit Pastinake");
+    expect(alarmLabel("Pasta | Tomatensauce | Mozzarella")).toBe("Pasta mit Tomatensauce");
+    expect(alarmLabel("Currywurst | Pommes frites | Röstzwiebeln")).toBe("Currywurst");
     expect(
-      alarmLabel(
-        "Hähnchenragout mit Oliven und Tomate Toskana Kartoffelstampf",
-        "bella23",
-      ),
+      alarmLabel("Hähnchenragout mit Oliven und Tomate Toskana Kartoffelstampf"),
     ).toBe("Hähnchenragout");
-    expect(alarmLabel("Currywurst | Pommes frites | Röstzwiebeln", "sodexo")).toBe(
-      "Currywurst",
+    expect(alarmLabel("Donnerstagschnitzel Bratkartoffen")).toBe(
+      "Donnerstagschnitzel Bratkartoffen",
     );
-    expect(alarmLabel("Penne / Tomate / Zucchini", "stmuv")).toBe("Penne Tomate");
   });
 
   it("collects every canteen that serves a liked dish", () => {
@@ -119,5 +121,62 @@ describe("cross-canteen likes", () => {
       likes,
     );
     expect(found.map((item) => item.label)).toEqual(["Currywurst", "Grillhähnchen Kartoffelsalat"]);
+  });
+});
+
+describe("phraseDish", () => {
+  it("turns slash lists into a title and mit-line", () => {
+    expect(phraseDish("Nuss-Nougatpudding | Vanillesauce | Mandeln")).toEqual({
+      title: "Nuss-Nougatpudding",
+      sides: ["Vanillesauce", "Mandeln"],
+      spoken: "Nuss-Nougatpudding mit Vanillesauce und Mandeln",
+    });
+    expect(phraseDish("Currywurst / hausgemachte Sauce / Pommes Frites")).toEqual({
+      title: "Currywurst",
+      sides: ["hausgemachte Sauce", "Pommes Frites"],
+      spoken: "Currywurst mit hausgemachte Sauce und Pommes Frites",
+    });
+  });
+
+  it("peels mit from a Bella title and from a listed head", () => {
+    expect(phraseDish("Bömischer Kartoffel Eintopf mit Quorn Wurst")).toEqual({
+      title: "Bömischer Kartoffel Eintopf",
+      sides: ["Quorn Wurst"],
+      spoken: "Bömischer Kartoffel Eintopf mit Quorn Wurst",
+    });
+    expect(phraseDish("Nuss-Nougatpudding mit Vanillesauce | Mandeln")).toEqual({
+      title: "Nuss-Nougatpudding",
+      sides: ["Vanillesauce", "Mandeln"],
+      spoken: "Nuss-Nougatpudding mit Vanillesauce und Mandeln",
+    });
+    expect(phraseDish("Nuss-Nougatpudding Mit Vanillesauce")).toEqual({
+      title: "Nuss-Nougatpudding",
+      sides: ["Vanillesauce"],
+      spoken: "Nuss-Nougatpudding mit Vanillesauce",
+    });
+  });
+
+  it("leaves auf/an/von sentences and jammed titles alone", () => {
+    expect(phraseDish("Schweinefilet auf Spargel-Risotto").sides).toEqual([]);
+    expect(phraseDish("Zanderfilet -Piccata an Tomatennudeln").sides).toEqual([]);
+    expect(phraseDish("Cordon bleu Bratkartoffeln")).toEqual({
+      title: "Cordon bleu Bratkartoffeln",
+      sides: [],
+      spoken: "Cordon bleu Bratkartoffeln",
+    });
+  });
+
+  it("still splits a list when the head contains von", () => {
+    expect(phraseDish("Cevapcici von der Pute / Djuvec Reis")).toEqual({
+      title: "Cevapcici von der Pute",
+      sides: ["Djuvec Reis"],
+      spoken: "Cevapcici von der Pute mit Djuvec Reis",
+    });
+  });
+
+  it("joins three or more sides with commas and und", () => {
+    expect(joinDishSides(["Tomate", "Zucchini", "Rosmarin", "Thymian"])).toBe(
+      "mit Tomate, Zucchini, Rosmarin und Thymian",
+    );
   });
 });
