@@ -1,6 +1,6 @@
 # Lunchtime Larry
 
-Wochenspeiseplan für drei Kantinen im Münchner Arabellapark. Montags und mittwochs um 8:10, 11:10 und 11:30 (Europe/Berlin) prüft GitHub Actions die Original-Seiten — Playwright startet nur, wenn der Wochenplan fehlt oder eine Kantine noch hakt.
+Wochenspeiseplan für drei Kantinen im Münchner Arabellapark. Montags und mittwochs um 8:30, 10:00 und 11:30 (Europe/Berlin) prüft GitHub Actions die Original-Seiten — Playwright startet nur, wenn der Wochenplan fehlt oder eine Kantine noch hakt.
 
 **Live:** https://lunchtime-larry.web.app · [GitHub Pages](https://herr-schulz.github.io/lunchtime-larry) bleibt als Fallback für `menu.json`. Der Scrape-Workflow kann Hosting zusätzlich per Secret `FIREBASE_TOKEN` aktualisieren (`firebase login:ci`).
 
@@ -51,7 +51,7 @@ Lokal: `firebase login` (ohne `--no-localhost` unter Windows).
 ## GitHub Actions
 
 - **CI:** Typecheck und Parser-Tests bei Push und Pull Request
-- **Scrape:** Cron Mo+Mi um 8:10, 11:10 und 11:30 (CEST; im Winter eine Stunde früher) plus Di/Do 8:10 als Catch-up. Playwright läuft nur, wenn diese Berlin-Woche noch fehlt oder eine Quelle `error`/`stale` ist. Manuell: Actions → *Scrape and publish* → *Run workflow*.
+- **Scrape:** Cron Mo+Mi um 8:30, 10:00 und 11:30 (CEST; im Winter eine Stunde früher) plus Di/Do 8:30 als Catch-up. Playwright läuft nur, wenn diese Berlin-Woche noch fehlt oder eine Quelle `error`/`stale` ist. Manuell: Actions → *Scrape and publish* → *Run workflow*.
 - **Publish:** Push auf `main`, der `site/` ändert — nimmt den letzten `menu.json` von Pages mit, ohne die Kantinen-Seiten erneut anzufassen
 - Android-Homescreen: nach einem Icon-Update die Verknüpfung einmal entfernen und neu anlegen, sonst bleibt der alte Splash-Cache.
 - Schlägt eine Quelle fehl oder liefert eine unplausible Woche (leer, nur Desserts, stark ausgedünnt), geht die Seite trotzdem online: Banner oben, betroffene Karte mit Hinweis. Gibt es für dieselbe Woche noch einen alten Stand, bleibt der als Fallback sichtbar.

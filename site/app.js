@@ -18,21 +18,23 @@ import {
   isLiked,
   toggleLikeSet,
 } from "./likes.js?v=2839e39f";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=0d0bfddd";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=88b956bc";
 import {
   favoriteToday,
   leisureMode as leisureLine,
   likeAck,
   menuFreshNote,
   pizzaDaily,
+  unlikeAck,
   voteFull,
   voteOffline,
   winnerLead,
   winnerTie,
-} from "./larryLines.js?v=1769de5f";
+} from "./larryLines.js?v=2732cc18";
 import { LOCATIONS } from "./locations.js?v=cb8d289e";
 import { loadMenu } from "./menuFetch.js?v=64fd5683";
 import {
+  berlinWeekday,
   isVoteDay,
   lastVoteDate,
   loadNick,
@@ -115,6 +117,8 @@ function larryMenuNote(data) {
   return menuFreshNote({
     old,
     issueNames: issues.map(([id]) => CANTEENS[id]?.name ?? id),
+    hour: berlinHour(),
+    weekday: berlinWeekday(),
   });
 }
 
@@ -459,6 +463,8 @@ function toggleDishLike(data, dish) {
     window.setTimeout(() => {
       if (justLikedKey === key) justLikedKey = "";
     }, 800);
+  } else if (wasLiked && !on) {
+    sayLarry(unlikeAck(dishLabel(name)));
   }
 }
 
@@ -571,4 +577,10 @@ try {
   syncTabs(DAY_KEYS.includes(fallback) ? fallback : "monday");
   bindLarryCorner();
   bindMascotEgg();
+  const miss = menuFreshNote({
+    old: true,
+    hour: berlinHour(),
+    weekday: berlinWeekday(),
+  });
+  if (miss) sayLarry(miss);
 }

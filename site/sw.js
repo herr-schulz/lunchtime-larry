@@ -1,5 +1,5 @@
 /* Lunchtime Larry — shell + menu cache for installed PWA */
-const CACHE = "larry-shell-v5";
+const CACHE = "larry-shell-v6";
 const SHELL = [
   "./",
   "./index.html",
