@@ -30,6 +30,10 @@ let laughSrc = "./laughing-larry.svg";
  *   startY: number,
  *   originX: number,
  *   originY: number,
+ *   originSide: "left" | "right",
+ *   originEdge: "top" | "bottom",
+ *   faceX: number,
+ *   faceY: number,
  *   width: number,
  *   height: number,
  *   fromFace: boolean,
@@ -41,6 +45,7 @@ let scrollY = 0;
 let scrollAccum = 0;
 let dockLockUntil = 0;
 let boundChrome = false;
+let textFadeTimer = 0;
 
 function prefersReducedMotion() {
   return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
@@ -100,39 +105,11 @@ function stickyChromeBottom() {
   return bottom;
 }
 
-function pageMaxPx() {
-  const raw = (
-    getComputedStyle(document.documentElement).getPropertyValue("--page-max") || "1180px"
-  ).trim();
-  const value = Number.parseFloat(raw);
-  if (!Number.isFinite(value)) return 1180;
-  if (raw.endsWith("rem")) {
-    const fs = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
-    return value * (Number.isFinite(fs) ? fs : 16);
-  }
-  return value;
-}
-
-function remPx() {
-  const fs = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
-  return Number.isFinite(fs) ? fs : 16;
-}
-
-function updateOutboard() {
-  if (!root) return;
-  const rem = remPx();
-  const gutter = pageGutterPx();
-  const sideRoom = (window.innerWidth - pageMaxPx()) / 2;
-  const need = gutter + 4.35 * rem + 0.45 * rem + 9 * rem + 0.75 * rem;
-  root.classList.toggle("is-outboard", sideRoom >= need);
-}
-
 function updateTopInset() {
   if (!root) return;
   const gutter = pageGutterPx();
   const top = Math.max(gutter, stickyChromeBottom() + gutter);
   root.style.setProperty("--larry-top", `${Math.round(top)}px`);
-  updateOutboard();
 }
 
 function applyDock() {
@@ -183,14 +160,59 @@ function setEdge(next, persist = true) {
   dockLockUntil = Date.now() + 480;
 }
 
-/** @param {"left" | "right"} next */
-function previewSide(next, layout = true) {
+function pulseBubbleText() {
+  if (!root || prefersReducedMotion()) return;
+  root.classList.add("is-text-out");
+  window.clearTimeout(textFadeTimer);
+  textFadeTimer = window.setTimeout(() => {
+    root?.classList.remove("is-text-out");
+  }, 200);
+}
+
+function keepFaceUnderPointer() {
+  if (!root || !face || !drag) return;
+  const after = face.getBoundingClientRect();
+  const dx = after.left - drag.faceX;
+  const dy = after.top - drag.faceY;
+  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+  drag.originX -= dx;
+  drag.originY -= dy;
+  const left = (Number.parseFloat(root.style.left) || 0) - dx;
+  const top = (Number.parseFloat(root.style.top) || 0) - dy;
+  const box = root.getBoundingClientRect();
+  drag.width = box.width;
+  drag.height = box.height;
+  const maxX = window.innerWidth - drag.width - 4;
+  const maxY = window.innerHeight - drag.height - 4;
+  root.style.left = `${Math.min(maxX, Math.max(4, left))}px`;
+  root.style.top = `${Math.min(maxY, Math.max(4, top))}px`;
+  root.style.width = `${Math.round(drag.width)}px`;
+  const settled = face.getBoundingClientRect();
+  drag.faceX = settled.left;
+  drag.faceY = settled.top;
+}
+
+/** @param {"left" | "right"} nextSide @param {"top" | "bottom"} nextEdge */
+function previewDock(nextSide, nextEdge) {
   if (!root) return;
-  side = next;
+  if (nextSide === side && nextEdge === edge) return;
+  const sideChanged = nextSide !== side;
+  if (face && drag) {
+    const rect = face.getBoundingClientRect();
+    drag.faceX = rect.left;
+    drag.faceY = rect.top;
+  }
+  side = nextSide;
+  edge = nextEdge;
   root.dataset.side = side;
-  if (!layout) return;
+  root.dataset.edge = edge;
+  if (!drag) return;
   root.classList.toggle("is-left", side === "left");
   root.classList.toggle("is-right", side === "right");
+  root.classList.toggle("is-top", edge === "top");
+  root.classList.toggle("is-bottom", edge === "bottom");
+  keepFaceUnderPointer();
+  if (sideChanged) pulseBubbleText();
 }
 
 function onPageScroll() {
@@ -276,7 +298,16 @@ function showLive() {
 
 function hideAway() {
   if (!root) return;
-  root.classList.remove("is-live", "is-speaking", "is-dragging", "is-parked", "is-docking", "is-settling");
+  window.clearTimeout(textFadeTimer);
+  root.classList.remove(
+    "is-live",
+    "is-speaking",
+    "is-dragging",
+    "is-parked",
+    "is-docking",
+    "is-settling",
+    "is-text-out",
+  );
   root.hidden = true;
   clearRootDrag();
   clearFaceOffset();
@@ -370,6 +401,10 @@ function bindLarryDrag() {
       startY: event.clientY,
       originX: rect.left,
       originY: rect.top,
+      originSide: side,
+      originEdge: edge,
+      faceX: 0,
+      faceY: 0,
       width: rect.width,
       height: rect.height,
       fromFace: Boolean(event.target.closest(".larry-face")),
@@ -391,6 +426,11 @@ function bindLarryDrag() {
       root.style.right = "auto";
       root.style.bottom = "auto";
       root.style.width = `${Math.round(drag.width)}px`;
+      if (face) {
+        const faceRect = face.getBoundingClientRect();
+        drag.faceX = faceRect.left;
+        drag.faceY = faceRect.top;
+      }
     }
 
     const maxX = window.innerWidth - drag.width - 4;
@@ -400,23 +440,34 @@ function bindLarryDrag() {
     root.style.left = `${left}px`;
     root.style.top = `${top}px`;
     const faceRect = face?.getBoundingClientRect();
-    const mid = faceRect
-      ? faceRect.left + faceRect.width / 2
-      : left + drag.width / 2;
-    previewSide(mid < window.innerWidth / 2 ? "left" : "right", false);
+    if (faceRect) {
+      drag.faceX = faceRect.left;
+      drag.faceY = faceRect.top;
+    }
+    const midX = faceRect ? faceRect.left + faceRect.width / 2 : left + drag.width / 2;
+    const midY = faceRect ? faceRect.top + faceRect.height / 2 : top + drag.height / 2;
+    previewDock(
+      midX < window.innerWidth / 2 ? "left" : "right",
+      midY < window.innerHeight / 2 ? "top" : "bottom",
+    );
   });
 
   const endDrag = (event, cancelled) => {
     if (!drag || drag.id !== event.pointerId) return;
     const wasDrag = dragged;
     const fromFace = drag.fromFace;
+    const originSide = drag.originSide;
+    const originEdge = drag.originEdge;
     const first = root.getBoundingClientRect();
     const faceRect = face?.getBoundingClientRect();
     drag = null;
     dragged = false;
-    root.classList.remove("is-dragging");
+    window.clearTimeout(textFadeTimer);
+    root.classList.remove("is-dragging", "is-text-out");
 
     if (cancelled || !wasDrag) {
+      side = originSide;
+      edge = originEdge;
       clearRootDrag();
       applyDock();
       if (!cancelled && fromFace) onFaceTap();
