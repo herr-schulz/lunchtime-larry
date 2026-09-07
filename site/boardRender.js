@@ -1,8 +1,8 @@
 /** Pure HTML builders for the canteen board (no DOM writes). */
 
-import { escapeHtml } from "./dom.js?v=55e28ecf";
+import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { checkCircleSvg, heartIcon, heartIconFilled } from "./icons.js?v=bef72b85";
-import { dishKey, displayDishName, isLiked } from "./likes.js?v=d4839ba3";
+import { dishKey, isLiked, joinDishSides, phraseDish } from "./likes.js?v=045195a5";
 
 const DIET = {
   vegan: "vegan",
@@ -26,16 +26,12 @@ export function ghostLine(seed) {
 }
 
 export function formatDishName(name) {
-  const shown = displayDishName(name);
-  const parts = shown
-    .split(/\s*[|/]\s*/)
-    .map((part) => part.trim())
-    .filter(Boolean);
+  const { title, sides } = phraseDish(name);
   const heart = heartIconFilled;
-  if (parts.length <= 1) return `${escapeHtml(parts[0] || shown)}${heart}`;
-  const sep = '<span class="sep" aria-hidden="true"></span>';
-  const first = `${escapeHtml(parts[0])}${heart}`;
-  return [first, ...parts.slice(1).map((part) => escapeHtml(part))].join(sep);
+  const titleRow = `<span class="dish-title">${escapeHtml(title)}${heart}</span>`;
+  const withSides = joinDishSides(sides);
+  if (!withSides) return titleRow;
+  return `${titleRow}<span class="dish-sides">${escapeHtml(withSides)}</span>`;
 }
 
 export function dishRow(dish, index, likes) {
@@ -49,8 +45,8 @@ export function dishRow(dish, index, likes) {
     ? `<span class="pill">${dish.category}</span>`
     : "";
   const price = dish.price ? `<span class="price">${dish.price}</span>` : "";
-  const shown = displayDishName(dish.name);
-  const label = kept ? `${shown}, Favorit` : shown;
+  const spoken = phraseDish(dish.name).spoken;
+  const label = kept ? `${spoken}, Favorit` : spoken;
   return `<article class="dish${kept ? " is-liked" : ""}" style="--dish-i:${index}" data-name="${escapeHtml(dish.name)}" data-key="${escapeHtml(key)}" role="button" tabindex="0" aria-pressed="${kept}" aria-label="${escapeHtml(label)}">
     <div class="name">${formatDishName(dish.name)}</div>
     ${price}
@@ -114,11 +110,17 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
     .join("");
 }
 
-function placeNames(ids, canteens) {
-  const names = (ids ?? []).map((id) => canteens?.[id]?.name).filter(Boolean);
-  if (names.length <= 1) return names[0] || "";
-  if (names.length === 2) return `${names[0]} und ${names[1]}`;
-  return `${names.slice(0, -1).join(", ")} und ${names.at(-1)}`;
+function placeAt(ids, canteens) {
+  const bits = [];
+  for (const id of ids ?? []) {
+    const name = canteens?.[id]?.name;
+    if (!name) continue;
+    bits.push(`${id === "stmuv" ? "im" : "bei"} ${name}`);
+  }
+  if (!bits.length) return "";
+  if (bits.length === 1) return bits[0];
+  if (bits.length === 2) return `${bits[0]} und ${bits[1]}`;
+  return `${bits.slice(0, -1).join(", ")} und ${bits.at(-1)}`;
 }
 
 /**
@@ -129,10 +131,11 @@ export function hitsHtml(items, canteens) {
   const rows = items
     .map((item) => {
       const places = item.places?.length ? item.places : item.canteen ? [item.canteen] : [];
-      const where = placeNames(places, canteens);
-      const text = where ? `${item.label} bei ${where}` : item.label;
+      const where = placeAt(places, canteens);
+      const spoken = where ? `${item.label} ${where}` : item.label;
       const canteen = item.canteen || places[0] || "";
-      return `<button type="button" class="toast-hit-item" data-key="${escapeHtml(item.key || "")}" data-canteen="${escapeHtml(canteen)}" data-label="${escapeHtml(item.label)}" data-place="${escapeHtml(where)}">${escapeHtml(text)}</button>`;
+      const placeName = (places.map((id) => canteens?.[id]?.name).filter(Boolean).join(" und ")) || where;
+      return `<button type="button" class="toast-hit-item" data-key="${escapeHtml(item.key || "")}" data-canteen="${escapeHtml(canteen)}" data-label="${escapeHtml(item.label)}" data-place="${escapeHtml(placeName)}" aria-label="${escapeHtml(spoken)}">${escapeHtml(spoken)}</button>`;
     })
     .join("");
   return `<p class="toast-kicker">${heartIcon}<span>Favoriten-Alarm</span></p><div class="toast-list">${rows}</div>`;

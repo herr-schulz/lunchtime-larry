@@ -1,6 +1,6 @@
 /** Single Larry speech-bubble — toast-like, free drag, gravity snap. */
 
-import { IDLE_TIP } from "./larryLines.js?v=722807d7";
+import { IDLE_TIP } from "./larryLines.js?v=d6e94011";
 
 const DOCK_KEY = "lunchtime-larry-corner-dock";
 const SIDE_KEY = "lunchtime-larry-corner-side";
@@ -30,7 +30,9 @@ let laughSrc = "./laughing-larry.svg";
  *   startY: number,
  *   originX: number,
  *   originY: number,
- *   spoke: boolean,
+ *   width: number,
+ *   height: number,
+ *   fromFace: boolean,
  * } | null}
  */
 let drag = null;
@@ -86,19 +88,51 @@ function pageGutterPx() {
   return value;
 }
 
+function stickyChromeBottom() {
+  const bleed = document.querySelector(".status-bleed");
+  let bottom = bleed ? bleed.getBoundingClientRect().bottom : 0;
+  const switcher = document.querySelector(".day-switch");
+  if (switcher) {
+    const rect = switcher.getBoundingClientRect();
+    const inTopBand = rect.bottom > 0 && rect.top < window.innerHeight * 0.5;
+    if (inTopBand) bottom = Math.max(bottom, rect.bottom);
+  }
+  return bottom;
+}
+
+function pageMaxPx() {
+  const raw = (
+    getComputedStyle(document.documentElement).getPropertyValue("--page-max") || "1180px"
+  ).trim();
+  const value = Number.parseFloat(raw);
+  if (!Number.isFinite(value)) return 1180;
+  if (raw.endsWith("rem")) {
+    const fs = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return value * (Number.isFinite(fs) ? fs : 16);
+  }
+  return value;
+}
+
+function remPx() {
+  const fs = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return Number.isFinite(fs) ? fs : 16;
+}
+
+function updateOutboard() {
+  if (!root) return;
+  const rem = remPx();
+  const gutter = pageGutterPx();
+  const sideRoom = (window.innerWidth - pageMaxPx()) / 2;
+  const need = gutter + 4.35 * rem + 0.45 * rem + 9 * rem + 0.75 * rem;
+  root.classList.toggle("is-outboard", sideRoom >= need);
+}
+
 function updateTopInset() {
   if (!root) return;
   const gutter = pageGutterPx();
-  const days = document.querySelector(".days");
-  const bleed = document.querySelector(".status-bleed");
-  const safeBottom = bleed ? bleed.getBoundingClientRect().bottom : 0;
-  let top = Math.max(gutter, safeBottom);
-  if (days) {
-    const rect = days.getBoundingClientRect();
-    const inTopBand = rect.bottom > 0 && rect.top < window.innerHeight * 0.4;
-    if (inTopBand) top = Math.max(top, rect.bottom + gutter * 0.45);
-  }
+  const top = Math.max(gutter, stickyChromeBottom() + gutter);
   root.style.setProperty("--larry-top", `${Math.round(top)}px`);
+  updateOutboard();
 }
 
 function applyDock() {
@@ -137,31 +171,6 @@ function flipRootFrom(first) {
   window.setTimeout(clear, 520);
 }
 
-/** @param {DOMRect} rect */
-function settleFaceFrom(rect) {
-  if (!face || prefersReducedMotion()) return;
-  const last = face.getBoundingClientRect();
-  const dx = rect.left - last.left;
-  const dy = rect.top - last.top;
-  if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
-  root?.classList.add("is-settling");
-  face.style.transition = "none";
-  face.style.transform = `translate(${dx}px, ${dy}px)`;
-  void face.offsetWidth;
-  face.style.transition = "";
-  face.style.transform = "";
-  const clear = () => {
-    root?.classList.remove("is-settling");
-    face?.removeEventListener("transitionend", onEnd);
-  };
-  /** @param {TransitionEvent} event */
-  const onEnd = (event) => {
-    if (event.target === face && event.propertyName === "transform") clear();
-  };
-  face.addEventListener("transitionend", onEnd);
-  window.setTimeout(clear, 520);
-}
-
 /** @param {"top" | "bottom"} next */
 function setEdge(next, persist = true) {
   if (next === edge) return;
@@ -175,10 +184,11 @@ function setEdge(next, persist = true) {
 }
 
 /** @param {"left" | "right"} next */
-function previewSide(next) {
-  if (next === side || !root) return;
+function previewSide(next, layout = true) {
+  if (!root) return;
   side = next;
   root.dataset.side = side;
+  if (!layout) return;
   root.classList.toggle("is-left", side === "left");
   root.classList.toggle("is-right", side === "right");
 }
@@ -231,16 +241,20 @@ function ensureDom() {
     event.stopPropagation();
     hideBubble();
   });
-  bubble?.addEventListener("click", () => {
-    hideBubble();
+  root.querySelector(".larry-dismiss")?.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
   });
-  bindFaceDrag();
+  bindLarryDrag();
   if (!boundChrome) {
     boundChrome = true;
     scrollY = Math.max(0, window.scrollY);
     window.addEventListener("scroll", onPageScroll, { passive: true });
     window.addEventListener("resize", updateTopInset);
     window.visualViewport?.addEventListener("resize", updateTopInset);
+    const switcher = document.querySelector(".day-switch");
+    if (switcher && typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(() => updateTopInset()).observe(switcher);
+    }
   }
   return root;
 }
@@ -264,8 +278,19 @@ function hideAway() {
   if (!root) return;
   root.classList.remove("is-live", "is-speaking", "is-dragging", "is-parked", "is-docking", "is-settling");
   root.hidden = true;
+  clearRootDrag();
   clearFaceOffset();
   speaking = false;
+}
+
+function clearRootDrag() {
+  if (!root) return;
+  root.style.left = "";
+  root.style.right = "";
+  root.style.top = "";
+  root.style.bottom = "";
+  root.style.width = "";
+  root.style.maxWidth = "";
 }
 
 function clearFaceOffset() {
@@ -329,67 +354,72 @@ function onFaceTap() {
   paint(history[historyIndex]);
 }
 
-function bindFaceDrag() {
-  if (!face) return;
+function bindLarryDrag() {
+  if (!root) return;
 
-  face.addEventListener("pointerdown", (event) => {
+  root.addEventListener("pointerdown", (event) => {
     if (event.button != null && event.button !== 0) return;
+    if (event.target.closest(".larry-dismiss")) return;
+    const handle = event.target.closest(".larry-face, .larry-bubble");
+    if (!handle) return;
+    const rect = root.getBoundingClientRect();
     dragged = false;
-    const rect = face.getBoundingClientRect();
     drag = {
       id: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       originX: rect.left,
       originY: rect.top,
-      spoke: Boolean(speaking && speech && !speech.hidden),
+      width: rect.width,
+      height: rect.height,
+      fromFace: Boolean(event.target.closest(".larry-face")),
     };
-    root?.classList.add("is-dragging");
-    face.setPointerCapture?.(event.pointerId);
+    handle.setPointerCapture?.(event.pointerId);
   });
 
-  face.addEventListener("pointermove", (event) => {
-    if (!drag || drag.id !== event.pointerId || !face) return;
+  root.addEventListener("pointermove", (event) => {
+    if (!drag || drag.id !== event.pointerId) return;
     const dx = event.clientX - drag.startX;
     const dy = event.clientY - drag.startY;
     if (!dragged && Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
 
     if (!dragged) {
       dragged = true;
-      face.style.position = "fixed";
-      face.style.left = `${drag.originX}px`;
-      face.style.top = `${drag.originY}px`;
-      face.style.right = "auto";
-      face.style.bottom = "auto";
-      face.style.zIndex = "30";
-      if (speech) speech.hidden = true;
-      root?.classList.remove("is-speaking", "is-parked");
-      speaking = false;
-      setFace(false);
+      root.classList.add("is-dragging");
+      root.style.left = `${drag.originX}px`;
+      root.style.top = `${drag.originY}px`;
+      root.style.right = "auto";
+      root.style.bottom = "auto";
+      root.style.width = `${Math.round(drag.width)}px`;
     }
 
-    const moveX = drag.originX + dx;
-    const moveY = drag.originY + dy;
-    const maxX = window.innerWidth - face.offsetWidth - 4;
-    const maxY = window.innerHeight - face.offsetHeight - 4;
-    const left = Math.min(maxX, Math.max(4, moveX));
-    const top = Math.min(maxY, Math.max(4, moveY));
-    face.style.left = `${left}px`;
-    face.style.top = `${top}px`;
-    previewSide(left + face.offsetWidth / 2 < window.innerWidth / 2 ? "left" : "right");
+    const maxX = window.innerWidth - drag.width - 4;
+    const maxY = window.innerHeight - drag.height - 4;
+    const left = Math.min(maxX, Math.max(4, drag.originX + dx));
+    const top = Math.min(maxY, Math.max(4, drag.originY + dy));
+    root.style.left = `${left}px`;
+    root.style.top = `${top}px`;
+    const faceRect = face?.getBoundingClientRect();
+    const mid = faceRect
+      ? faceRect.left + faceRect.width / 2
+      : left + drag.width / 2;
+    previewSide(mid < window.innerWidth / 2 ? "left" : "right", false);
   });
 
-  face.addEventListener("pointerup", (event) => {
+  const endDrag = (event, cancelled) => {
     if (!drag || drag.id !== event.pointerId) return;
     const wasDrag = dragged;
-    const spoke = drag.spoke;
+    const fromFace = drag.fromFace;
+    const first = root.getBoundingClientRect();
     const faceRect = face?.getBoundingClientRect();
     drag = null;
-    root?.classList.remove("is-dragging");
+    dragged = false;
+    root.classList.remove("is-dragging");
 
-    if (!wasDrag) {
-      clearFaceOffset();
-      onFaceTap();
+    if (cancelled || !wasDrag) {
+      clearRootDrag();
+      applyDock();
+      if (!cancelled && fromFace) onFaceTap();
       return;
     }
 
@@ -399,35 +429,16 @@ function bindFaceDrag() {
       side = faceMidX < window.innerWidth / 2 ? "left" : "right";
       edge = faceMidY < window.innerHeight / 2 ? "top" : "bottom";
     }
+    clearRootDrag();
     applyDock();
     persistDock();
-    clearFaceOffset();
-    if (faceRect) settleFaceFrom(faceRect);
+    flipRootFrom(first);
     dockLockUntil = Date.now() + 480;
     scrollAccum = 0;
+  };
 
-    if (spoke && history.length) {
-      const msg = history[historyIndex] || history[history.length - 1];
-      paint(msg, { pop: false });
-    } else if (history.length) {
-      setFace(false);
-      root?.classList.add("is-parked");
-      showLive();
-    }
-  });
-
-  face.addEventListener("pointercancel", () => {
-    drag = null;
-    dragged = false;
-    root?.classList.remove("is-dragging");
-    clearFaceOffset();
-    applyDock();
-    if (history.length) {
-      setFace(false);
-      root?.classList.add("is-parked");
-      showLive();
-    }
-  });
+  root.addEventListener("pointerup", (event) => endDrag(event, false));
+  root.addEventListener("pointercancel", (event) => endDrag(event, true));
 }
 
 /**

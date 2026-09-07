@@ -37,6 +37,63 @@ export function displayDishName(name) {
   return text || "Tagesdessert";
 }
 
+function peelMit(text) {
+  const match = String(text).match(/^(.*?)\s+mit\s+(.+)$/i);
+  if (!match) return null;
+  const title = match[1].trim();
+  const rest = match[2].trim();
+  if (title.length < 2 || !rest) return null;
+  return { title, rest };
+}
+
+/** @param {string[]} sides */
+export function joinDishSides(sides) {
+  const parts = (sides ?? []).map((side) => String(side).trim()).filter(Boolean);
+  if (!parts.length) return "";
+  const lead = parts[0].replace(/^mit\s+/i, "");
+  if (parts.length === 1) return `mit ${lead}`;
+  if (parts.length === 2) return `mit ${lead} und ${parts[1]}`;
+  return `mit ${lead}, ${parts.slice(1, -1).join(", ")} und ${parts.at(-1)}`;
+}
+
+/**
+ * Frozen dish phrasing: list separators and one "mit" peel. No extra rules.
+ * @param {string} name
+ * @returns {{ title: string, sides: string[], spoken: string }}
+ */
+export function phraseDish(name) {
+  const shown = displayDishName(name);
+  const listParts = shown
+    .split(/\s*[|/]\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  /** @type {string} */
+  let title = listParts[0] || shown;
+  /** @type {string[]} */
+  let sides = listParts.slice(1);
+
+  if (listParts.length > 1) {
+    const peeled = peelMit(title);
+    if (peeled) {
+      title = peeled.title;
+      sides = [peeled.rest, ...sides];
+    }
+  } else if (!/\b(auf|an|von)\b/i.test(shown)) {
+    const peeled = peelMit(shown);
+    if (peeled) {
+      title = peeled.title;
+      sides = [peeled.rest];
+    }
+  }
+
+  const withSides = joinDishSides(sides);
+  return {
+    title,
+    sides,
+    spoken: withSides ? `${title} ${withSides}` : title,
+  };
+}
+
 function titleCase(text) {
   return text.replace(/(^|[\s/-])(\S+)/g, (_, sep, word) => {
     if (word.length <= 1) return sep + word;
@@ -85,15 +142,78 @@ export function dishLabel(name) {
   return titleCase(shown || display);
 }
 
-/** Alarm/toast label: Dave B and Bella 23 drop the "mit …" side list. */
-export function alarmLabel(name, canteenId) {
-  const label = dishLabel(name);
-  if (canteenId !== "sodexo" && canteenId !== "bella23") return label;
-  const raw = displayDishName(name);
-  if (/\s*[|/]\s*/.test(raw)) return label;
-  const cut = label.split(/\s+(?:mit|und)\s+/i)[0]?.trim();
-  if (!cut || cut.length < 4) return label;
-  return titleCase(cut);
+const PASTA_TYPES = new Set([
+  "agnolotti",
+  "bandnudeln",
+  "bucatini",
+  "cannelloni",
+  "cavatappi",
+  "conchiglie",
+  "ditalini",
+  "farfalle",
+  "fettuccine",
+  "fusilli",
+  "garganelli",
+  "gemelli",
+  "gnocchi",
+  "hörnchen",
+  "hornnudeln",
+  "knöpfle",
+  "lasagna",
+  "lasagne",
+  "linguine",
+  "macaroni",
+  "maccheroni",
+  "makkaroni",
+  "nudel",
+  "nudeln",
+  "orecchiette",
+  "orzo",
+  "paccheri",
+  "pappardelle",
+  "pasta",
+  "penne",
+  "ravioli",
+  "rigatoni",
+  "rotini",
+  "schupfnudeln",
+  "spaghetti",
+  "spaghettini",
+  "spaetzle",
+  "spätzle",
+  "tagliatelle",
+  "tagliolini",
+  "tortellini",
+  "trofie",
+  "ziti",
+]);
+
+function isPastaTitle(title) {
+  const words = String(title)
+    .toLowerCase()
+    .replace(/[^a-zäöüß\s-]/g, " ")
+    .split(/[\s-]+/)
+    .filter(Boolean);
+  const head = words[0];
+  if (!head) return false;
+  if (PASTA_TYPES.has(head)) return true;
+  return [...PASTA_TYPES].some((pasta) => pasta.length >= 6 && head.includes(pasta));
+}
+
+function firstIngredient(sides) {
+  const raw = String(sides?.[0] || "")
+    .replace(/^mit\s+/i, "")
+    .trim();
+  if (!raw) return "";
+  return raw.split(/\s*,\s*|\s+und\s+/i)[0]?.trim() || "";
+}
+
+/** Compact alarm label: dish title, plus first side when the title is a pasta. */
+export function alarmLabel(name) {
+  const { title, sides } = phraseDish(name);
+  if (!isPastaTitle(title)) return title;
+  const lead = firstIngredient(sides);
+  return lead ? `${title} mit ${lead}` : title;
 }
 
 function significantTokens(key) {
@@ -147,7 +267,7 @@ export function findLikedDishes(dayBlock, likes) {
       found.push({
         key,
         name: dish.name,
-        label: alarmLabel(dish.name, canteen.id),
+        label: alarmLabel(dish.name),
         canteen: canteen.id,
         places: canteen.id ? [canteen.id] : [],
       });
