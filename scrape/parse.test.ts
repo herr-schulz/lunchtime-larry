@@ -3,7 +3,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseBella23Html } from "./sources/bella23Parse.ts";
-import { parseSodexoMenuHtml, tabToWeekday } from "./sources/sodexoParse.ts";
+import {
+  dishSignature,
+  mapSodexoDishes,
+  parseSodexoMenuHtml,
+  tabToWeekday,
+} from "./sources/sodexoParse.ts";
 import { parseStmuvHtml } from "./sources/stmuvParse.ts";
 
 const fixtures = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
@@ -81,6 +86,38 @@ describe("parseSodexoMenuHtml", () => {
       category: "Dessert",
       diet: "unknown",
     });
+  });
+
+  it("reads only the active tab and drops leftover plus placeholder cards", () => {
+    const dishes = parseSodexoMenuHtml(load("sodexo-tabs.html"));
+    const names = dishes.map((d) => d.name);
+    expect(names).toEqual([
+      "Gelbes Hähnchencurry | Duftreis",
+      "Überbackene Polenta | Spinat | Zucchini",
+      "Nuss-Nougatpudding mit Vanillesauce | Mandeln",
+    ]);
+    expect(names.some((n) => /Gyros|Kartoffelcurry|täglich aktualisiert/i.test(n))).toBe(
+      false,
+    );
+  });
+});
+
+describe("sodexo helpers", () => {
+  it("signatures ignore order", () => {
+    expect(dishSignature(["B", "A"])).toBe(dishSignature(["A", "B"]));
+  });
+
+  it("dedupes identical cards and skips placeholder desserts", () => {
+    const dishes = mapSodexoDishes([
+      { name: "Gelbes Hähnchencurry | Duftreis", category: "OMG", dietHint: "" },
+      { name: "Gelbes Hähnchencurry | Duftreis", category: "OMG", dietHint: "" },
+      {
+        name: "Tages Dessert 1 Täglich aktualisiert",
+        category: "Dessert",
+        dietHint: "",
+      },
+    ]);
+    expect(dishes.map((d) => d.name)).toEqual(["Gelbes Hähnchencurry | Duftreis"]);
   });
 });
 

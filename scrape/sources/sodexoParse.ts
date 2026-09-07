@@ -3,7 +3,8 @@ import { inferDiet, parseGermanPrice, stripDietLabels } from "../lib.ts";
 import { type Diet, type Dish, type Weekday } from "../types.ts";
 
 export const SKIP_CATEGORIES = /add\s*on|beilage|topping|^pizza$/i;
-export const SKIP_NAMES = /topping|add\s*on|al gusto|geschlossen/i;
+export const SKIP_NAMES =
+  /topping|add\s*on|al gusto|geschlossen|täglich aktualisiert|tages\s*dessert\s*\d/i;
 export const UNAVAILABLE = /nicht\s*(verfügbar|im angebot)|ausverkauft|sold\s*out/i;
 
 export type SodexoRaw = {
@@ -23,25 +24,74 @@ export function tabToWeekday(label: string): Weekday | undefined {
   return undefined;
 }
 
+export function dishSignature(names: string[]): string {
+  return names
+    .map((name) => name.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .toSorted()
+    .join("\n");
+}
+
+export function dedupeDishes(dishes: Dish[]): Dish[] {
+  const seen = new Set<string>();
+  const out: Dish[] = [];
+  for (const dish of dishes) {
+    const key = dish.name.replace(/\s+/g, " ").trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(dish);
+  }
+  return out;
+}
+
 export function mapSodexoDishes(raw: SodexoRaw[]): Dish[] {
-  return raw.map((item) => {
-    const category = /dessert/i.test(item.category) ? "Dessert" : item.category;
-    let diet: Diet = inferDiet(`${item.name} ${item.dietHint} ${item.category}`, {
-      category,
-    });
-    if (/ingreen/i.test(item.category) && diet === "unknown") diet = "veggie";
-    return {
-      name: stripDietLabels(item.name),
-      price: item.price || parseGermanPrice(item.name),
-      diet,
-      category,
-    };
-  });
+  return dedupeDishes(
+    raw
+      .filter(
+        (item) =>
+          !SKIP_CATEGORIES.test(item.category) &&
+          !SKIP_NAMES.test(item.category) &&
+          !SKIP_NAMES.test(item.name),
+      )
+      .map((item) => {
+        const category = /dessert/i.test(item.category) ? "Dessert" : item.category;
+        let diet: Diet = inferDiet(`${item.name} ${item.dietHint} ${item.category}`, {
+          category,
+        });
+        if (/ingreen/i.test(item.category) && diet === "unknown") diet = "veggie";
+        return {
+          name: stripDietLabels(item.name),
+          price: item.price || parseGermanPrice(item.name),
+          diet,
+          category,
+        };
+      }),
+  );
+}
+
+export function activeSodexoRoot(document: ParentNode): ParentNode | null {
+  const activeBody = document.querySelector(
+    "mat-tab-body.mat-mdc-tab-body-active, .mat-mdc-tab-body-active, .mat-tab-body-active",
+  );
+  if (activeBody) return activeBody;
+
+  const visiblePanel = document.querySelector(
+    "[role='tabpanel']:not([aria-hidden='true'])",
+  );
+  if (visiblePanel) return visiblePanel;
+
+  const tabBodies = document.querySelectorAll("mat-tab-body, [role='tabpanel']");
+  if (tabBodies.length > 1) return null;
+
+  return document.querySelector("app-menu-container") || document;
 }
 
 function isVisuallyHidden(card: Element, view: Window & typeof globalThis): boolean {
+  const buried = card.closest("[aria-hidden='true'], [hidden]");
+  if (buried && buried !== card) return true;
   if (typeof view.getComputedStyle !== "function") return false;
   const style = view.getComputedStyle(card);
+  if (style.display === "none" || style.visibility === "hidden") return true;
   const opacity = style.opacity;
   if (opacity !== "" && Number.isFinite(Number(opacity)) && Number(opacity) < 0.7) {
     return true;
@@ -58,8 +108,10 @@ export function collectSodexoCards(
   const unavailableRe = UNAVAILABLE;
   const out: SodexoRaw[] = [];
   const win = view ?? (document.defaultView as (Window & typeof globalThis) | null);
+  const root = activeSodexoRoot(document);
+  if (!root) return out;
 
-  for (const category of document.querySelectorAll("app-category")) {
+  for (const category of root.querySelectorAll("app-category")) {
     const heading = category.querySelector("h2, h3, h4, h5");
     const categoryName = (heading?.textContent || "").replace(/\s+/g, " ").trim();
     if (skipCatRe.test(categoryName)) continue;

@@ -117,7 +117,7 @@ async function main() {
     const fallback = previous ? dishesFor(previous.days, result.id) : undefined;
     const hasFallback = fallback && WEEKDAYS.some((d) => fallback[d].length > 0);
 
-    if (sameWeek && hasFallback && fallback) {
+    if (sameWeek && hasFallback && fallback && assessSource(fallback).ok) {
       sources[result.id] = {
         status: "stale",
         error: result.error,
