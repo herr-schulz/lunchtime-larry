@@ -82,6 +82,55 @@ export const LOCATIONS = [
   },
 ];
 
+const DAY_SHORT = {
+  monday: "Mo",
+  tuesday: "Di",
+  wednesday: "Mi",
+  thursday: "Do",
+  friday: "Fr",
+  saturday: "Sa",
+  sunday: "So",
+};
+
+const DAY_ORDER = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+export function berlinWeekdayKey(now = new Date()) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    timeZone: "Europe/Berlin",
+  })
+    .format(now)
+    .toLowerCase();
+}
+
+/** Best-effort open check from German short hours strings. */
+export function isLikelyOpenToday(when, weekdayKey = berlinWeekdayKey()) {
+  const text = String(when || "");
+  const today = DAY_SHORT[weekdayKey];
+  if (!today) return true;
+  if (/täglich/i.test(text)) return true;
+  if (/Mo\s*[–-]\s*So/i.test(text)) return true;
+
+  const range = text.match(
+    /\b(Mo|Di|Mi|Do|Fr|Sa|So)\s*[–-]\s*(Mo|Di|Mi|Do|Fr|Sa|So)\b/i,
+  );
+  if (range) {
+    const start = DAY_ORDER.indexOf(range[1]);
+    const end = DAY_ORDER.indexOf(range[2]);
+    const here = DAY_ORDER.indexOf(today);
+    if (start >= 0 && end >= 0 && here >= 0) {
+      if (start <= end) return here >= start && here <= end;
+      return here >= start || here <= end;
+    }
+  }
+
+  const singles = [...text.matchAll(/\b(Mo|Di|Mi|Do|Fr|Sa|So)\b/g)].map(
+    (match) => match[1],
+  );
+  if (singles.length) return singles.includes(today);
+  return true;
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -91,26 +140,38 @@ function escapeHtml(value) {
 }
 
 function renderLocationCard(spot, index = 0) {
+  const open = isLikelyOpenToday(spot.when);
   const tags = (spot.tags ?? [])
     .map((t) => `<span class="pill tag">${escapeHtml(t)}</span>`)
     .join("");
-  return `<a class="spot-card" href="${escapeHtml(spot.url)}" target="_blank" rel="noopener noreferrer" style="--i:${index}">
+  const closed = open
+    ? ""
+    : `<span class="spot-closed">Heute zu</span>`;
+  return `<a class="spot-card${open ? "" : " is-closed"}" href="${escapeHtml(spot.url)}" target="_blank" rel="noopener noreferrer" style="--i:${index}">
     <div class="spot-top">
       <h3>${escapeHtml(spot.name)}</h3>
       <span class="spot-walk">${spot.walk} min</span>
     </div>
     <span class="spot-vibe">${escapeHtml(spot.vibe)}</span>
+    ${closed}
     <p class="spot-note">${escapeHtml(spot.note)}</p>
     <div class="spot-tags">${tags}</div>
     <p class="spot-meta">${escapeHtml(spot.where)} · ${escapeHtml(spot.when)}</p>
   </a>`;
 }
 
-const grid = document.querySelector("#spot-grid");
+const grid = typeof document !== "undefined" ? document.querySelector("#spot-grid") : null;
 if (grid) {
-  grid.innerHTML = LOCATIONS.map((spot, i) => renderLocationCard(spot, i)).join(
-    "",
-  );
+  const weekday = berlinWeekdayKey();
+  const ranked = [...LOCATIONS].sort((a, b) => {
+    const aOpen = isLikelyOpenToday(a.when, weekday) ? 0 : 1;
+    const bOpen = isLikelyOpenToday(b.when, weekday) ? 0 : 1;
+    if (aOpen !== bOpen) return aOpen - bOpen;
+    return a.walk - b.walk;
+  });
+  grid.innerHTML = ranked
+    .map((spot, i) => renderLocationCard(spot, i))
+    .join("");
   window.requestAnimationFrame(() => {
     document.body.classList.add("spots-ready");
   });

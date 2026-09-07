@@ -131,6 +131,19 @@ body {
   .masthead:not(.alt-masthead) .masthead-lockup {
     translate: -1rem;
   }
+
+  .larry-corner.is-right,
+  .larry-corner:not(.is-left) {
+    left: auto;
+    right: var(--larry-edge-end);
+    max-width: min(28rem, calc(100vw - 2rem));
+  }
+
+  .larry-corner.is-left {
+    left: var(--larry-edge);
+    right: auto;
+    max-width: min(28rem, calc(100vw - 2rem));
+  }
 }
 
 .mascot {
@@ -188,24 +201,32 @@ h1 {
 .notices {
   position: relative;
   z-index: 0;
-  width: calc(100% - 1.8rem);
-  margin: -1rem 0 0;
+  width: 100%;
+  margin: -0.9rem 0 0;
   display: flex;
   flex-direction: column;
-  gap: 0.32rem;
+  gap: 0.4rem;
 }
 
 .toast {
   margin: 0;
-  padding: 1.5rem 0.95rem 0.78rem;
+  padding: 1.7rem 0.95rem 0.78rem;
   border: 1px solid color-mix(in srgb, var(--ink) 8%, var(--ticket));
   border-top: 0;
-  border-radius: 8px 8px 16px 16px;
+  border-radius: 0 0 16px 16px;
   background: var(--ticket);
   box-shadow:
     0 14px 28px var(--shadow-lift),
     inset 0 -1px 0 #fff8;
   transform-origin: top center;
+}
+
+/* Second toast under nav (legacy) — keep top radius if banner ever returns */
+.notices .toast + .toast {
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, var(--ticket));
+  border-radius: 14px;
+  padding-top: 0.85rem;
+  margin-top: 0.15rem;
 }
 
 .toast-warn {
@@ -630,7 +651,7 @@ h1 {
 .alt-intro {
   position: relative;
   z-index: 1;
-  margin-top: clamp(2.6rem, 6vw, 4rem);
+  margin-top: clamp(0.85rem, 2.5vw, 1.5rem);
   margin-bottom: 0.85rem;
   text-align: center;
 }
@@ -716,9 +737,20 @@ h1 {
     border-color 0.22s ease;
 }
 
-.spots-ready .spot-card {
-  animation: spot-in 0.5s ease forwards;
-  animation-delay: calc(var(--i) * 70ms);
+.spot-card.is-closed {
+  /* keep ticket opaque — opacity looked broken on cream paper */
+  filter: grayscale(0.18);
+  background: color-mix(in srgb, var(--ticket) 88%, var(--paper-2));
+}
+
+.spot-closed {
+  display: inline-block;
+  margin: 0.2rem 0 0;
+  color: var(--stamp);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .spot-card::before,
@@ -763,6 +795,11 @@ h1 {
   --shadow-color: var(--shadow-spot-hover);
   transform: translateY(-3px);
   border-color: var(--mustard);
+}
+
+.spots-ready .spot-card {
+  animation: spot-in 0.5s ease forwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
 }
 
 .spots-ready .spot-card:hover {
@@ -846,10 +883,23 @@ h1 {
   --shadow-y: var(--ticket-shadow-y);
   --shadow-color: var(--ticket-shadow);
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: var(--ticket);
   padding: 1.15rem 1.1rem 1.3rem;
   overflow: visible;
   box-shadow: var(--shadow-x) var(--shadow-y) 0 var(--shadow-color);
+}
+
+.slip-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.slip-list.is-empty {
+  justify-content: center;
+  min-height: 7.5rem;
 }
 
 .board.is-entering .slip {
@@ -1187,7 +1237,6 @@ h1 {
   width: max-content;
   margin: 1.35rem auto 1rem;
   z-index: 1;
-  pointer-events: none;
   border: 2px solid var(--stamp);
   color: var(--stamp);
   background: var(--ticket);
@@ -1198,6 +1247,299 @@ h1 {
   font-size: 0.78rem;
   padding: 0.22rem 0.5rem;
   transform: rotate(-8deg);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.pizza-miss {
+  cursor: default;
+  pointer-events: none;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.slip-list.is-empty .pizza-miss {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.slip.is-voted {
+  box-shadow:
+    var(--shadow-x) var(--shadow-y) 0 var(--shadow-color),
+    inset 0 0 0 2px color-mix(in srgb, var(--stamp) 35%, transparent);
+}
+
+.slip.is-leading:not(.is-voted) {
+  box-shadow:
+    var(--shadow-x) var(--shadow-y) 0 var(--shadow-color),
+    inset 0 0 0 1px color-mix(in srgb, var(--sage) 45%, transparent);
+}
+
+.day-date.is-weekend::after {
+  content: " · Wochenende · Freitagsplan";
+  color: var(--ink-soft);
+  font-style: italic;
+  font-size: 0.85em;
+}
+
+.larry-corner {
+  --larry-pad: 0.75rem;
+  --larry-face: 4.35rem;
+  --larry-gap: 0.45rem;
+  --larry-x: 1.35rem;
+  --larry-edge: max(0.75rem, env(safe-area-inset-left, 0px));
+  --larry-edge-end: max(0.75rem, env(safe-area-inset-right, 0px));
+  position: fixed;
+  z-index: 20;
+  left: var(--larry-edge);
+  right: var(--larry-edge-end);
+  bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  gap: var(--larry-gap);
+  width: auto;
+  max-width: none;
+  box-sizing: border-box;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.6rem);
+  transition:
+    opacity 0.28s var(--ease-out-expo),
+    visibility 0.28s,
+    transform 0.38s var(--ease-out-expo);
+}
+
+.larry-corner.is-live {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: none;
+}
+
+.larry-corner.is-left {
+  flex-direction: row;
+}
+
+.larry-corner.is-dragging {
+  transition: none;
+}
+
+.larry-corner.is-left .larry-face-img {
+  margin: -0.95rem 0 0 -0.15rem;
+  transform: scaleX(-1);
+}
+
+.larry-corner.is-left .larry-bubble {
+  transform-origin: left bottom;
+}
+
+.larry-corner.is-left .larry-bubble::after {
+  right: auto;
+  left: -0.42rem;
+  border-right: 0;
+  border-left: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
+  transform: rotate(45deg);
+}
+
+.larry-face {
+  position: relative;
+  flex: 0 0 var(--larry-face);
+  width: var(--larry-face);
+  height: var(--larry-face);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  overflow: visible;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.42s cubic-bezier(0.22, 1.2, 0.36, 1);
+  will-change: transform;
+}
+
+.larry-corner.is-dragging .larry-face {
+  cursor: grabbing;
+  transition: none;
+}
+
+.larry-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--ticket);
+  box-shadow: 0 8px 20px var(--shadow-lift);
+  z-index: 0;
+}
+
+.larry-face-img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 4.85rem;
+  height: 4.85rem;
+  margin: -0.95rem -0.15rem 0 0;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.larry-speech {
+  position: relative;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  /* Room for the X sitting fully above the bubble, right-flush */
+  padding: calc(var(--larry-x) + 0.35rem) 0 0.2rem;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.larry-bubble {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  padding: var(--larry-pad);
+  border: 1.5px solid var(--ink);
+  border-radius: 1.15rem;
+  background: var(--ticket);
+  color: var(--ink);
+  box-shadow: 0 10px 24px var(--shadow-lift);
+  transform-origin: right bottom;
+  cursor: pointer;
+}
+
+.larry-bubble::after {
+  content: "";
+  position: absolute;
+  right: -0.42rem;
+  left: auto;
+  bottom: 0.95rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-right: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
+  border-left: 0;
+  background: var(--ticket);
+  transform: rotate(-45deg);
+}
+
+.larry-corner.is-parked .larry-speech {
+  display: none;
+}
+
+.larry-corner.is-dragging .larry-speech {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.larry-corner.is-dragging {
+  /* During free-drag the face is position:fixed; keep shell out of the way */
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
+  justify-content: flex-start;
+}
+
+.larry-dismiss {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: auto;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: var(--larry-x);
+  height: var(--larry-x);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--board);
+  color: var(--ticket);
+  font: inherit;
+  font-size: 1.22rem;
+  font-weight: 700;
+  line-height: 0.85;
+  cursor: pointer;
+  box-shadow: 0 4px 10px var(--shadow-lift);
+}
+
+/* Right corner: bubble left of face → X on the outer (left) edge */
+.larry-corner.is-right .larry-dismiss,
+.larry-corner:not(.is-left) .larry-dismiss {
+  right: auto;
+  left: 0;
+}
+
+.larry-kicker {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.larry-line {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(1.05rem, 3.8vw, 1.25rem);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+
+.larry-corner.is-speaking .larry-bubble {
+  animation: larry-bubble-in 0.42s var(--ease-out-expo) both;
+}
+
+.larry-corner.is-speaking .larry-face {
+  animation: larry-face-pop 0.45s var(--ease-out-expo) both;
+}
+
+@keyframes larry-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes larry-face-pop {
+  from {
+    transform: scale(0.92);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.weekend-dialog menu .weekend-escape {
+  display: inline-flex;
+  align-items: center;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-soft);
+  text-decoration: none;
 }
 
 .note {
@@ -1397,13 +1739,21 @@ body:not(.page-alternatives) .colophon {
     max-width: none;
     margin-top: 0.15rem;
     margin-inline: 0;
-    /* Match the 1rem side gutters above the nav while stuck */
-    padding: 1rem 1rem 0;
-    background:
-      radial-gradient(1200px 500px at 10% -10%, var(--paper-glow) 0%, transparent 55%),
-      radial-gradient(900px 400px at 110% 0%, var(--paper-glow-2) 0%, transparent 50%),
-      var(--paper);
-    background-attachment: fixed;
+    /* Transparent sticky shell — only .days + .toast paint; slips scroll under */
+    padding: 1rem 1rem 0.55rem;
+    background: transparent;
+    isolation: isolate;
+    pointer-events: none;
+  }
+
+  .day-switch .days,
+  .day-switch .notices {
+    pointer-events: auto;
+  }
+
+  .day-switch .notices {
+    width: 100%;
+    margin-top: -0.9rem;
   }
 
   body {
@@ -1425,8 +1775,8 @@ body:not(.page-alternatives) .colophon {
   }
 
   .pizza {
-    margin-top: 1.65rem;
-    margin-bottom: 1.35rem;
+    margin-top: 2rem;
+    margin-bottom: 1.75rem;
   }
 
   .escape-wrap {
@@ -1486,7 +1836,10 @@ body:not(.page-alternatives) .colophon {
   .day-date .when,
   .market-banner.is-entering,
   .toast.is-popping,
-  .dish.is-liked .dish-heart {
+  .dish.is-liked .dish-heart,
+  .larry-corner.is-speaking .larry-bubble,
+  .larry-corner.is-speaking .larry-face,
+  .larry-face {
     animation: none !important;
     opacity: 1;
     transform: none;

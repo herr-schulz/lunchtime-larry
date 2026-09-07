@@ -25,7 +25,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=4b8bb7a1" />
+    <link rel="stylesheet" href="./styles.css?v=e8987ae5" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -148,7 +148,7 @@
         </div>
         <ul class="empty-list">
           <li>Noch kein Speiseplan.</li>
-          <li>Larry crawlt montags um 9 Uhr.</li>
+          <li>Larry war noch nicht in der Küche.</li>
         </ul>
       </article>
     </section>
@@ -160,7 +160,7 @@
           <span class="escape-label">Was anderes?!</span>
           <span class="escape-arrow" aria-hidden="true">→</span>
         </span>
-        <span class="escape-sub">8 Spots · ein paar Minuten zu Fuß</span>
+        <span class="escape-sub">Spots · ein paar Minuten zu Fuß</span>
       </a>
     </div>
 
@@ -170,12 +170,37 @@
         <button type="button" id="nick-edit" class="nick-edit" hidden></button>
       </p>
     </footer>
+    <div id="larry-corner" class="larry-corner" hidden>
+      <button type="button" class="larry-face" tabindex="-1">
+        <span class="larry-disc" aria-hidden="true"></span>
+        <img
+          class="larry-face-img"
+          src="./lazy-larry.svg?v=d703ff1b"
+          data-lazy="./lazy-larry.svg?v=d703ff1b"
+          data-laugh="./laughing-larry.svg?v=0461da97"
+          alt=""
+          width="72"
+          height="72"
+          decoding="async"
+        />
+      </button>
+      <div class="larry-speech" hidden>
+        <div class="larry-bubble">
+          <p class="larry-kicker"></p>
+          <p class="larry-line"></p>
+        </div>
+        <button type="button" class="larry-dismiss" tabindex="-1" aria-label="Schließen">
+          ×
+        </button>
+      </div>
+    </div>
+
     <dialog id="nick-dialog" class="nick-dialog" tabindex="-1">
       <form method="dialog" id="nick-form">
         <p class="nick-kicker">Mittagstisch</p>
         <h2>Dein Spitzname</h2>
         <label>
-          Vorname
+          Spitzname
           <input
             id="nick-input"
             name="nick"
@@ -210,14 +235,15 @@
         <h2>Larry hat heute frei</h2>
         <p class="weekend-copy">Neue Speisepläne kommen immer:</p>
         <p class="weekend-when">
-          <strong>Montags</strong>, um <strong>9&nbsp;Uhr</strong>
+          <strong>Montags</strong>, ab <strong>8:30&nbsp;Uhr</strong>
         </p>
         <p class="weekend-copy">Schau doch dann nochmal vorbei.</p>
         <menu>
           <button type="submit" value="ok">Alles klar</button>
+          <a class="weekend-escape" href="./alternativen.html">Was anderes?!</a>
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=7ee29ff3" type="module"></script>
+    <script src="./app.js?v=869869f7" type="module"></script>
   </body>
 </html>

@@ -130,6 +130,7 @@ export function findLikedDishes(dayBlock, likes) {
         key,
         name: dish.name,
         label: dishLabel(dish.name),
+        canteen: canteen.id,
       });
     }
   }

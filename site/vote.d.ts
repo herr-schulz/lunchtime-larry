@@ -19,6 +19,7 @@ export function berlinWeekday(now?: Date): string;
 export function isVoteDay(now?: Date): boolean;
 export function lastVoteDate(now?: Date): string;
 export function normalizeNick(value: unknown): string;
+export function isValidNick(value: unknown): boolean;
 export function loadNick(): string;
 export function saveNick(nick: string): string;
 export function countVotes(
@@ -36,6 +37,7 @@ export function winnerOf(
   | { status: "tie" }
   | { status: "lead"; id: CanteenId; name: string };
 export function votesPath(day?: string): string;
+export function staleVoteDays(keys: string[], keepDay: string): string[];
 export function mySlot(
   records: VoteRecords | null | undefined,
   uid: string | null | undefined,

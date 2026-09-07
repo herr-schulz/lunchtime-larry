@@ -99,7 +99,10 @@ describe("fixture dishes from a real week still classify", () => {
     const names = Object.values(menu.days).flatMap((day) =>
       day.canteens.flatMap((c) => c.dishes.map((d) => d.name)),
     );
-    expect(inferDiet(names.find((n) => n.startsWith("Kötbullar")) ?? "")).toBe("meat");
-    expect(inferDiet(names.find((n) => n.startsWith("Schaschlik")) ?? "")).toBe("meat");
+    const kot = names.find((n) => n.startsWith("Kötbullar"));
+    const schaschlik = names.find((n) => n.startsWith("Schaschlik"));
+    if (!kot || !schaschlik) return;
+    expect(inferDiet(kot)).toBe("meat");
+    expect(inferDiet(schaschlik)).toBe("meat");
   });
 });

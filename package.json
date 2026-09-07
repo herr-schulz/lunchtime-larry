@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "scrape": "tsx scrape/index.ts",
+    "scrape:gate": "tsx scrape/shouldRun.ts",
     "dev": "npx --yes serve site -p 4173",
     "deploy": "firebase deploy --only hosting,database",
     "test": "vitest run",

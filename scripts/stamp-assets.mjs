@@ -13,19 +13,48 @@ async function hashFile(name) {
 const likesHash = await hashFile("likes.js");
 const iconsHash = await hashFile("icons.js");
 const voteHash = await hashFile("vote.js");
-const voteClientHash = await hashFile("voteClient.js");
+const larryLinesHash = await hashFile("larryLines.js");
+const locationsHash = await hashFile("locations.js");
+const domHash = await hashFile("dom.js");
+const menuFetchHash = await hashFile("menuFetch.js");
 const firebaseHash = await hashFile("firebase.json");
-const appPath = join(site, "app.js");
-const appBefore = await readFile(appPath, "utf8");
-const appAfter = appBefore
-  .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
-  .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
-  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
-  .replace(/(\.\/voteClient\.js)(?:\?v=[^"']*)?/g, `./voteClient.js?v=${voteClientHash}`);
-if (appAfter !== appBefore) {
-  await writeFile(appPath, appAfter);
-  console.log("stamped app.js imports");
+
+const calendarPath = join(site, "calendar.js");
+const calendarBefore = await readFile(calendarPath, "utf8");
+const calendarAfter = calendarBefore.replace(
+  /(\.\/vote\.js)(?:\?v=[^"']*)?/g,
+  `./vote.js?v=${voteHash}`,
+);
+if (calendarAfter !== calendarBefore) {
+  await writeFile(calendarPath, calendarAfter);
+  console.log("stamped calendar.js imports");
 }
+const calendarHash = await hashFile("calendar.js");
+
+const larryCornerPath = join(site, "larryCorner.js");
+const larryCornerBefore = await readFile(larryCornerPath, "utf8");
+const larryCornerAfter = larryCornerBefore.replace(
+  /(\.\/larryLines\.js)(?:\?v=[^"']*)?/g,
+  `./larryLines.js?v=${larryLinesHash}`,
+);
+if (larryCornerAfter !== larryCornerBefore) {
+  await writeFile(larryCornerPath, larryCornerAfter);
+  console.log("stamped larryCorner.js imports");
+}
+const larryCornerHash = await hashFile("larryCorner.js");
+
+const boardRenderPath = join(site, "boardRender.js");
+const boardRenderBefore = await readFile(boardRenderPath, "utf8");
+const boardRenderAfter = boardRenderBefore
+  .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
+  .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
+  .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`);
+if (boardRenderAfter !== boardRenderBefore) {
+  await writeFile(boardRenderPath, boardRenderAfter);
+  console.log("stamped boardRender.js imports");
+}
+const boardRenderHash = await hashFile("boardRender.js");
+const boardGesturesHash = await hashFile("boardGestures.js");
 
 const voteClientPath = join(site, "voteClient.js");
 const voteClientBefore = await readFile(voteClientPath, "utf8");
@@ -36,8 +65,38 @@ if (voteClientAfter !== voteClientBefore) {
   await writeFile(voteClientPath, voteClientAfter);
   console.log("stamped voteClient.js imports");
 }
+const voteClientHashFinal = await hashFile("voteClient.js");
 
-const assets = ["styles.css", "app.js", "locations.js", "larry.svg", "leisure-larry.svg", "canteens.json"];
+const appPath = join(site, "app.js");
+const appBefore = await readFile(appPath, "utf8");
+const appAfter = appBefore
+  .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
+  .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
+  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/voteClient\.js)(?:\?v=[^"']*)?/g, `./voteClient.js?v=${voteClientHashFinal}`)
+  .replace(/(\.\/larryCorner\.js)(?:\?v=[^"']*)?/g, `./larryCorner.js?v=${larryCornerHash}`)
+  .replace(/(\.\/larryLines\.js)(?:\?v=[^"']*)?/g, `./larryLines.js?v=${larryLinesHash}`)
+  .replace(/(\.\/locations\.js)(?:\?v=[^"']*)?/g, `./locations.js?v=${locationsHash}`)
+  .replace(/(\.\/calendar\.js)(?:\?v=[^"']*)?/g, `./calendar.js?v=${calendarHash}`)
+  .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
+  .replace(/(\.\/menuFetch\.js)(?:\?v=[^"']*)?/g, `./menuFetch.js?v=${menuFetchHash}`)
+  .replace(/(\.\/boardRender\.js)(?:\?v=[^"']*)?/g, `./boardRender.js?v=${boardRenderHash}`)
+  .replace(/(\.\/boardGestures\.js)(?:\?v=[^"']*)?/g, `./boardGestures.js?v=${boardGesturesHash}`);
+if (appAfter !== appBefore) {
+  await writeFile(appPath, appAfter);
+  console.log("stamped app.js imports");
+}
+
+const assets = [
+  "styles.css",
+  "app.js",
+  "locations.js",
+  "larry.svg",
+  "leisure-larry.svg",
+  "laughing-larry.svg",
+  "lazy-larry.svg",
+  "canteens.json",
+];
 const hashes = Object.fromEntries(
   await Promise.all(assets.map(async (name) => [name, await hashFile(name)])),
 );
