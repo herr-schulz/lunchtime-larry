@@ -1,6 +1,6 @@
 # Lunchtime Larry
 
-Wochenspeiseplan für drei Kantinen im Münchner Arabellapark. Montags und mittwochs um 9 Uhr (Europe/Berlin) crawlt GitHub Actions die Original-Seiten und veröffentlicht eine statische Tafel.
+Wochenspeiseplan für drei Kantinen im Münchner Arabellapark. Montags und mittwochs um 8:10, 11:10 und 11:30 (Europe/Berlin) prüft GitHub Actions die Original-Seiten — Playwright startet nur, wenn der Wochenplan fehlt oder eine Kantine noch hakt.
 
 **Live:** https://lunchtime-larry.web.app · [GitHub Pages](https://herr-schulz.github.io/lunchtime-larry) bleibt als Fallback für `menu.json`. Der Scrape-Workflow kann Hosting zusätzlich per Secret `FIREBASE_TOKEN` aktualisieren (`firebase login:ci`).
 
@@ -44,14 +44,14 @@ Einmalig in der [Console](https://console.firebase.google.com/project/lunchtime-
 2. **Authentication → Sign-in method → Anonymous** an, falls noch aus
 3. **Authentication → Settings → Authorized domains:** `localhost`, `lunchtime-larry.web.app`, `lunchtime-larry.firebaseapp.com` und `herr-schulz.github.io`
 
-Hosting (Spark, kostenlos): `site/` liegt auf `lunchtime-larry.web.app`. Nach UI-Änderungen: `npm run deploy` (bzw. `firebase deploy --only hosting`). Der Speiseplan-Crawl bleibt GitHub Actions → Pages; die Tafel lädt `menu.json` von dort, falls sie lokal fehlt.
+Hosting (Spark, kostenlos): `site/` liegt auf `lunchtime-larry.web.app`. Nach UI-Änderungen: `npm run deploy` (bzw. `firebase deploy --only hosting`). Der Speiseplan-Crawl bleibt GitHub Actions → Pages; die Tafel nimmt von lokal, Firebase und Pages den **neuesten** `menu.json` (nicht den ersten Treffer). Ohne Secret `FIREBASE_TOKEN` bleibt die Datei auf web.app alt — der Client holt sie trotzdem von Pages.
 
 Lokal: `firebase login` (ohne `--no-localhost` unter Windows).
 
 ## GitHub Actions
 
 - **CI:** Typecheck und Parser-Tests bei Push und Pull Request
-- **Scrape:** Cron `0 7 * * 1,3` (Mo + Mi, 9:00 CEST / 8:00 CET) und manuell unter Actions → *Scrape and publish*
+- **Scrape:** Cron Mo+Mi um 8:10, 11:10 und 11:30 (CEST; im Winter eine Stunde früher) plus Di/Do 8:10 als Catch-up. Playwright läuft nur, wenn diese Berlin-Woche noch fehlt oder eine Quelle `error`/`stale` ist. Manuell: Actions → *Scrape and publish* → *Run workflow*.
 - **Publish:** Push auf `main`, der `site/` ändert — nimmt den letzten `menu.json` von Pages mit, ohne die Kantinen-Seiten erneut anzufassen
 - Android-Homescreen: nach einem Icon-Update die Verknüpfung einmal entfernen und neu anlegen, sonst bleibt der alte Splash-Cache.
 - Schlägt eine Quelle fehl oder liefert eine unplausible Woche (leer, nur Desserts, stark ausgedünnt), geht die Seite trotzdem online: Banner oben, betroffene Karte mit Hinweis. Gibt es für dieselbe Woche noch einen alten Stand, bleibt der als Fallback sichtbar.

@@ -72,20 +72,22 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
       const meta = canteens[canteen.id];
       const source = sources?.[canteen.id];
       let note = "";
-      if (source?.status === "error") {
-        note = `<p class="note">Speiseplan gerade nicht geladen.</p>`;
-      } else if (source?.status === "stale") {
+      if (source?.status === "stale") {
         note = `<p class="note">Alter Plan — Larry kam nicht durch. Stand kann veraltet sein.</p>`;
       }
+      const missing = source?.status === "error" && !canteen.dishes?.length;
       const body = canteen.dishes?.length
         ? canteen.dishes.map((dish, index) => dishRow(dish, index, likes)).join("")
-        : source?.status === "error"
+        : missing
           ? ""
           : `<p class="ghost">${escapeHtml(ghostLine(canteen.id))}</p>`;
       const pizza =
-        canteen.id === "sodexo"
+        canteen.id === "sodexo" && !missing
           ? `<button type="button" class="pizza" data-pizza>Pizza täglich</button>`
           : "";
+      const missStamp = missing
+        ? `<p class="pizza pizza-miss" role="status" aria-label="Speiseplan nicht verfügbar">Heute nix da</p>`
+        : "";
       const voteBtn = votingOpen
         ? `<button type="button" class="vote-mark" data-vote="${canteen.id}" aria-pressed="false"><span class="vote-nicks"></span>${checkCircleSvg()}</button>`
         : "";
@@ -102,8 +104,11 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
           </div>
         </div>
         ${note}
-        ${body}
-        ${pizza}
+        <div class="slip-list${missing ? " is-empty" : ""}">
+          ${body}
+          ${missStamp}
+          ${pizza}
+        </div>
       </section>`;
     })
     .join("");

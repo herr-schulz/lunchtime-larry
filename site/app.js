@@ -9,7 +9,7 @@ import {
   watchBerlinMidnight,
 } from "./calendar.js?v=90d9b728";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=c641e16a";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=440970dd";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=7d89d54b";
 import {
   dishKey,
   dishLabel,
@@ -31,7 +31,7 @@ import {
   winnerTie,
 } from "./larryLines.js?v=1769de5f";
 import { LOCATIONS } from "./locations.js?v=cb8d289e";
-import { loadMenu } from "./menuFetch.js?v=12bc7071";
+import { loadMenu } from "./menuFetch.js?v=64fd5683";
 import {
   isVoteDay,
   lastVoteDate,
