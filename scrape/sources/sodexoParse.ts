@@ -6,6 +6,7 @@ export const SKIP_CATEGORIES = /add\s*on|beilage|topping|^pizza$/i;
 export const SKIP_NAMES =
   /topping|add\s*on|al gusto|geschlossen|täglich aktualisiert|tages\s*dessert\s*\d/i;
 export const UNAVAILABLE = /nicht\s*(verfügbar|im angebot)|ausverkauft|sold\s*out/i;
+export const CARD_TITLE = "mat-card-title, .product-name, .product-title, h3, h4";
 
 export type SodexoRaw = {
   name: string;
@@ -17,9 +18,9 @@ export type SodexoRaw = {
 export function tabToWeekday(label: string): Weekday | undefined {
   const lower = label.toLowerCase();
   if (lower.startsWith("mo")) return "monday";
-  if (lower.startsWith("di")) return "tuesday";
-  if (lower.startsWith("mi")) return "wednesday";
-  if (lower.startsWith("do")) return "thursday";
+  if (lower.startsWith("di") || lower.startsWith("tu")) return "tuesday";
+  if (lower.startsWith("mi") || lower.startsWith("we")) return "wednesday";
+  if (lower.startsWith("do") || lower.startsWith("th")) return "thursday";
   if (lower.startsWith("fr")) return "friday";
   return undefined;
 }
@@ -70,18 +71,19 @@ export function mapSodexoDishes(raw: SodexoRaw[]): Dish[] {
 }
 
 export function activeSodexoRoot(document: ParentNode): ParentNode | null {
+  const navPanel = document.querySelector("mat-tab-nav-panel");
+  if (navPanel) return navPanel;
+
   const activeBody = document.querySelector(
     "mat-tab-body.mat-mdc-tab-body-active, .mat-mdc-tab-body-active, .mat-tab-body-active",
   );
   if (activeBody) return activeBody;
 
-  const visiblePanel = document.querySelector(
-    "[role='tabpanel']:not([aria-hidden='true'])",
-  );
-  if (visiblePanel) return visiblePanel;
-
-  const tabBodies = document.querySelectorAll("mat-tab-body, [role='tabpanel']");
-  if (tabBodies.length > 1) return null;
+  const panels = document.querySelectorAll("[role='tabpanel']");
+  for (const panel of panels) {
+    if (panel.getAttribute("aria-hidden") === "true") continue;
+    if (panel.querySelector(".product-card")) return panel;
+  }
 
   return document.querySelector("app-menu-container") || document;
 }
@@ -124,12 +126,12 @@ export function collectSodexoCards(
       if (className.match(/sold|unavailable|disabled|out-of-stock/)) continue;
 
       const name =
-        (card.querySelector("mat-card-title, .product-name, h3, h4")?.textContent || "")
+        (card.querySelector(CARD_TITLE)?.textContent || "")
           .replace(/\s+/g, " ")
           .trim() || text.replace(/\d+[.,]\d{2}\s*€.*/, "").trim();
       if (!name || skipNameRe.test(name) || skipNameRe.test(categoryName)) continue;
 
-      const priceMatch = text.match(/(\d+[.,]\d{2})\s*€/);
+      const priceMatch = text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
       if (priceMatch && /^0[,.]00$/.test(priceMatch[1])) continue;
       out.push({
         name,

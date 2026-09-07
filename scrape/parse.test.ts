@@ -127,4 +127,10 @@ describe("tabToWeekday", () => {
     expect(tabToWeekday("Fr")).toBe("friday");
     expect(tabToWeekday("So")).toBeUndefined();
   });
+
+  it("maps English Sodexo tab labels", () => {
+    expect(tabToWeekday("Tue.08.09.")).toBe("tuesday");
+    expect(tabToWeekday("Wed.09.09.")).toBe("wednesday");
+    expect(tabToWeekday("Thu.10.09.")).toBe("thursday");
+  });
 });
