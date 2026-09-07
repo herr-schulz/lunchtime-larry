@@ -9,16 +9,17 @@ import {
   watchBerlinMidnight,
 } from "./calendar.js?v=e17d5bbb";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=1dcd4196";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=4a03b930";
 import {
   alarmLabel,
   dishKey,
   displayDishName,
   findLikedDishes,
   isLiked,
+  listAllFavorites,
   toggleLikeSet,
-} from "./likes.js?v=045195a5";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=53a0e528";
+} from "./likes.js?v=f6717c2c";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=72bfbecd";
 import {
   favoritePoint,
   favoriteToday,
@@ -85,6 +86,7 @@ let voteState = {
 let lastWinnerKey = "";
 let leisureMode = false;
 let justLikedKey = "";
+let menuData = null;
 const announcedFavHits = new Set();
 
 
@@ -138,18 +140,51 @@ function popToast(toast) {
 function renderHits(data, day) {
   if (!hits) return;
   const found = findLikedDishes(data.days?.[day], likes);
+  const saved = listAllFavorites(likes, data.days, day);
   if (!found.length) {
     hits.hidden = true;
     hits.innerHTML = "";
+    hits.classList.remove("is-sheet-open");
     syncNotices();
     return;
   }
-  const html = hitsHtml(found, CANTEENS);
+  const sheetOpen = hits.classList.contains("is-sheet-open");
+  const html = hitsHtml({ items: found, saved, sheetOpen, canteens: CANTEENS });
   const changed = hits.hidden || hits.innerHTML !== html;
+  const gearFocus = document.activeElement?.closest?.(".toast-gear");
   hits.hidden = false;
   hits.innerHTML = html;
+  hits.classList.toggle("is-sheet-open", sheetOpen);
   syncNotices();
-  if (changed) popToast(hits);
+  if (gearFocus) hits.querySelector(".toast-gear")?.focus();
+  if (changed && !sheetOpen) popToast(hits);
+}
+
+function toggleFavSheet() {
+  if (!hits || hits.hidden) return;
+  const open = !hits.classList.contains("is-sheet-open");
+  hits.classList.toggle("is-sheet-open", open);
+  const gear = hits.querySelector(".toast-gear");
+  const sheet = hits.querySelector("#fav-sheet");
+  gear?.setAttribute("aria-expanded", String(open));
+  if (sheet) sheet.inert = !open;
+}
+
+function syncDishHearts() {
+  if (!board) return;
+  for (const dish of board.querySelectorAll(".dish[data-name]")) {
+    applyLikeState(dish, isLiked(dish.dataset.name, likes));
+  }
+}
+
+function unlikeFavorite(name) {
+  if (!name || !isLiked(name, likes)) return;
+  hapticPulse();
+  likes = toggleLikeSet(name, likes);
+  saveLikes();
+  syncDishHearts();
+  if (menuData) renderHits(menuData, currentDay);
+  sayLarry(unlikeAck(alarmLabel(name)));
 }
 
 function chromeOffset() {
@@ -182,6 +217,16 @@ function scrollToFavorite(canteen, key) {
 
 function bindHits() {
   hits?.addEventListener("click", (event) => {
+    if (event.target.closest(".toast-gear")) {
+      toggleFavSheet();
+      return;
+    }
+    const heart = event.target.closest(".fav-row-heart");
+    if (heart) {
+      const row = heart.closest("[data-name]");
+      unlikeFavorite(row?.dataset.name || "");
+      return;
+    }
     const item = event.target.closest(".toast-hit-item");
     if (!item) return;
     const key = item.dataset.key || "";
@@ -190,6 +235,47 @@ function bindHits() {
     const place = item.dataset.place || "der Kantine";
     scrollToFavorite(canteen, key);
     if (label) sayLarry(favoritePoint(label, place));
+  });
+
+  /** @type {{ x: number, y: number, id: number, row: HTMLElement } | null} */
+  let swipe = null;
+  hits?.addEventListener("pointerdown", (event) => {
+    const row = event.target.closest(".fav-row");
+    if (!row || event.target.closest(".fav-row-heart")) return;
+    if (!hits.classList.contains("is-sheet-open")) return;
+    swipe = { x: event.clientX, y: event.clientY, id: event.pointerId, row };
+  });
+  hits?.addEventListener("pointermove", (event) => {
+    if (!swipe || swipe.id !== event.pointerId) return;
+    const dx = event.clientX - swipe.x;
+    const dy = event.clientY - swipe.y;
+    if (Math.abs(dy) > Math.abs(dx) + 6) {
+      swipe.row.style.transform = "";
+      swipe.row.style.opacity = "";
+      swipe = null;
+      return;
+    }
+    if (Math.abs(dx) > 8) {
+      swipe.row.style.transform = `translateX(${dx}px)`;
+      swipe.row.style.opacity = String(Math.max(0.28, 1 - Math.abs(dx) / 170));
+    }
+  });
+  const endSwipe = (event) => {
+    if (!swipe || (event && swipe.id !== event.pointerId)) return;
+    const dx = event ? event.clientX - swipe.x : 0;
+    const row = swipe.row;
+    const name = row.dataset.name || "";
+    swipe = null;
+    row.style.transform = "";
+    row.style.opacity = "";
+    if (Math.abs(dx) >= 56) unlikeFavorite(name);
+  };
+  hits?.addEventListener("pointerup", endSwipe);
+  hits?.addEventListener("pointercancel", () => {
+    if (!swipe) return;
+    swipe.row.style.transform = "";
+    swipe.row.style.opacity = "";
+    swipe = null;
   });
 }
 
@@ -492,10 +578,7 @@ function toggleDishLike(data, dish) {
   saveLikes();
   const on = isLiked(name, likes);
   applyLikeState(dish, on);
-  for (const other of board.querySelectorAll(".dish[data-name]")) {
-    if (other === dish) continue;
-    applyLikeState(other, isLiked(other.dataset.name, likes));
-  }
+  syncDishHearts();
   renderHits(data, currentDay);
   if (on && !wasLiked) {
     const key = dishKey(name);
@@ -582,6 +665,7 @@ try {
   bindHits();
   registerServiceWorker();
   const data = await loadMenu();
+  menuData = data;
   kwEl.textContent = isoWeek(data.weekStart);
   stamp.textContent = `Stand: ${formatStamp(data.scrapedAt)}`;
   if (escapeSub) {

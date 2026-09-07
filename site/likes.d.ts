@@ -28,3 +28,29 @@ export function findLikedDishes(
   canteen?: string;
   places: string[];
 }>;
+export function parkedFavorites(
+  saved: Array<{ key?: string; name?: string; places?: string[] }>,
+  found: Array<{ key?: string; name?: string }>,
+): Array<{ key?: string; name?: string; places?: string[] }>;
+export function listAllFavorites(
+  likes: Set<string>,
+  days:
+    | Record<
+        string,
+        {
+          canteens?: Array<{
+            id?: string;
+            dishes?: Array<{ name: string }>;
+          }>;
+        }
+      >
+    | null
+    | undefined,
+  todayDay: string,
+): Array<{
+  key: string;
+  name: string;
+  label: string;
+  places: string[];
+  onWeek: boolean;
+}>;

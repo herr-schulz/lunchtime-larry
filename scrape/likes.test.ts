@@ -7,6 +7,8 @@ import {
   findLikedDishes,
   isLiked,
   joinDishSides,
+  listAllFavorites,
+  parkedFavorites,
   phraseDish,
   toggleLikeSet,
 } from "../site/likes.js";
@@ -89,6 +91,85 @@ describe("cross-canteen likes", () => {
     expect(alarmLabel("Donnerstagschnitzel Bratkartoffen")).toBe(
       "Donnerstagschnitzel Bratkartoffen",
     );
+  });
+
+  it("lists every stored like, with a canteen only when it is on today's card", () => {
+    const likes = toggleLikeSet(
+      "Grillhähnchen Kartoffelsalat",
+      toggleLikeSet("Currywurst | Pommes frites", new Set()),
+    );
+    const days = {
+      monday: {
+        canteens: [
+          { id: "sodexo", dishes: [{ name: "Currywurst | Pommes frites | Röstzwiebeln" }] },
+        ],
+      },
+      tuesday: {
+        canteens: [
+          { id: "bella23", dishes: [{ name: "Grillhähnchen Kartoffelsalat" }] },
+        ],
+      },
+    };
+    const listed = listAllFavorites(likes, days, "monday");
+    const curry = listed.find((item) => item.label === "Currywurst");
+    const grill = listed.find((item) => item.label === "Grillhähnchen Kartoffelsalat");
+    expect(listed).toHaveLength(2);
+    expect(curry?.places).toEqual(["sodexo"]);
+    expect(curry?.onWeek).toBe(true);
+    expect(grill?.places).toEqual([]);
+    expect(grill?.onWeek).toBe(true);
+  });
+
+  it("keeps parked favorites off the alarm list so today's hits are not doubled", () => {
+    const likes = toggleLikeSet(
+      "Phantom-Eintopf",
+      toggleLikeSet("Currywurst | Pommes frites", new Set()),
+    );
+    const days = {
+      monday: {
+        canteens: [
+          { id: "sodexo", dishes: [{ name: "Currywurst | Pommes frites | Röstzwiebeln" }] },
+        ],
+      },
+    };
+    const found = findLikedDishes(days.monday, likes);
+    const saved = listAllFavorites(likes, days, "monday");
+    const parked = parkedFavorites(saved, found);
+    expect(found.map((item) => item.label)).toEqual(["Currywurst"]);
+    expect(parked.map((item) => item.label)).toEqual(["Phantom-eintopf"]);
+  });
+
+  it("keeps likes that are not on this week's cards", () => {
+    const likes = new Set([dishKey("Phantom-Eintopf")]);
+    const listed = listAllFavorites(likes, { monday: { canteens: [] } }, "monday");
+    expect(listed).toHaveLength(1);
+    expect(listed[0].onWeek).toBe(false);
+    expect(listed[0].places).toEqual([]);
+    expect(listed[0].label).toBe("Phantom-eintopf");
+  });
+
+  it("keeps a stored like on its own dish when another menu item shares a token", () => {
+    const likes = toggleLikeSet("Penne / Tomate / Zucchini", new Set());
+    const listed = listAllFavorites(
+      likes,
+      {
+        monday: {
+          canteens: [
+            { id: "stmuv", dishes: [{ name: "Penne / Tomate / Zucchini" }] },
+            {
+              id: "bella23",
+              dishes: [{ name: "Hähnchenragout mit Oliven und Tomate" }],
+            },
+          ],
+        },
+      },
+      "monday",
+    );
+    expect(listed).toHaveLength(1);
+    expect(listed[0].label).toBe("Penne mit Tomate");
+    expect(listed[0].places).toEqual(["stmuv"]);
+    expect(listed[0].name).toBe("Penne / Tomate / Zucchini");
+    expect(isLiked("Hähnchenragout mit Oliven und Tomate", likes)).toBe(false);
   });
 
   it("collects every canteen that serves a liked dish", () => {

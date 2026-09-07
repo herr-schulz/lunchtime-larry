@@ -7,6 +7,8 @@ const WEAK_WORDS = new Set([
   "salat",
   "reis",
   "suppe",
+  "tomate",
+  "tomaten",
   "dessert",
   "tagesdessert",
   "station",
@@ -211,9 +213,10 @@ function firstIngredient(sides) {
 /** Compact alarm label: dish title, plus first side when the title is a pasta. */
 export function alarmLabel(name) {
   const { title, sides } = phraseDish(name);
-  if (!isPastaTitle(title)) return title;
+  const headed = titleCase(title);
+  if (!isPastaTitle(title)) return headed;
   const lead = firstIngredient(sides);
-  return lead ? `${title} mit ${lead}` : title;
+  return lead ? `${headed} mit ${titleCase(lead)}` : headed;
 }
 
 function significantTokens(key) {
@@ -274,4 +277,79 @@ export function findLikedDishes(dayBlock, likes) {
     }
   }
   return found;
+}
+
+/**
+ * Every stored like, not only today's hits.
+ * `places` is set only when the dish is on the selected day's card.
+ * @param {Set<string>} likes
+ * @param {Record<string, { canteens?: Array<{ id?: string, dishes?: Array<{ name: string }> }> }> | null | undefined} days
+ * @param {string} todayDay
+ */
+export function listAllFavorites(likes, days, todayDay) {
+  const items = [];
+  for (const like of likes) {
+    let exactName = "";
+    let fuzzyName = "";
+    const exactPlaces = [];
+    const fuzzyPlaces = [];
+    let onWeek = false;
+    for (const [dayKey, block] of Object.entries(days || {})) {
+      for (const canteen of block?.canteens ?? []) {
+        for (const dish of canteen.dishes ?? []) {
+          const exact = dishKey(dish.name) === like;
+          if (!exact && !isLiked(dish.name, new Set([like]))) continue;
+          onWeek = true;
+          if (exact) {
+            if (dayKey === todayDay) exactName = dish.name;
+            else if (!exactName) exactName = dish.name;
+            if (dayKey === todayDay && canteen.id && !exactPlaces.includes(canteen.id)) {
+              exactPlaces.push(canteen.id);
+            }
+          } else {
+            if (!fuzzyName) fuzzyName = dish.name;
+            if (dayKey === todayDay && canteen.id && !fuzzyPlaces.includes(canteen.id)) {
+              fuzzyPlaces.push(canteen.id);
+            }
+          }
+        }
+      }
+    }
+    const name = exactName || fuzzyName || like;
+    const places = exactName ? exactPlaces : fuzzyPlaces;
+    items.push({
+      key: like,
+      name,
+      label: alarmLabel(name),
+      places,
+      onWeek,
+    });
+  }
+  return items.toSorted((a, b) => {
+    const aOn = a.places.length > 0 ? 0 : 1;
+    const bOn = b.places.length > 0 ? 0 : 1;
+    if (aOn !== bOn) return aOn - bOn;
+    return a.label.localeCompare(b.label, "de");
+  });
+}
+
+/**
+ * Likes that are not already shown as today's alarm hits.
+ * @param {Array<{ key?: string, name?: string, places?: string[] }>} saved
+ * @param {Array<{ key?: string, name?: string }>} found
+ */
+export function parkedFavorites(saved, found) {
+  if (!saved?.length) return [];
+  if (!found?.length) return [...saved];
+  const today = new Set();
+  for (const hit of found) {
+    if (hit.key) today.add(hit.key);
+    if (hit.name) today.add(dishKey(hit.name));
+  }
+  return saved.filter((item) => {
+    if (item.places?.length) return false;
+    if (item.key && today.has(item.key)) return false;
+    if (item.name && today.has(dishKey(item.name))) return false;
+    return true;
+  });
 }

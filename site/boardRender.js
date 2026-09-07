@@ -1,8 +1,8 @@
 /** Pure HTML builders for the canteen board (no DOM writes). */
 
 import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { checkCircleSvg, heartIcon, heartIconFilled } from "./icons.js?v=bef72b85";
-import { dishKey, isLiked, joinDishSides, phraseDish } from "./likes.js?v=045195a5";
+import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, settingsIcon } from "./icons.js?v=56a779d4";
+import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=f6717c2c";
 
 const DIET = {
   vegan: "vegan",
@@ -110,7 +110,7 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
     .join("");
 }
 
-function placeAt(ids, canteens) {
+export function placeAt(ids, canteens) {
   const bits = [];
   for (const id of ids ?? []) {
     const name = canteens?.[id]?.name;
@@ -123,11 +123,51 @@ function placeAt(ids, canteens) {
   return `${bits.slice(0, -1).join(", ")} und ${bits.at(-1)}`;
 }
 
+function sheetPlace(item, canteens) {
+  if (item.places?.length) return placeAt(item.places, canteens);
+  if (item.onWeek) return "";
+  return "nicht auf der Karte";
+}
+
 /**
- * @param {Array<{ key?: string, label: string, canteen?: string, places?: string[] }>} items
+ * @param {Array<{ key?: string, name?: string, label: string, places?: string[], onWeek?: boolean }>} saved
  * @param {Record<string, { name: string }> | null | undefined} canteens
  */
-export function hitsHtml(items, canteens) {
+function favSheetHtml(saved, canteens, emptyHint) {
+  if (!saved?.length) {
+    return emptyHint
+      ? `<p class="fav-empty">Noch kein Favorit. Herz am Gericht reicht.</p>`
+      : "";
+  }
+  const rows = saved
+    .map((item) => {
+      const where = sheetPlace(item, canteens);
+      const spoken = where ? `${item.label}, ${where}` : item.label;
+      const off = !item.places?.length;
+      const place = where
+        ? `<span class="fav-row-place${off ? " is-off" : ""}">${escapeHtml(where)}</span>`
+        : "";
+      return `<li class="fav-row" data-name="${escapeHtml(item.name || "")}" data-key="${escapeHtml(item.key || "")}" aria-label="${escapeHtml(spoken)}">
+        <div class="fav-row-copy">
+          <span class="fav-row-name">${escapeHtml(item.label)}</span>
+          ${place}
+        </div>
+        <button type="button" class="fav-row-heart" aria-label="${escapeHtml(item.label)} vom Zettel streichen">${heartIconSolid}</button>
+      </li>`;
+    })
+    .join("");
+  return `<ul class="fav-sheet-list">${rows}</ul>`;
+}
+
+/**
+ * @param {object} opts
+ * @param {Array<{ key?: string, label: string, canteen?: string, places?: string[] }>} opts.items
+ * @param {Array<{ key?: string, name?: string, label: string, places?: string[], onWeek?: boolean }>} [opts.saved]
+ * @param {boolean} [opts.sheetOpen]
+ * @param {Record<string, { name: string }> | null | undefined} opts.canteens
+ */
+export function hitsHtml({ items, saved = [], sheetOpen = false, canteens }) {
+  const parked = parkedFavorites(saved, items);
   const rows = items
     .map((item) => {
       const places = item.places?.length ? item.places : item.canteen ? [item.canteen] : [];
@@ -135,8 +175,23 @@ export function hitsHtml(items, canteens) {
       const spoken = where ? `${item.label} ${where}` : item.label;
       const canteen = item.canteen || places[0] || "";
       const placeName = (places.map((id) => canteens?.[id]?.name).filter(Boolean).join(" und ")) || where;
-      return `<button type="button" class="toast-hit-item" data-key="${escapeHtml(item.key || "")}" data-canteen="${escapeHtml(canteen)}" data-label="${escapeHtml(item.label)}" data-place="${escapeHtml(placeName)}" aria-label="${escapeHtml(spoken)}">${escapeHtml(spoken)}</button>`;
+      const place = where
+        ? `<span class="fav-row-place">${escapeHtml(where)}</span>`
+        : "";
+      return `<div class="toast-hit-item" data-name="${escapeHtml(item.name || "")}" data-key="${escapeHtml(item.key || "")}" data-canteen="${escapeHtml(canteen)}" data-label="${escapeHtml(item.label)}" data-place="${escapeHtml(placeName)}">
+        <button type="button" class="toast-hit-go" aria-label="${escapeHtml(spoken)}"><span class="fav-row-name">${escapeHtml(item.label)}</span>${place}</button>
+        <button type="button" class="fav-row-heart" aria-label="${escapeHtml(item.label)} vom Zettel streichen">${heartIconSolid}</button>
+      </div>`;
     })
     .join("");
-  return `<p class="toast-kicker">${heartIcon}<span>Favoriten-Alarm</span></p><div class="toast-list">${rows}</div>`;
+  return `<div class="toast-head">
+      <p class="toast-kicker">${heartIcon}<span>Favoriten-Alarm</span></p>
+      <button type="button" class="toast-gear" aria-expanded="${sheetOpen ? "true" : "false"}" aria-controls="fav-sheet" aria-label="Favoriten verwalten">${settingsIcon}</button>
+    </div>
+    <div class="toast-list">${rows}</div>
+    <div id="fav-sheet" class="fav-sheet" ${sheetOpen ? "" : "inert"}>
+      <div class="fav-sheet-inner">
+      ${favSheetHtml(parked, canteens, !items.length && !parked.length)}
+      </div>
+    </div>`;
 }
