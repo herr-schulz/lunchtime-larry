@@ -2,7 +2,7 @@
 
 import { escapeHtml } from "./dom.js?v=55e28ecf";
 import { checkCircleSvg, heartIcon, heartIconFilled } from "./icons.js?v=bef72b85";
-import { dishKey, displayDishName, isLiked } from "./likes.js?v=2839e39f";
+import { dishKey, displayDishName, isLiked } from "./likes.js?v=d4839ba3";
 
 const DIET = {
   vegan: "vegan",
@@ -114,6 +114,26 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
     .join("");
 }
 
-export function hitsHtml(items) {
-  return `<p class="toast-kicker">${heartIcon}<span>Favoriten-Alarm</span></p><p class="toast-list">${items.map((item) => escapeHtml(item.label)).join(" · ")}</p>`;
+function placeNames(ids, canteens) {
+  const names = (ids ?? []).map((id) => canteens?.[id]?.name).filter(Boolean);
+  if (names.length <= 1) return names[0] || "";
+  if (names.length === 2) return `${names[0]} und ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")} und ${names.at(-1)}`;
+}
+
+/**
+ * @param {Array<{ key?: string, label: string, canteen?: string, places?: string[] }>} items
+ * @param {Record<string, { name: string }> | null | undefined} canteens
+ */
+export function hitsHtml(items, canteens) {
+  const rows = items
+    .map((item) => {
+      const places = item.places?.length ? item.places : item.canteen ? [item.canteen] : [];
+      const where = placeNames(places, canteens);
+      const text = where ? `${item.label} bei ${where}` : item.label;
+      const canteen = item.canteen || places[0] || "";
+      return `<button type="button" class="toast-hit-item" data-key="${escapeHtml(item.key || "")}" data-canteen="${escapeHtml(canteen)}" data-label="${escapeHtml(item.label)}" data-place="${escapeHtml(where)}">${escapeHtml(text)}</button>`;
+    })
+    .join("");
+  return `<p class="toast-kicker">${heartIcon}<span>Favoriten-Alarm</span></p><div class="toast-list">${rows}</div>`;
 }

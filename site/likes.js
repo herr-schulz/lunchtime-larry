@@ -85,6 +85,17 @@ export function dishLabel(name) {
   return titleCase(shown || display);
 }
 
+/** Alarm/toast label: Dave B and Bella 23 drop the "mit …" side list. */
+export function alarmLabel(name, canteenId) {
+  const label = dishLabel(name);
+  if (canteenId !== "sodexo" && canteenId !== "bella23") return label;
+  const raw = displayDishName(name);
+  if (/\s*[|/]\s*/.test(raw)) return label;
+  const cut = label.split(/\s+(?:mit|und)\s+/i)[0]?.trim();
+  if (!cut || cut.length < 4) return label;
+  return titleCase(cut);
+}
+
 function significantTokens(key) {
   return key
     .split(/\s+/)
@@ -118,19 +129,27 @@ export function toggleLikeSet(name, likes) {
 
 export function findLikedDishes(dayBlock, likes) {
   const found = [];
-  const seen = new Set();
+  const indexByMark = new Map();
   for (const canteen of dayBlock?.canteens ?? []) {
     for (const dish of canteen.dishes ?? []) {
       if (!isLiked(dish.name, likes)) continue;
       const key = dishKey(dish.name);
       const mark = significantTokens(key)[0] || key;
-      if (seen.has(mark)) continue;
-      seen.add(mark);
+      const existing = indexByMark.get(mark);
+      if (existing != null) {
+        const item = found[existing];
+        if (canteen.id && !item.places.includes(canteen.id)) {
+          item.places.push(canteen.id);
+        }
+        continue;
+      }
+      indexByMark.set(mark, found.length);
       found.push({
         key,
         name: dish.name,
-        label: dishLabel(dish.name),
+        label: alarmLabel(dish.name, canteen.id),
         canteen: canteen.id,
+        places: canteen.id ? [canteen.id] : [],
       });
     }
   }

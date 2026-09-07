@@ -106,6 +106,20 @@ export function favoriteToday(label, place) {
   };
 }
 
+const FAV_POINTS = [
+  (label, place) => `${label} bei ${place} — da musst du hin.`,
+  (label, place) => `Steht bei ${place}: ${label}. Guter Riecher.`,
+  (label, place) => `${place} hat ${label}. Ich hab’s angestrichen.`,
+];
+
+export function favoritePoint(label, place) {
+  const line = FAV_POINTS[Math.floor(Math.random() * FAV_POINTS.length)](
+    label,
+    place,
+  );
+  return { kicker: "Da lang:", line };
+}
+
 export function pizzaDaily() {
   return {
     kicker: "Dave B",

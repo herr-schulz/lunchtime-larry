@@ -19,5 +19,9 @@ export function favoriteToday(
   label: string,
   place: string,
 ): { kicker: string; line: string };
+export function favoritePoint(
+  label: string,
+  place: string,
+): { kicker: string; line: string };
 export function pizzaDaily(): { kicker: string; line: string };
 export function leisureMode(): { kicker: string; line: string };
