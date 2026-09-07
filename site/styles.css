@@ -36,6 +36,8 @@
   --font-body: "Red Hat Text", "Segoe UI", sans-serif;
   --focus: var(--stamp);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --page-max: 1180px;
+  --page-gutter: 1rem;
 }
 
 * {
@@ -94,7 +96,7 @@ body {
 .spot-grid,
 .alt-intro,
 .colophon {
-  width: min(1180px, calc(100% - 2rem));
+  width: min(var(--page-max), calc(100% - var(--page-gutter) * 2));
   margin-inline: auto;
 }
 
@@ -136,13 +138,13 @@ body {
   .larry-corner:not(.is-left) {
     left: auto;
     right: var(--larry-edge-end);
-    max-width: min(28rem, calc(100vw - 2rem));
+    max-width: min(28rem, calc(100vw - var(--page-gutter) * 2));
   }
 
   .larry-corner.is-left {
     left: var(--larry-edge);
     right: auto;
-    max-width: min(28rem, calc(100vw - 2rem));
+    max-width: min(28rem, calc(100vw - var(--page-gutter) * 2));
   }
 }
 
@@ -267,10 +269,40 @@ h1 {
 }
 
 .toast-list {
-  margin: 0.28rem 0 0;
+  margin: 0.4rem 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.08rem;
   color: var(--ink-soft);
   font-size: 0.88rem;
-  line-height: 1.4;
+  line-height: 1.35;
+}
+
+.toast-hit-item {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.22rem 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  text-wrap: pretty;
+}
+
+.toast-hit-item:hover,
+.toast-hit-item:focus-visible {
+  color: var(--ink);
+}
+
+.toast-hit-item:active {
+  color: var(--stamp);
 }
 
 .toast.is-popping {
@@ -514,6 +546,7 @@ h1 {
 .escape-link:focus-visible,
 .days button:focus-visible,
 .dish:focus-visible,
+.toast-hit-item:focus-visible,
 .market-banner:focus-visible,
 .spot-card:focus-visible,
 .back-cta:focus-visible,
@@ -1291,13 +1324,22 @@ h1 {
   --larry-face: 4.35rem;
   --larry-gap: 0.45rem;
   --larry-x: 1.35rem;
-  --larry-edge: max(0.75rem, env(safe-area-inset-left, 0px));
-  --larry-edge-end: max(0.75rem, env(safe-area-inset-right, 0px));
+  --larry-edge: max(
+    calc(var(--page-gutter) + env(safe-area-inset-left, 0px)),
+    calc(50% - var(--page-max) / 2)
+  );
+  --larry-edge-end: max(
+    calc(var(--page-gutter) + env(safe-area-inset-right, 0px)),
+    calc(50% - var(--page-max) / 2)
+  );
+  --larry-top: calc(var(--page-gutter) + env(safe-area-inset-top, 0px));
+  --larry-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px));
   position: fixed;
   z-index: 20;
   left: var(--larry-edge);
   right: var(--larry-edge-end);
-  bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  top: auto;
+  bottom: var(--larry-bottom);
   display: flex;
   flex-direction: row-reverse;
   align-items: flex-end;
@@ -1326,17 +1368,40 @@ h1 {
   flex-direction: row;
 }
 
+.larry-corner.is-top {
+  top: var(--larry-top);
+  bottom: auto;
+  align-items: flex-start;
+  transform: translateY(-0.6rem);
+}
+
+.larry-corner.is-top.is-live {
+  transform: none;
+}
+
+.larry-corner.is-docking {
+  will-change: transform;
+}
+
 .larry-corner.is-dragging {
   transition: none;
 }
 
 .larry-corner.is-left .larry-face-img {
   margin: -0.95rem 0 0 -0.15rem;
-  transform: scaleX(-1);
+  transform: rotateY(180deg);
 }
 
 .larry-corner.is-left .larry-bubble {
   transform-origin: left bottom;
+}
+
+.larry-corner.is-top .larry-bubble {
+  transform-origin: right top;
+}
+
+.larry-corner.is-top.is-left .larry-bubble {
+  transform-origin: left top;
 }
 
 .larry-corner.is-left .larry-bubble::after {
@@ -1346,6 +1411,11 @@ h1 {
   border-left: 1.5px solid var(--ink);
   border-bottom: 1.5px solid var(--ink);
   transform: rotate(45deg);
+}
+
+.larry-corner.is-top .larry-bubble::after {
+  top: 0.95rem;
+  bottom: auto;
 }
 
 .larry-face {
@@ -1362,8 +1432,8 @@ h1 {
   cursor: grab;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.42s cubic-bezier(0.22, 1.2, 0.36, 1);
-  will-change: transform;
+  perspective: 220px;
+  transition: transform 0.38s var(--ease-out-expo);
 }
 
 .larry-corner.is-dragging .larry-face {
@@ -1390,6 +1460,9 @@ h1 {
   margin: -0.95rem -0.15rem 0 0;
   object-fit: contain;
   pointer-events: none;
+  transform: rotateY(0deg);
+  transform-origin: center center;
+  transition: transform 0.3s var(--ease-out-expo);
 }
 
 .larry-speech {
@@ -1399,10 +1472,14 @@ h1 {
   min-width: 0;
   max-width: none;
   margin: 0;
-  /* Room for the X sitting fully above the bubble, right-flush */
+  /* Room for the X sitting fully above the bubble */
   padding: calc(var(--larry-x) + 0.35rem) 0 0.2rem;
   box-sizing: border-box;
   pointer-events: auto;
+}
+
+.larry-corner.is-top .larry-speech {
+  padding: 0.2rem 0 calc(var(--larry-x) + 0.35rem);
 }
 
 .larry-bubble {
@@ -1483,6 +1560,11 @@ h1 {
   left: 0;
 }
 
+.larry-corner.is-top .larry-dismiss {
+  top: auto;
+  bottom: 0;
+}
+
 .larry-kicker {
   margin: 0;
   font-size: 0.78rem;
@@ -1505,14 +1587,33 @@ h1 {
   animation: larry-bubble-in 0.42s var(--ease-out-expo) both;
 }
 
+.larry-corner.is-top.is-speaking .larry-bubble {
+  animation-name: larry-bubble-in-top;
+}
+
 .larry-corner.is-speaking .larry-face {
   animation: larry-face-pop 0.45s var(--ease-out-expo) both;
+}
+
+.larry-corner.is-settling.is-speaking .larry-face {
+  animation: none;
 }
 
 @keyframes larry-bubble-in {
   from {
     opacity: 0;
     transform: translateY(0.4rem) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes larry-bubble-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem) scale(0.94);
   }
   to {
     opacity: 1;
@@ -1611,6 +1712,19 @@ h1 {
 .dish.is-liked .dish-heart {
   display: block;
   animation: heart-pop 0.38s var(--ease-out-expo) both;
+}
+
+.dish.is-pointed {
+  animation: dish-point 0.9s var(--ease-out-expo);
+}
+
+@keyframes dish-point {
+  from {
+    background: color-mix(in srgb, var(--stamp) 14%, transparent);
+  }
+  to {
+    background: transparent;
+  }
 }
 
 .pill {
@@ -1740,7 +1854,7 @@ body:not(.page-alternatives) .colophon {
     margin-top: 0.15rem;
     margin-inline: 0;
     /* Transparent sticky shell — only .days + .toast paint; slips scroll under */
-    padding: 1rem 1rem 0.55rem;
+    padding: var(--page-gutter) var(--page-gutter) 0.55rem;
     background: transparent;
     isolation: isolate;
     pointer-events: none;
@@ -1837,12 +1951,23 @@ body:not(.page-alternatives) .colophon {
   .market-banner.is-entering,
   .toast.is-popping,
   .dish.is-liked .dish-heart,
+  .dish.is-pointed {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
   .larry-corner.is-speaking .larry-bubble,
   .larry-corner.is-speaking .larry-face,
   .larry-face {
     animation: none !important;
     opacity: 1;
     transform: none;
+  }
+
+  .larry-corner,
+  .larry-face,
+  .larry-face-img {
+    transition: none !important;
   }
 
   .spot-card:hover,

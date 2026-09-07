@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  alarmLabel,
   dishKey,
   dishLabel,
   displayDishName,
@@ -73,6 +74,34 @@ describe("cross-canteen likes", () => {
     expect(dishLabel("Bei Pasta-Station: Gemüsepfanne | Drillinge")).toBe("Gemüsepfanne");
     expect(dishLabel("Vegane Currywurst / Pommes")).toBe("Currywurst");
     expect(dishLabel("Tages Dessert 1 Täglich aktualisiert")).toBe("Tagesdessert");
+  });
+
+  it("shortens Dave B and Bella 23 titles at mit/und", () => {
+    expect(
+      alarmLabel(
+        "Hähnchenragout mit Oliven und Tomate Toskana Kartoffelstampf",
+        "bella23",
+      ),
+    ).toBe("Hähnchenragout");
+    expect(alarmLabel("Currywurst | Pommes frites | Röstzwiebeln", "sodexo")).toBe(
+      "Currywurst",
+    );
+    expect(alarmLabel("Penne / Tomate / Zucchini", "stmuv")).toBe("Penne Tomate");
+  });
+
+  it("collects every canteen that serves a liked dish", () => {
+    const likes = toggleLikeSet("Currywurst | Pommes frites", new Set());
+    const found = findLikedDishes(
+      {
+        canteens: [
+          { id: "sodexo", dishes: [{ name: "Currywurst | Pommes frites | Röstzwiebeln" }] },
+          { id: "stmuv", dishes: [{ name: "Currywurst / hausgemachte Sauce" }] },
+        ],
+      },
+      likes,
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0].places).toEqual(["sodexo", "stmuv"]);
   });
 
   it("lists several favorites in one day", () => {

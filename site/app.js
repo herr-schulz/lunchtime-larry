@@ -9,17 +9,18 @@ import {
   watchBerlinMidnight,
 } from "./calendar.js?v=90d9b728";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=c641e16a";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=7d89d54b";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=01d24179";
 import {
+  alarmLabel,
   dishKey,
-  dishLabel,
   displayDishName,
   findLikedDishes,
   isLiked,
   toggleLikeSet,
-} from "./likes.js?v=2839e39f";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=88b956bc";
+} from "./likes.js?v=d4839ba3";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=03e6d1d5";
 import {
+  favoritePoint,
   favoriteToday,
   leisureMode as leisureLine,
   likeAck,
@@ -30,7 +31,7 @@ import {
   voteOffline,
   winnerLead,
   winnerTie,
-} from "./larryLines.js?v=2732cc18";
+} from "./larryLines.js?v=722807d7";
 import { LOCATIONS } from "./locations.js?v=cb8d289e";
 import { loadMenu } from "./menuFetch.js?v=64fd5683";
 import {
@@ -143,12 +144,50 @@ function renderHits(data, day) {
     syncNotices();
     return;
   }
-  const html = hitsHtml(found);
+  const html = hitsHtml(found, CANTEENS);
   const changed = hits.hidden || hits.innerHTML !== html;
   hits.hidden = false;
   hits.innerHTML = html;
   syncNotices();
   if (changed) popToast(hits);
+}
+
+function chromeOffset() {
+  const days = document.querySelector(".days");
+  if (!days) return 16;
+  const rect = days.getBoundingClientRect();
+  if (rect.bottom > 0 && rect.top < 140) return Math.round(rect.bottom + 10);
+  return 16;
+}
+
+function scrollToFavorite(canteen, key) {
+  if (!board || !key) return false;
+  const slip = canteen ? board.querySelector(`.slip[data-canteen="${canteen}"]`) : board;
+  const dish =
+    slip?.querySelector(`.dish[data-key="${CSS.escape(key)}"]`) ||
+    board.querySelector(`.dish[data-key="${CSS.escape(key)}"]`);
+  if (!dish) return false;
+  const top = dish.getBoundingClientRect().top + window.scrollY - chromeOffset();
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
+  dish.classList.remove("is-pointed");
+  void dish.offsetWidth;
+  dish.classList.add("is-pointed");
+  window.setTimeout(() => dish.classList.remove("is-pointed"), 1200);
+  return true;
+}
+
+function bindHits() {
+  hits?.addEventListener("click", (event) => {
+    const item = event.target.closest(".toast-hit-item");
+    if (!item) return;
+    const key = item.dataset.key || "";
+    const canteen = item.dataset.canteen || "";
+    const label = item.dataset.label || "";
+    const place = item.dataset.place || "der Kantine";
+    scrollToFavorite(canteen, key);
+    if (label) sayLarry(favoritePoint(label, place));
+  });
 }
 
 function renderDay(data, day) {
@@ -457,14 +496,16 @@ function toggleDishLike(data, dish) {
   renderHits(data, currentDay);
   if (on && !wasLiked) {
     const key = dishKey(name);
-    const label = dishLabel(name);
+    const canteen = dish.closest(".slip")?.dataset.canteen;
+    const label = alarmLabel(name, canteen);
     justLikedKey = key;
     sayLarry(likeAck(label));
     window.setTimeout(() => {
       if (justLikedKey === key) justLikedKey = "";
     }, 800);
   } else if (wasLiked && !on) {
-    sayLarry(unlikeAck(dishLabel(name)));
+    const canteen = dish.closest(".slip")?.dataset.canteen;
+    sayLarry(unlikeAck(alarmLabel(name, canteen)));
   }
 }
 
@@ -476,7 +517,14 @@ function maybeAnnounceFavoriteOnMenu(data, day) {
     const stampKey = `${day}:${item.key}`;
     if (announcedFavHits.has(stampKey)) continue;
     announcedFavHits.add(stampKey);
-    const place = CANTEENS[item.canteen]?.name ?? "der Kantine";
+    const places = (item.places?.length ? item.places : [item.canteen]).filter(Boolean);
+    const names = places.map((id) => CANTEENS[id]?.name).filter(Boolean);
+    const place =
+      names.length === 2
+        ? `${names[0]} und ${names[1]}`
+        : names.length > 2
+          ? `${names.slice(0, -1).join(", ")} und ${names.at(-1)}`
+          : names[0] || "der Kantine";
     sayLarry(favoriteToday(item.label, place));
     return;
   }
@@ -530,6 +578,7 @@ function registerServiceWorker() {
 
 try {
   bindLarryCorner();
+  bindHits();
   registerServiceWorker();
   const data = await loadMenu();
   kwEl.textContent = isoWeek(data.weekStart);
@@ -576,6 +625,7 @@ try {
   const fallback = todayKey();
   syncTabs(DAY_KEYS.includes(fallback) ? fallback : "monday");
   bindLarryCorner();
+  bindHits();
   bindMascotEgg();
   const miss = menuFreshNote({
     old: true,

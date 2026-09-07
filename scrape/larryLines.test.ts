@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { menuFreshNote, nextLookLine, unlikeAck } from "../site/larryLines.js";
+import { favoritePoint, menuFreshNote, nextLookLine, unlikeAck } from "../site/larryLines.js";
 
 describe("nextLookLine", () => {
   it("promises 10 o'clock after the 8:30 slot", () => {
@@ -56,5 +56,14 @@ describe("unlikeAck", () => {
     const note = unlikeAck("Currywurst");
     expect(note.kicker).toBe("Gestrichen");
     expect(note.line).toContain("Currywurst");
+  });
+});
+
+describe("favoritePoint", () => {
+  it("points at the dish and the canteen", () => {
+    const note = favoritePoint("Penne Tomate", "StMUV");
+    expect(note.kicker).toBe("Da lang:");
+    expect(note.line).toContain("Penne Tomate");
+    expect(note.line).toContain("StMUV");
   });
 });
