@@ -29,9 +29,21 @@ export function findLikedDishes(
   places: string[];
 }>;
 export function parkedFavorites(
-  saved: Array<{ key?: string; name?: string; places?: string[] }>,
+  saved: Array<{
+    key?: string;
+    name?: string;
+    label?: string;
+    places?: string[];
+    onWeek?: boolean;
+  }>,
   found: Array<{ key?: string; name?: string }>,
-): Array<{ key?: string; name?: string; places?: string[] }>;
+): Array<{
+  key?: string;
+  name?: string;
+  label?: string;
+  places?: string[];
+  onWeek?: boolean;
+}>;
 export function listAllFavorites(
   likes: Set<string>,
   days:

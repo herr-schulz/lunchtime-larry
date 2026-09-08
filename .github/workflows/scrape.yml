@@ -91,7 +91,7 @@ jobs:
             echo "::warning::No FIREBASE_TOKEN — web.app keeps its last hosting upload. Pages still gets the new menu."
             exit 0
           fi
-          npx --yes firebase-tools@13 deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
+          npx --yes firebase-tools@13 deploy --only hosting --non-interactive
 
       - uses: actions/upload-pages-artifact@v3
         if: always() && steps.ready.outputs.ready == 'true'

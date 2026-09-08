@@ -335,7 +335,7 @@ export function listAllFavorites(likes, days, todayDay) {
 
 /**
  * Likes that are not already shown as today's alarm hits.
- * @param {Array<{ key?: string, name?: string, places?: string[] }>} saved
+ * @param {Array<{ key?: string, name?: string, label?: string, places?: string[], onWeek?: boolean }>} saved
  * @param {Array<{ key?: string, name?: string }>} found
  */
 export function parkedFavorites(saved, found) {
