@@ -7,10 +7,12 @@ export const SKIP_NAMES =
   /topping|add\s*on|al gusto|geschlossen|täglich aktualisiert|tages\s*dessert\s*\d/i;
 export const UNAVAILABLE = /nicht\s*(verfügbar|im angebot)|ausverkauft|sold\s*out/i;
 export const CARD_TITLE = "mat-card-title, .product-name, .product-title, h3, h4";
+export const POSTED_PRICE = "siehe Aushang";
 
 export function sodexoPrice(text: string): string | undefined {
   const priceMatch = text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
-  if (!priceMatch || /^0[,.]00$/.test(priceMatch[1])) return undefined;
+  if (!priceMatch) return undefined;
+  if (/^0[,.]00$/.test(priceMatch[1])) return POSTED_PRICE;
   return `${priceMatch[1].replace(".", ",")} €`;
 }
 

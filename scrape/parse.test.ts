@@ -137,7 +137,7 @@ describe("sodexo helpers", () => {
     expect(dishes.map((d) => d.name)).toEqual(["Cannelloni | Ricotta | Spinat"]);
   });
 
-  it("keeps a 0,00 pasta dish and omits the placeholder price", () => {
+  it("keeps a 0,00 pasta dish as siehe Aushang", () => {
     const dishes = parseSodexoMenuHtml(`<app-menu-container>
       <app-category>
         <h2>Pasta</h2>
@@ -150,6 +150,7 @@ describe("sodexo helpers", () => {
     expect(dishes).toEqual([
       {
         name: "Cannelloni Ricotta-Spinat | Tomatensauce",
+        price: "siehe Aushang",
         diet: "unknown",
         category: "Pasta",
       },

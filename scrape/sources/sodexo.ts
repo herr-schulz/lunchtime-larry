@@ -4,6 +4,7 @@ import { cleanText } from "../lib.ts";
 import { CANTEENS, WEEKDAYS, type Dish, type Weekday } from "../types.ts";
 import {
   CARD_TITLE,
+  POSTED_PRICE,
   SKIP_CATEGORIES,
   SKIP_NAMES,
   UNAVAILABLE,
@@ -133,7 +134,7 @@ export async function scrapeSodexo(
     }
 
     const { dishes, sig } = await page.evaluate(
-      ({ skipCat, skipName, unavailable, titleSel }) => {
+      ({ skipCat, skipName, unavailable, titleSel, postedPrice }) => {
         const skipCatRe = new RegExp(skipCat, "i");
         const skipNameRe = new RegExp(skipName, "i");
         const unavailableRe = new RegExp(unavailable, "i");
@@ -181,10 +182,11 @@ export async function scrapeSodexo(
               text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
             out.push({
               name,
-              price:
-                priceMatch && !/^0[,.]00$/.test(priceMatch[1])
-                  ? `${priceMatch[1].replace(".", ",")} €`
-                  : undefined,
+              price: !priceMatch
+                ? undefined
+                : /^0[,.]00$/.test(priceMatch[1])
+                  ? postedPrice
+                  : `${priceMatch[1].replace(".", ",")} €`,
               category: categoryName,
               dietHint: text,
             });
@@ -210,10 +212,11 @@ export async function scrapeSodexo(
             text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
           out.push({
             name,
-            price:
-              priceMatch && !/^0[,.]00$/.test(priceMatch[1])
-                ? `${priceMatch[1].replace(".", ",")} €`
-                : undefined,
+            price: !priceMatch
+              ? undefined
+              : /^0[,.]00$/.test(priceMatch[1])
+                ? postedPrice
+                : `${priceMatch[1].replace(".", ",")} €`,
             category: "",
             dietHint: text,
           });
@@ -225,6 +228,7 @@ export async function scrapeSodexo(
         skipName: SKIP_NAMES.source,
         unavailable: UNAVAILABLE.source,
         titleSel: CARD_TITLE,
+        postedPrice: POSTED_PRICE,
       },
     );
 
