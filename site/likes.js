@@ -148,6 +148,7 @@ const PASTA_TYPES = new Set([
   "agnolotti",
   "bandnudeln",
   "bucatini",
+  "canneloni",
   "cannelloni",
   "cavatappi",
   "conchiglie",
@@ -190,16 +191,18 @@ const PASTA_TYPES = new Set([
   "ziti",
 ]);
 
+function wordLooksLikePasta(word) {
+  if (PASTA_TYPES.has(word)) return true;
+  return [...PASTA_TYPES].some((pasta) => pasta.length >= 6 && word.includes(pasta));
+}
+
 function isPastaTitle(title) {
   const words = String(title)
     .toLowerCase()
     .replace(/[^a-zäöüß\s-]/g, " ")
     .split(/[\s-]+/)
     .filter(Boolean);
-  const head = words[0];
-  if (!head) return false;
-  if (PASTA_TYPES.has(head)) return true;
-  return [...PASTA_TYPES].some((pasta) => pasta.length >= 6 && head.includes(pasta));
+  return words.some(wordLooksLikePasta);
 }
 
 function firstIngredient(sides) {
@@ -335,8 +338,10 @@ export function listAllFavorites(likes, days, todayDay) {
 
 /**
  * Likes that are not already shown as today's alarm hits.
- * @param {Array<{ key?: string, name?: string, places?: string[] }>} saved
+ * @template {{ key?: string, name?: string, places?: string[] }} T
+ * @param {T[]} saved
  * @param {Array<{ key?: string, name?: string }>} found
+ * @returns {T[]}
  */
 export function parkedFavorites(saved, found) {
   if (!saved?.length) return [];
