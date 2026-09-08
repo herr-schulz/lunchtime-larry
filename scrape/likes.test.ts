@@ -84,6 +84,11 @@ describe("cross-canteen likes", () => {
     expect(alarmLabel("Penne / Tomate / Zucchini")).toBe("Penne mit Tomate");
     expect(alarmLabel("Rigatoni mit Pastinake und Pilze")).toBe("Rigatoni mit Pastinake");
     expect(alarmLabel("Pasta | Tomatensauce | Mozzarella")).toBe("Pasta mit Tomatensauce");
+    expect(alarmLabel("Canneloni mit Spinat")).toBe("Canneloni mit Spinat");
+    expect(alarmLabel("Spinat Canneloni Al Forno")).toBe("Spinat Canneloni Al Forno");
+    expect(alarmLabel("Wirsing Schupfnudeln / Schwammerl / Sauerrahm")).toBe(
+      "Wirsing Schupfnudeln mit Schwammerl",
+    );
     expect(alarmLabel("Currywurst | Pommes frites | Röstzwiebeln")).toBe("Currywurst");
     expect(
       alarmLabel("Hähnchenragout mit Oliven und Tomate Toskana Kartoffelstampf"),

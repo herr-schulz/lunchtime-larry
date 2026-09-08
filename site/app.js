@@ -9,7 +9,7 @@ import {
   watchBerlinMidnight,
 } from "./calendar.js?v=e17d5bbb";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=4a03b930";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=93458f8a";
 import {
   alarmLabel,
   dishKey,
@@ -18,7 +18,7 @@ import {
   isLiked,
   listAllFavorites,
   toggleLikeSet,
-} from "./likes.js?v=f6717c2c";
+} from "./likes.js?v=b3160e3e";
 import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=72bfbecd";
 import {
   favoritePoint,
