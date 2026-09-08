@@ -2,7 +2,7 @@
 
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, settingsIcon } from "./icons.js?v=56a779d4";
-import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=b3160e3e";
+import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=64d8fe66";
 
 const DIET = {
   vegan: "vegan",

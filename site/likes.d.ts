@@ -28,10 +28,9 @@ export function findLikedDishes(
   canteen?: string;
   places: string[];
 }>;
-export function parkedFavorites(
-  saved: Array<{ key?: string; name?: string; places?: string[] }>,
-  found: Array<{ key?: string; name?: string }>,
-): Array<{ key?: string; name?: string; places?: string[] }>;
+export function parkedFavorites<
+  T extends { key?: string; name?: string; places?: string[] },
+>(saved: T[], found: Array<{ key?: string; name?: string }>): T[];
 export function listAllFavorites(
   likes: Set<string>,
   days:
