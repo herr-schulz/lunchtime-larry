@@ -8,6 +8,12 @@ export const SKIP_NAMES =
 export const UNAVAILABLE = /nicht\s*(verfügbar|im angebot)|ausverkauft|sold\s*out/i;
 export const CARD_TITLE = "mat-card-title, .product-name, .product-title, h3, h4";
 
+export function sodexoPrice(text: string): string | undefined {
+  const priceMatch = text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
+  if (!priceMatch || /^0[,.]00$/.test(priceMatch[1])) return undefined;
+  return `${priceMatch[1].replace(".", ",")} €`;
+}
+
 export type SodexoRaw = {
   name: string;
   price?: string;
@@ -127,12 +133,9 @@ export function collectSodexoCards(
           .replace(/\s+/g, " ")
           .trim() || text.replace(/\d+[.,]\d{2}\s*€.*/, "").trim();
       if (!name || skipNameRe.test(name)) continue;
-
-      const priceMatch = text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
-      if (priceMatch && /^0[,.]00$/.test(priceMatch[1])) continue;
       out.push({
         name,
-        price: priceMatch ? `${priceMatch[1].replace(".", ",")} €` : undefined,
+        price: sodexoPrice(text),
         category: categoryName,
         dietHint: text,
       });
@@ -151,11 +154,9 @@ export function collectSodexoCards(
         .replace(/\s+/g, " ")
         .trim() || text.replace(/\d+[.,]\d{2}\s*€.*/, "").trim();
     if (!name || skipNameRe.test(name)) continue;
-    const priceMatch = text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
-    if (priceMatch && /^0[,.]00$/.test(priceMatch[1])) continue;
     out.push({
       name,
-      price: priceMatch ? `${priceMatch[1].replace(".", ",")} €` : undefined,
+      price: sodexoPrice(text),
       category: "",
       dietHint: text,
     });

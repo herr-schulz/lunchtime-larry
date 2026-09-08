@@ -136,6 +136,25 @@ describe("sodexo helpers", () => {
     ]);
     expect(dishes.map((d) => d.name)).toEqual(["Cannelloni | Ricotta | Spinat"]);
   });
+
+  it("keeps a 0,00 pasta dish and omits the placeholder price", () => {
+    const dishes = parseSodexoMenuHtml(`<app-menu-container>
+      <app-category>
+        <h2>Pasta</h2>
+        <div class="product-card">
+          <div class="product-title">Cannelloni Ricotta-Spinat | Tomatensauce</div>
+          0,00 €
+        </div>
+      </app-category>
+    </app-menu-container>`);
+    expect(dishes).toEqual([
+      {
+        name: "Cannelloni Ricotta-Spinat | Tomatensauce",
+        diet: "unknown",
+        category: "Pasta",
+      },
+    ]);
+  });
 });
 
 describe("tabToWeekday", () => {

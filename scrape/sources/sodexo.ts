@@ -177,13 +177,14 @@ export async function scrapeSodexo(
               (card.querySelector(titleSel)?.textContent || "").replace(/\s+/g, " ").trim() ||
               text.replace(/\d+[.,]\d{2}\s*€.*/, "").trim();
             if (!name || skipNameRe.test(name)) continue;
-
             const priceMatch =
               text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
-            if (priceMatch && /^0[,.]00$/.test(priceMatch[1])) continue;
             out.push({
               name,
-              price: priceMatch ? `${priceMatch[1].replace(".", ",")} €` : undefined,
+              price:
+                priceMatch && !/^0[,.]00$/.test(priceMatch[1])
+                  ? `${priceMatch[1].replace(".", ",")} €`
+                  : undefined,
               category: categoryName,
               dietHint: text,
             });
@@ -207,10 +208,12 @@ export async function scrapeSodexo(
           if (!name || skipNameRe.test(name)) continue;
           const priceMatch =
             text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
-          if (priceMatch && /^0[,.]00$/.test(priceMatch[1])) continue;
           out.push({
             name,
-            price: priceMatch ? `${priceMatch[1].replace(".", ",")} €` : undefined,
+            price:
+              priceMatch && !/^0[,.]00$/.test(priceMatch[1])
+                ? `${priceMatch[1].replace(".", ",")} €`
+                : undefined,
             category: "",
             dietHint: text,
           });
