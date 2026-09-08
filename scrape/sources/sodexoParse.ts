@@ -49,10 +49,7 @@ export function mapSodexoDishes(raw: SodexoRaw[]): Dish[] {
   return dedupeDishes(
     raw
       .filter(
-        (item) =>
-          !SKIP_CATEGORIES.test(item.category) &&
-          !SKIP_NAMES.test(item.category) &&
-          !SKIP_NAMES.test(item.name),
+        (item) => !SKIP_CATEGORIES.test(item.category) && !SKIP_NAMES.test(item.name),
       )
       .map((item) => {
         const category = /dessert/i.test(item.category) ? "Dessert" : item.category;
@@ -129,7 +126,7 @@ export function collectSodexoCards(
         (card.querySelector(CARD_TITLE)?.textContent || "")
           .replace(/\s+/g, " ")
           .trim() || text.replace(/\d+[.,]\d{2}\s*€.*/, "").trim();
-      if (!name || skipNameRe.test(name) || skipNameRe.test(categoryName)) continue;
+      if (!name || skipNameRe.test(name)) continue;
 
       const priceMatch = text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
       if (priceMatch && /^0[,.]00$/.test(priceMatch[1])) continue;
@@ -140,6 +137,28 @@ export function collectSodexoCards(
         dietHint: text,
       });
     }
+  }
+
+  for (const card of root.querySelectorAll(".product-card")) {
+    if (card.closest("app-category")) continue;
+    if (win && isVisuallyHidden(card, win)) continue;
+    const text = (card.textContent || "").replace(/\s+/g, " ").trim();
+    if (unavailableRe.test(text)) continue;
+    const className = String(card.getAttribute("class") || "").toLowerCase();
+    if (className.match(/sold|unavailable|disabled|out-of-stock/)) continue;
+    const name =
+      (card.querySelector(CARD_TITLE)?.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim() || text.replace(/\d+[.,]\d{2}\s*€.*/, "").trim();
+    if (!name || skipNameRe.test(name)) continue;
+    const priceMatch = text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
+    if (priceMatch && /^0[,.]00$/.test(priceMatch[1])) continue;
+    out.push({
+      name,
+      price: priceMatch ? `${priceMatch[1].replace(".", ",")} €` : undefined,
+      category: "",
+      dietHint: text,
+    });
   }
   return out;
 }

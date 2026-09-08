@@ -176,7 +176,7 @@ export async function scrapeSodexo(
             const name =
               (card.querySelector(titleSel)?.textContent || "").replace(/\s+/g, " ").trim() ||
               text.replace(/\d+[.,]\d{2}\s*€.*/, "").trim();
-            if (!name || skipNameRe.test(name) || skipNameRe.test(categoryName)) continue;
+            if (!name || skipNameRe.test(name)) continue;
 
             const priceMatch =
               text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
@@ -188,6 +188,32 @@ export async function scrapeSodexo(
               dietHint: text,
             });
           }
+        }
+
+        for (const card of root.querySelectorAll(".product-card")) {
+          if (card.closest("app-category")) continue;
+          const style = getComputedStyle(card);
+          const text = (card.textContent || "").replace(/\s+/g, " ").trim();
+          if (style.display === "none" || style.visibility === "hidden") continue;
+          if (style.opacity !== "" && Number(style.opacity) < 0.7) continue;
+          if (style.filter.includes("grayscale")) continue;
+          if (unavailableRe.test(text)) continue;
+          if (card.className.toLowerCase().match(/sold|unavailable|disabled|out-of-stock/)) {
+            continue;
+          }
+          const name =
+            (card.querySelector(titleSel)?.textContent || "").replace(/\s+/g, " ").trim() ||
+            text.replace(/\d+[.,]\d{2}\s*€.*/, "").trim();
+          if (!name || skipNameRe.test(name)) continue;
+          const priceMatch =
+            text.match(/(\d+[.,]\d{2})\s*€/) || text.match(/€\s*(\d+[.,]\d{2})/);
+          if (priceMatch && /^0[,.]00$/.test(priceMatch[1])) continue;
+          out.push({
+            name,
+            price: priceMatch ? `${priceMatch[1].replace(".", ",")} €` : undefined,
+            category: "",
+            dietHint: text,
+          });
         }
         return { dishes: out, sig: names.slice().sort().join("\n") };
       },

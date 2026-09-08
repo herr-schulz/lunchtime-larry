@@ -55,7 +55,13 @@ export function shouldScrape(
   if (!sourcesOk(previous.sources)) {
     return { needed: true, reason: "a source is error or stale" };
   }
-  return { needed: false, reason: "this week is already complete" };
+
+  const today = formatIsoDate(now);
+  const lastDay = isoDatePart(previous.lastSuccessAt);
+  if (lastDay === today) {
+    return { needed: false, reason: "already scraped today" };
+  }
+  return { needed: true, reason: "menu may have changed since yesterday" };
 }
 
 async function loadPrevious(): Promise<PreviousMenu | undefined> {

@@ -94,6 +94,7 @@ describe("parseSodexoMenuHtml", () => {
     expect(names).toEqual([
       "Gelbes Hähnchencurry | Duftreis",
       "Überbackene Polenta | Spinat | Zucchini",
+      "Cannelloni | Ricotta | Spinat",
       "Nuss-Nougatpudding mit Vanillesauce | Mandeln",
     ]);
     expect(names.some((n) => /Gyros|Kartoffelcurry|täglich aktualisiert/i.test(n))).toBe(
@@ -118,6 +119,22 @@ describe("sodexo helpers", () => {
       },
     ]);
     expect(dishes.map((d) => d.name)).toEqual(["Gelbes Hähnchencurry | Duftreis"]);
+  });
+
+  it("keeps cannelloni even when the pasta station is labeled al gusto", () => {
+    const dishes = mapSodexoDishes([
+      {
+        name: "Cannelloni | Ricotta | Spinat",
+        category: "Pasta AL GUSTO",
+        dietHint: "",
+      },
+      {
+        name: "Pizza AL GUSTO Pizza nach Ihrem Geschmack",
+        category: "Pizza",
+        dietHint: "",
+      },
+    ]);
+    expect(dishes.map((d) => d.name)).toEqual(["Cannelloni | Ricotta | Spinat"]);
   });
 });
 
