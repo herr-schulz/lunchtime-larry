@@ -48,10 +48,10 @@ describe("shouldScrape", () => {
     });
   });
 
-  it("skips later slots once this week is complete", () => {
+  it("skips later slots once today already succeeded", () => {
     expect(shouldScrape(new Date("2026-09-07T11:10:00+02:00"), thisWeek)).toEqual({
       needed: false,
-      reason: "this week is already complete",
+      reason: "already scraped today",
     });
   });
 
@@ -67,10 +67,10 @@ describe("shouldScrape", () => {
     });
   });
 
-  it("skips wednesday if monday already got a complete week", () => {
+  it("runs wednesday so daily specials can replace the monday scrape", () => {
     expect(shouldScrape(new Date("2026-09-09T08:10:00+02:00"), thisWeek)).toEqual({
-      needed: false,
-      reason: "this week is already complete",
+      needed: true,
+      reason: "menu may have changed since yesterday",
     });
   });
 
@@ -86,10 +86,10 @@ describe("shouldScrape", () => {
     });
   });
 
-  it("skips tuesday after a successful monday", () => {
+  it("runs tuesday after a successful monday so later days can update", () => {
     expect(shouldScrape(new Date("2026-09-08T08:10:00+02:00"), thisWeek)).toEqual({
-      needed: false,
-      reason: "this week is already complete",
+      needed: true,
+      reason: "menu may have changed since yesterday",
     });
   });
 
@@ -121,15 +121,27 @@ describe("shouldScrape", () => {
     });
   });
 
-  it("skips thursday after a complete week", () => {
+  it("runs thursday after a wednesday scrape so later days can update", () => {
     const previous: PreviousMenu = {
       weekStart: "2026-09-07",
       lastSuccessAt: "2026-09-09T08:12:00+02:00",
       sources: okSources,
     };
     expect(shouldScrape(new Date("2026-09-10T08:10:00+02:00"), previous)).toEqual({
+      needed: true,
+      reason: "menu may have changed since yesterday",
+    });
+  });
+
+  it("skips a later thursday slot after a thursday morning scrape", () => {
+    const previous: PreviousMenu = {
+      weekStart: "2026-09-07",
+      lastSuccessAt: "2026-09-10T08:12:00+02:00",
+      sources: okSources,
+    };
+    expect(shouldScrape(new Date("2026-09-10T11:10:00+02:00"), previous)).toEqual({
       needed: false,
-      reason: "this week is already complete",
+      reason: "already scraped today",
     });
   });
 });

@@ -7,9 +7,9 @@ import {
   isoWeek,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=e17d5bbb";
-import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=48c66446";
+} from "./calendar.js?v=90d9b728";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=c641e16a";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=e065d896";
 import {
   alarmLabel,
   dishKey,
@@ -18,8 +18,8 @@ import {
   isLiked,
   listAllFavorites,
   toggleLikeSet,
-} from "./likes.js?v=64d8fe66";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=72bfbecd";
+} from "./likes.js?v=c6d066a3";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=4b379d50";
 import {
   favoritePoint,
   favoriteToday,
@@ -32,9 +32,9 @@ import {
   voteOffline,
   winnerLead,
   winnerTie,
-} from "./larryLines.js?v=d6e94011";
-import { LOCATIONS } from "./locations.js?v=87fbb02b";
-import { loadMenu } from "./menuFetch.js?v=99f0e614";
+} from "./larryLines.js?v=722807d7";
+import { LOCATIONS } from "./locations.js?v=cb8d289e";
+import { loadMenu } from "./menuFetch.js?v=64fd5683";
 import {
   berlinWeekday,
   isVoteDay,
@@ -44,12 +44,12 @@ import {
   normalizeNick,
   saveNick,
   winnerOf,
-} from "./vote.js?v=1af723a0";
+} from "./vote.js?v=a52b5e64";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=795efc02";
+} from "./voteClient.js?v=b2f9ffc6";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
