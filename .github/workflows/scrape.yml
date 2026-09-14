@@ -2,12 +2,17 @@ name: Scrape and publish
 
 on:
   schedule:
-    # GitHub Actions cron is UTC and often hours late (a slot can also vanish
-    # entirely — Mon 2026-09-07 and Mon 2026-09-14 never fired). Clock times
-    # like "08:30 CEST" therefore land after lunch. Hourly 00:00–11:00 UTC
-    # Mon–Fri so a ~5h delay still hits before lunch CEST. shouldRun skips
-    # extra runs once today's scrape succeeded (~12s, no Playwright).
-    - cron: "0 0-11 * * 1-5"
+    # POSIX 5-field cron + IANA timezone (GitHub changelog 2026-03-19).
+    # Minute 17, not :00 — GitHub delays/drops jobs at the start of the hour.
+    # https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule
+    - cron: "17 8,9 * * 1"
+      timezone: "Europe/Berlin"
+    # Same-day retry + live proof slot (Mon 14:17). shouldRun no-ops if morning already succeeded.
+    - cron: "17 14 * * 1"
+      timezone: "Europe/Berlin"
+    # Catch-up if GitHub dropped Monday entirely (observed 2026-09-07 and 2026-09-14).
+    - cron: "17 8 * * 2-5"
+      timezone: "Europe/Berlin"
   workflow_dispatch:
   push:
     branches: [main]
@@ -34,6 +39,13 @@ jobs:
       FORCE_SCRAPE: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cron probe
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "schedule=${{ github.event.schedule }}"
+          echo "utc=$(date -u -Iseconds)"
+          echo "berlin=$(TZ=Europe/Berlin date -Iseconds)"
 
       - uses: actions/setup-node@v4
         with:
