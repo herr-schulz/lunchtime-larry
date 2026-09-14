@@ -1,6 +1,6 @@
 /** Single Larry speech-bubble — toast-like, free drag, gravity snap. */
 
-import { IDLE_TIP } from "./larryLines.js?v=d6e94011";
+import { IDLE_TIP } from "./larryLines.js?v=722807d7";
 
 const DOCK_KEY = "lunchtime-larry-corner-dock";
 const SIDE_KEY = "lunchtime-larry-corner-side";

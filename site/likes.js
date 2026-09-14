@@ -148,6 +148,7 @@ const PASTA_TYPES = new Set([
   "agnolotti",
   "bandnudeln",
   "bucatini",
+  "canneloni",
   "cannelloni",
   "cavatappi",
   "conchiglie",
@@ -190,16 +191,18 @@ const PASTA_TYPES = new Set([
   "ziti",
 ]);
 
+function wordLooksLikePasta(word) {
+  if (PASTA_TYPES.has(word)) return true;
+  return [...PASTA_TYPES].some((pasta) => pasta.length >= 6 && word.includes(pasta));
+}
+
 function isPastaTitle(title) {
   const words = String(title)
     .toLowerCase()
     .replace(/[^a-zäöüß\s-]/g, " ")
     .split(/[\s-]+/)
     .filter(Boolean);
-  const head = words[0];
-  if (!head) return false;
-  if (PASTA_TYPES.has(head)) return true;
-  return [...PASTA_TYPES].some((pasta) => pasta.length >= 6 && head.includes(pasta));
+  return words.some(wordLooksLikePasta);
 }
 
 function firstIngredient(sides) {
