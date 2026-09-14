@@ -1,19 +1,11 @@
 name: Scrape and publish
 
 on:
-  schedule:
-    # POSIX 5-field cron + IANA timezone (GitHub changelog 2026-03-19).
-    # Minute 17, not :00 — GitHub delays/drops jobs at the start of the hour.
-    # https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule
-    - cron: "17 8,9 * * 1"
-      timezone: "Europe/Berlin"
-    # Same-day retry + live proof slot (Mon 14:17). shouldRun no-ops if morning already succeeded.
-    - cron: "17 14 * * 1"
-      timezone: "Europe/Berlin"
-    # Catch-up if GitHub dropped Monday entirely (observed 2026-09-07 and 2026-09-14).
-    - cron: "17 8 * * 2-5"
-      timezone: "Europe/Berlin"
+  # No GitHub `schedule`. That queue delays/drops runs (Mon 2026-09-07 / 2026-09-14).
+  # Clock is a Cursor automation that POSTs workflow_dispatch.
   workflow_dispatch:
+  repository_dispatch:
+    types: [scrape]
   push:
     branches: [main]
     paths:
@@ -36,7 +28,7 @@ jobs:
     env:
       TZ: Europe/Berlin
       PREV_MENU_URL: https://herr-schulz.github.io/lunchtime-larry/data/menu.json
-      FORCE_SCRAPE: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && '1' || '' }}
+      FORCE_SCRAPE: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event_name == 'push') && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
 
