@@ -2,8 +2,16 @@ export const IDLE_TIP: { kicker: string; line: string };
 
 export function nextLookLine(hour: number, weekday: string): string;
 
+export const WEEK_STALE_LOOK: string;
+
+export function weekStaleHitsNote(lastStand?: string): {
+  kicker: string;
+  line: string;
+};
+
 export function menuFreshNote(opts?: {
   old?: boolean;
+  weekStale?: boolean;
   issueNames?: string[];
   hour?: number;
   weekday?: string;

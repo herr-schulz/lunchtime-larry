@@ -12,6 +12,45 @@ export const DAYS = {
 
 export const DAY_KEYS = Object.keys(DAYS);
 
+/** Monday of the current Berlin week as YYYY-MM-DD. */
+export function weekStartBerlin(date = new Date()) {
+  const iso = berlinDate(date);
+  const [y, m, d] = iso.split("-").map(Number);
+  const utcNoon = new Date(Date.UTC(y, m - 1, d, 12));
+  const weekday = utcNoon.getUTCDay();
+  const delta = weekday === 0 ? -6 : 1 - weekday;
+  utcNoon.setUTCDate(utcNoon.getUTCDate() + delta);
+  return utcNoon.toISOString().slice(0, 10);
+}
+
+export function addDays(isoDate, days) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/** Europe/Berlin calendar date of a timestamp, or null if missing/invalid. */
+export function berlinDayOf(iso) {
+  if (!iso) return null;
+  const date = new Date(String(iso).includes("T") ? iso : `${iso}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return berlinDate(date);
+}
+
+/**
+ * True when menu.scrapedAt falls in this Berlin Monday–Friday window.
+ * Saturday/Sunday still use that week's Monday, so a Friday scrape stays
+ * fresh through the weekend and goes stale the next Monday.
+ */
+export function isMenuWeekFresh(scrapedAt, now = new Date()) {
+  const scrapedDay = berlinDayOf(scrapedAt);
+  if (!scrapedDay) return false;
+  const monday = weekStartBerlin(now);
+  const friday = addDays(monday, 4);
+  return scrapedDay >= monday && scrapedDay <= friday;
+}
+
 export function isoWeek(isoDate) {
   const date = new Date(`${isoDate}T12:00:00`);
   const utc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());

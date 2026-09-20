@@ -5,11 +5,12 @@ import {
   formatDate,
   formatStamp,
   isoWeek,
+  isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=7b67e5f6";
+} from "./calendar.js?v=f580c454";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=3d5ede76";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=2380b0b1";
 import {
   alarmLabel,
   dishKey,
@@ -19,7 +20,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=72bfbecd";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=03bb3f3f";
 import {
   favoritePoint,
   favoriteToday,
@@ -30,9 +31,10 @@ import {
   unlikeAck,
   voteFull,
   voteOffline,
+  weekStaleHitsNote,
   winnerLead,
   winnerTie,
-} from "./larryLines.js?v=d6e94011";
+} from "./larryLines.js?v=c2848373";
 import { LOCATIONS } from "./locations.js?v=87fbb02b";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -107,19 +109,33 @@ function votingOpen() {
   return isVoteDay() && currentDay === todayKey();
 }
 
+function menuWeekStale(data) {
+  return !isMenuWeekFresh(data?.scrapedAt);
+}
+
+function lastStandLabel(scrapedAt) {
+  const stand = formatStamp(scrapedAt);
+  return stand === "—" ? "" : stand;
+}
+
+function markWeekStaleChrome(stale) {
+  document.querySelector(".masthead:not(.alt-masthead) .kicker")?.classList.toggle(
+    "is-week-stale",
+    stale,
+  );
+  kwEl?.classList.toggle("is-week-stale", stale);
+  dayDate?.classList.toggle("is-week-stale", stale);
+}
+
 /** Menu freshness → Larry corner (not under nav). */
 function larryMenuNote(data) {
+  const weekStale = menuWeekStale(data);
   const issues = Object.entries(data.sources || {}).filter(([, src]) =>
     ["error", "stale"].includes(src.status),
   );
-  const scraped = data.scrapedAt ? new Date(data.scrapedAt) : null;
-  const old =
-    scraped && !Number.isNaN(scraped.getTime())
-      ? Date.now() - scraped.getTime() > 3 * 24 * 60 * 60 * 1000
-      : false;
   return menuFreshNote({
-    old,
-    issueNames: issues.map(([id]) => CANTEENS[id]?.name ?? id),
+    weekStale,
+    issueNames: weekStale ? [] : issues.map(([id]) => CANTEENS[id]?.name ?? id),
     hour: berlinHour(),
     weekday: berlinWeekday(),
   });
@@ -139,6 +155,23 @@ function popToast(toast) {
 
 function renderHits(data, day) {
   if (!hits) return;
+  if (menuWeekStale(data)) {
+    const html = hitsHtml({
+      items: [],
+      canteens: CANTEENS,
+      weekStale: true,
+      staleNote: weekStaleHitsNote(lastStandLabel(data.scrapedAt)),
+    });
+    const changed = hits.hidden || hits.innerHTML !== html;
+    hits.hidden = false;
+    hits.innerHTML = html;
+    hits.classList.add("is-week-stale");
+    hits.classList.remove("is-sheet-open");
+    syncNotices();
+    if (changed) popToast(hits);
+    return;
+  }
+  hits.classList.remove("is-week-stale");
   const found = findLikedDishes(data.days?.[day], likes);
   const saved = listAllFavorites(likes, data.days, day);
   if (!found.length) {
@@ -161,7 +194,7 @@ function renderHits(data, day) {
 }
 
 function toggleFavSheet() {
-  if (!hits || hits.hidden) return;
+  if (!hits || hits.hidden || hits.classList.contains("is-week-stale")) return;
   const open = !hits.classList.contains("is-sheet-open");
   hits.classList.toggle("is-sheet-open", open);
   const gear = hits.querySelector(".toast-gear");
@@ -281,7 +314,9 @@ function bindHits() {
 
 function renderDay(data, day) {
   const block = data.days[day];
+  const weekStale = menuWeekStale(data);
   dayDate.innerHTML = block ? formatDate(block.date) : "";
+  markWeekStaleChrome(weekStale);
   marketBanner.hidden = day !== "thursday";
   board.innerHTML = boardHtml({
     block,
@@ -289,6 +324,7 @@ function renderDay(data, day) {
     sources: data.sources,
     likes,
     votingOpen: votingOpen(),
+    weekStale,
   });
   renderHits(data, day);
   applyVoteUi();
@@ -595,6 +631,7 @@ function toggleDishLike(data, dish) {
 }
 
 function maybeAnnounceFavoriteOnMenu(data, day) {
+  if (menuWeekStale(data)) return;
   const found = findLikedDishes(data.days?.[day], likes);
   for (const item of found) {
     if (!item.canteen) continue;
