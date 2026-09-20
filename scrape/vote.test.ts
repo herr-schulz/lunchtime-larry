@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  ballotDate,
   berlinDate,
-  berlinWeekday,
   canAcceptVote,
   countVotes,
   isValidNick,
-  isVoteDay,
   lastVoteDate,
   MAX_VOTERS,
   normalizeNick,
@@ -30,6 +29,17 @@ describe("lastVoteDate", () => {
   it("rewinds the weekend to Friday", () => {
     expect(lastVoteDate(new Date("2026-09-05T12:00:00+02:00"))).toBe("2026-09-04");
     expect(lastVoteDate(new Date("2026-09-06T12:00:00+02:00"))).toBe("2026-09-04");
+  });
+});
+
+describe("ballotDate", () => {
+  it("uses Berlin today on a vote day", () => {
+    expect(ballotDate(new Date("2026-09-04T12:00:00+02:00"))).toBe("2026-09-04");
+  });
+
+  it("is closed on the weekend", () => {
+    expect(ballotDate(new Date("2026-09-05T12:00:00+02:00"))).toBe(null);
+    expect(ballotDate(new Date("2026-09-06T12:00:00+02:00"))).toBe(null);
   });
 });
 
@@ -114,6 +124,12 @@ describe("votesPath", () => {
   it("nests ballots under the Berlin date", () => {
     expect(votesPath("2026-09-04")).toBe("votes/2026-09-04");
   });
+
+  it("builds the weekday ballot path from berlinDate", () => {
+    const thursday = new Date("2026-09-03T12:00:00+02:00");
+    expect(ballotDate(thursday)).toBe("2026-09-03");
+    expect(votesPath(berlinDate(thursday))).toBe("votes/2026-09-03");
+  });
 });
 
 describe("staleVoteDays", () => {
@@ -121,6 +137,21 @@ describe("staleVoteDays", () => {
     expect(
       staleVoteDays(["2026-09-05", "2026-09-04", "2026-09-01", "meta"], "2026-09-05"),
     ).toEqual(["2026-09-04", "2026-09-01"]);
+  });
+
+  it("does not keep Friday as the weekend purge day", () => {
+    const sunday = new Date("2026-09-06T12:00:00+02:00");
+    expect(lastVoteDate(sunday)).toBe("2026-09-04");
+    expect(berlinDate(sunday)).toBe("2026-09-06");
+  });
+
+  it("treats Friday as stale when keep-day is Sunday", () => {
+    const sunday = "2026-09-06";
+    expect(berlinDate(new Date("2026-09-06T12:00:00+02:00"))).toBe(sunday);
+    expect(staleVoteDays(["2026-09-06", "2026-09-04", "2026-09-01"], sunday)).toEqual([
+      "2026-09-04",
+      "2026-09-01",
+    ]);
   });
 });
 

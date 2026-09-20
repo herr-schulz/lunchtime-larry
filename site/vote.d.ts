@@ -18,6 +18,7 @@ export function berlinDate(now?: Date): string;
 export function berlinWeekday(now?: Date): string;
 export function isVoteDay(now?: Date): boolean;
 export function lastVoteDate(now?: Date): string;
+export function ballotDate(now?: Date): string | null;
 export function normalizeNick(value: unknown): string;
 export function isValidNick(value: unknown): boolean;
 export function loadNick(): string;
