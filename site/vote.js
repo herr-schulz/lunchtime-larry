@@ -35,6 +35,11 @@ export function lastVoteDate(now = new Date()) {
   return new Date(Date.UTC(year, month - 1, date - back)).toISOString().slice(0, 10);
 }
 
+/** Ballot day in Europe/Berlin, or null when voting is closed (weekend). */
+export function ballotDate(now = new Date()) {
+  return isVoteDay(now) ? berlinDate(now) : null;
+}
+
 export const MAX_NICK = 20;
 export const MAX_NICK_WORD = 12;
 

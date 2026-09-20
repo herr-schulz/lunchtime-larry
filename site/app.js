@@ -7,7 +7,7 @@ import {
   isoWeek,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=90d9b728";
+} from "./calendar.js?v=e839383a";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=c641e16a";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=e065d896";
 import {
@@ -44,12 +44,12 @@ import {
   normalizeNick,
   saveNick,
   winnerOf,
-} from "./vote.js?v=a52b5e64";
+} from "./vote.js?v=caeb03ad";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=b2f9ffc6";
+} from "./voteClient.js?v=69679c7f";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -104,7 +104,7 @@ function saveLikes() {
 }
 
 function votingOpen() {
-  return currentDay === todayKey();
+  return isVoteDay() && currentDay === todayKey();
 }
 
 /** Menu freshness → Larry corner (not under nav). */
