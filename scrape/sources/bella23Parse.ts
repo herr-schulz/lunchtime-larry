@@ -3,8 +3,13 @@ import { cleanText, inferDiet, parseGermanPrice, stripDietLabels } from "../lib.
 import { WEEKDAYS, type Diet, type Dish, type Weekday } from "../types.ts";
 
 const DAY_HEAD = /^(montag|dienstag|mittwoch|donnerstag|freitag)\b/i;
-const DIET_ONLY =
-  /^(vegan|veggie|vegetarisch|fleisch|fisch|geflügel|schwein|rind|huhn|pute)(\s*\/\s*(vegan|veggie|vegetarisch|fleisch|fisch|geflügel|schwein|rind))?$/i;
+/** Bella sets these as h6 headings, same as dish names. */
+const DIET_TOKEN =
+  "vegan(?:e[rsn])?|veggie|vegetarisch|fleisch|fisch|geflügel|schwein|rind|huhn|pute|wild|krustentier";
+const DIET_ONLY = new RegExp(
+  `^(?:${DIET_TOKEN})(?:\\s*[,/]\\s*(?:${DIET_TOKEN}))*[,.]?$`,
+  "i",
+);
 const SKIP_DISH = /pizza siehe aushang|änderungen vorbehalten/i;
 
 export function weekdayFromHeading(text: string): Weekday | undefined {
@@ -27,10 +32,8 @@ export function weekdayFromHeading(text: string): Weekday | undefined {
 
 export function dietFromLabel(text: string): Diet | undefined {
   const t = text.toLowerCase();
-  if (t.includes("vegan")) return "vegan";
-  if (t.includes("veggie") || t.includes("vegetar")) return "veggie";
-  if (t.includes("fisch")) return "fish";
   if (
+    t.includes("wild") ||
     t.includes("fleisch") ||
     t.includes("schwein") ||
     t.includes("geflügel") ||
@@ -40,6 +43,9 @@ export function dietFromLabel(text: string): Diet | undefined {
   ) {
     return "meat";
   }
+  if (t.includes("fisch") || t.includes("krustentier")) return "fish";
+  if (t.includes("vegan")) return "vegan";
+  if (t.includes("veggie") || t.includes("vegetar")) return "veggie";
   return undefined;
 }
 
@@ -57,6 +63,15 @@ export function parseBellaColumns(columns: NodeSnap[][]): Record<Weekday, Dish[]
 
     const flush = () => {
       if (!weekday || !current?.name || SKIP_DISH.test(current.name)) {
+        current = undefined;
+        return;
+      }
+      if (DIET_ONLY.test(current.name)) {
+        const last = byDay[weekday].at(-1);
+        if (last) {
+          last.diet = dietFromLabel(current.name) ?? last.diet;
+          if (current.price) last.price = current.price;
+        }
         current = undefined;
         return;
       }

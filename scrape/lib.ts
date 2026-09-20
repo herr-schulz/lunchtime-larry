@@ -67,6 +67,17 @@ export function weekdayDates(weekStart: string): Record<Weekday, string> {
   ) as Record<Weekday, string>;
 }
 
+/** ISO-8601 week number for a YYYY-MM-DD date (week belongs to the Thursday). */
+export function isoWeek(isoDate: string): number {
+  const date = new Date(`${isoDate}T12:00:00`);
+  const utc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = new Date(utc).getUTCDay() || 7;
+  const thursday = new Date(utc);
+  thursday.setUTCDate(thursday.getUTCDate() + 4 - day);
+  const yearStart = Date.UTC(thursday.getUTCFullYear(), 0, 1);
+  return Math.ceil(((thursday.getTime() - yearStart) / 86400000 + 1) / 7);
+}
+
 export function parseGermanPrice(text: string): string | undefined {
   const match = text.replace(/\s/g, " ").match(/(\d+[.,]\d{2})\s*€?/);
   return match ? `${match[1].replace(".", ",")} €` : undefined;
