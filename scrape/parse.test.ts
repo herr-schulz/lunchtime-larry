@@ -2,11 +2,13 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseBella23Html } from "./sources/bella23Parse.ts";
+import { dietFromLabel, parseBella23Html, parseBellaColumns } from "./sources/bella23Parse.ts";
 import {
   dishSignature,
   mapSodexoDishes,
+  parseCalendarWeekLabel,
   parseSodexoMenuHtml,
+  tabMatchesIsoDate,
   tabToWeekday,
 } from "./sources/sodexoParse.ts";
 import { parseStmuvHtml } from "./sources/stmuvParse.ts";
@@ -68,6 +70,53 @@ describe("parseBella23Html", () => {
       diet: "meat",
     });
     expect(menu.friday.some((d) => /siehe aushang/i.test(d.name))).toBe(false);
+  });
+
+  it("keeps Wild / Schwein h6 labels on the dish instead of splitting a second plate", () => {
+    const live = parseBellaColumns([
+      [
+        { tag: "h3", text: "Montag 21.09" },
+        { tag: "h6", text: "Wiesen Platte Hähnchen /Spanferkel Kartoffelsalat" },
+        { tag: "h6", text: "Schwein/ geflügel" },
+        { tag: "p", text: "11,40€" },
+      ],
+      [
+        { tag: "h3", text: "Dienstag 22.09" },
+        { tag: "h6", text: "Wurzel-Sepp mit Maultasche" },
+        { tag: "h6", text: "Veggie" },
+        { tag: "p", text: "7,35€" },
+        { tag: "h6", text: "Wildpfeffer Apfelpreiselbeeren Semmelknödel" },
+        { tag: "h6", text: "Wild" },
+        { tag: "p", text: "11,40€" },
+        { tag: "h6", text: "Linguine Tartofu" },
+        { tag: "p", text: "Veggie" },
+        { tag: "p", text: "Preis siehe Aushang" },
+      ],
+    ]);
+    expect(live.monday).toEqual([
+      {
+        name: "Wiesen Platte Hähnchen /Spanferkel Kartoffelsalat",
+        price: "11,40 €",
+        diet: "meat",
+      },
+    ]);
+    expect(live.tuesday.map((d) => d.name)).toEqual([
+      "Wurzel-Sepp mit Maultasche",
+      "Wildpfeffer Apfelpreiselbeeren Semmelknödel",
+      "Linguine Tartofu",
+    ]);
+    expect(live.tuesday[1]).toMatchObject({ price: "11,40 €", diet: "meat" });
+    expect(live.tuesday.some((d) => /^wild$/i.test(d.name))).toBe(false);
+  });
+});
+
+describe("dietFromLabel", () => {
+  it("reads mixed Bella headings, preferring meat/fish over veggie", () => {
+    expect(dietFromLabel("Wild")).toBe("meat");
+    expect(dietFromLabel("Schwein/ geflügel")).toBe("meat");
+    expect(dietFromLabel("Veggie/ Schwein")).toBe("meat");
+    expect(dietFromLabel("Veggie/ Krustentier")).toBe("fish");
+    expect(dietFromLabel("Veggie")).toBe("veggie");
   });
 });
 
@@ -169,5 +218,20 @@ describe("tabToWeekday", () => {
     expect(tabToWeekday("Tue.08.09.")).toBe("tuesday");
     expect(tabToWeekday("Wed.09.09.")).toBe("wednesday");
     expect(tabToWeekday("Thu.10.09.")).toBe("thursday");
+  });
+});
+
+describe("Sodexo calendar week", () => {
+  it("reads CW and KW labels", () => {
+    expect(parseCalendarWeekLabel("CW: 39")).toBe(39);
+    expect(parseCalendarWeekLabel("CW:  38")).toBe(38);
+    expect(parseCalendarWeekLabel("KW: 1")).toBe(1);
+    expect(parseCalendarWeekLabel("Store")).toBeUndefined();
+  });
+
+  it("matches day tabs to an ISO date", () => {
+    expect(tabMatchesIsoDate("Mon. 21.09.", "2026-09-21")).toBe(true);
+    expect(tabMatchesIsoDate("Mo. 14.09", "2026-09-14")).toBe(true);
+    expect(tabMatchesIsoDate("Mon. 21.09.", "2026-09-14")).toBe(false);
   });
 });

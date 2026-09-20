@@ -33,6 +33,25 @@ export function tabToWeekday(label: string): Weekday | undefined {
   return undefined;
 }
 
+export function parseCalendarWeekLabel(text: string): number | undefined {
+  const match = String(text)
+    .replace(/\s+/g, " ")
+    .match(/\b(?:CW|KW):\s*(\d{1,2})\b/i);
+  if (!match) return undefined;
+  const week = Number(match[1]);
+  return week >= 1 && week <= 53 ? week : undefined;
+}
+
+/** True when a day tab like "Mon. 21.09." or "Mo. 14.09" matches YYYY-MM-DD. */
+export function tabMatchesIsoDate(label: string, iso: string): boolean {
+  const parts = iso.split("-").map(Number);
+  if (parts.length !== 3) return false;
+  const [, month, day] = parts;
+  const match = String(label).match(/(\d{1,2})\.(\d{1,2})/);
+  if (!match) return false;
+  return Number(match[1]) === day && Number(match[2]) === month;
+}
+
 export function dishSignature(names: string[]): string {
   return names
     .map((name) => name.replace(/\s+/g, " ").trim())

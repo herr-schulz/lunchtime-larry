@@ -117,7 +117,7 @@ describe("cross-canteen likes", () => {
     };
     const listed = listAllFavorites(likes, days, "monday");
     const curry = listed.find((item) => item.label === "Currywurst");
-    const grill = listed.find((item) => item.label === "Grillhähnchen Kartoffelsalat");
+    const grill = listed.find((item) => item.label === "Grillhähnchen");
     expect(listed).toHaveLength(2);
     expect(curry?.places).toEqual(["sodexo"]);
     expect(curry?.onWeek).toBe(true);
@@ -206,7 +206,7 @@ describe("cross-canteen likes", () => {
       },
       likes,
     );
-    expect(found.map((item) => item.label)).toEqual(["Currywurst", "Grillhähnchen Kartoffelsalat"]);
+    expect(found.map((item) => item.label)).toEqual(["Currywurst", "Grillhähnchen"]);
   });
 });
 
@@ -264,5 +264,135 @@ describe("phraseDish", () => {
     expect(joinDishSides(["Tomate", "Zucchini", "Rosmarin", "Thymian"])).toBe(
       "mit Tomate, Zucchini, Rosmarin und Thymian",
     );
+  });
+});
+
+const bella = { canteen: "bella23" };
+
+describe("phraseDish bella23", () => {
+  it("keeps a one- or two-word title and peels the rest as mit-sides", () => {
+    expect(phraseDish("Grillhähnchen Kartoffelsalat", bella)).toEqual({
+      title: "Grillhähnchen",
+      sides: ["Kartoffelsalat"],
+      spoken: "Grillhähnchen mit Kartoffelsalat",
+    });
+    expect(phraseDish("Wildpfeffer Apfelpreiselbeeren Semmelknödel", bella)).toEqual({
+      title: "Wildpfeffer",
+      sides: ["Apfelpreiselbeeren", "Semmelknödel"],
+      spoken: "Wildpfeffer mit Apfelpreiselbeeren und Semmelknödel",
+    });
+    expect(phraseDish("Cordon bleu Bratkartoffeln", bella)).toEqual({
+      title: "Cordon bleu",
+      sides: ["Bratkartoffeln"],
+      spoken: "Cordon bleu mit Bratkartoffeln",
+    });
+    expect(phraseDish("Buntbarschfilet Letcho Polenta", bella)).toEqual({
+      title: "Buntbarschfilet",
+      sides: ["Letcho", "Polenta"],
+      spoken: "Buntbarschfilet mit Letcho und Polenta",
+    });
+    expect(phraseDish("Donnerstagschnitzel Bratkartoffen", bella)).toEqual({
+      title: "Donnerstagschnitzel",
+      sides: ["Bratkartoffen"],
+      spoken: "Donnerstagschnitzel mit Bratkartoffen",
+    });
+  });
+
+  it("keeps two-word titles when the second word is the dish, not a side", () => {
+    expect(phraseDish("Linguine Tartofu", bella)).toEqual({
+      title: "Linguine Tartofu",
+      sides: [],
+      spoken: "Linguine Tartofu",
+    });
+    expect(phraseDish("Kürbis Risotto", bella)).toEqual({
+      title: "Kürbis Risotto",
+      sides: [],
+      spoken: "Kürbis Risotto",
+    });
+    expect(phraseDish("Freitag Pizza", bella)).toEqual({
+      title: "Freitag Pizza",
+      sides: [],
+      spoken: "Freitag Pizza",
+    });
+    expect(phraseDish("Süsses oder Saures", bella)).toEqual({
+      title: "Süsses oder Saures",
+      sides: [],
+      spoken: "Süsses oder Saures",
+    });
+    expect(phraseDish("Spinat Canneloni Al Forno", bella)).toEqual({
+      title: "Spinat Canneloni Al Forno",
+      sides: [],
+      spoken: "Spinat Canneloni Al Forno",
+    });
+  });
+
+  it("takes two words when the first is weak or the second is the plate", () => {
+    expect(phraseDish("Asia Wok Gemüse Kokos Curry Calemar Steak", bella)).toEqual({
+      title: "Asia Wok",
+      sides: ["Gemüse Kokos Curry Calemar Steak"],
+      spoken: "Asia Wok mit Gemüse Kokos Curry Calemar Steak",
+    });
+    expect(phraseDish("Manta Platte Currywurst Pommes frites", bella)).toEqual({
+      title: "Manta Platte",
+      sides: ["Currywurst Pommes frites"],
+      spoken: "Manta Platte mit Currywurst Pommes frites",
+    });
+    expect(phraseDish("gebackenes Champignon Kartoffeln Dip", bella)).toEqual({
+      title: "gebackenes Champignon",
+      sides: ["Kartoffeln", "Dip"],
+      spoken: "gebackenes Champignon mit Kartoffeln und Dip",
+    });
+    expect(
+      phraseDish("Wiesen Platte Hähnchen /Spanferkel Kartoffelsalat", bella),
+    ).toEqual({
+      title: "Wiesen Platte",
+      sides: ["Hähnchen", "Spanferkel", "Kartoffelsalat"],
+      spoken: "Wiesen Platte mit Hähnchen, Spanferkel und Kartoffelsalat",
+    });
+    expect(phraseDish("Äpler Nudeln Äpfel -Kraut und Käsesoße", bella)).toEqual({
+      title: "Äpler Nudeln",
+      sides: ["Äpfel -Kraut", "Käsesoße"],
+      spoken: "Äpler Nudeln mit Äpfel -Kraut und Käsesoße",
+    });
+    expect(phraseDish("gebratener Reis Sojasoße Krispys", bella)).toEqual({
+      title: "gebratener Reis",
+      sides: ["Sojasoße Krispys"],
+      spoken: "gebratener Reis mit Sojasoße Krispys",
+    });
+    expect(phraseDish("Wies`n Chili Leberkäs Burger", bella)).toEqual({
+      title: "Wies`n Chili",
+      sides: ["Leberkäs Burger"],
+      spoken: "Wies`n Chili mit Leberkäs Burger",
+    });
+    expect(phraseDish("Kartoffel- Gemüse Auflauf", bella)).toEqual({
+      title: "Kartoffel- Gemüse Auflauf",
+      sides: [],
+      spoken: "Kartoffel- Gemüse Auflauf",
+    });
+    expect(phraseDish("Donnerstagschnitzel Hirten Corndon bleu", bella)).toEqual({
+      title: "Donnerstagschnitzel",
+      sides: ["Hirten Corndon bleu"],
+      spoken: "Donnerstagschnitzel mit Hirten Corndon bleu",
+    });
+  });
+
+  it("still peels an explicit mit and leaves auf/an sentences whole", () => {
+    expect(phraseDish("Wurzel-Sepp mit Maultasche", bella)).toEqual({
+      title: "Wurzel-Sepp",
+      sides: ["Maultasche"],
+      spoken: "Wurzel-Sepp mit Maultasche",
+    });
+    expect(phraseDish("Bömischer Kartoffel Eintopf mit Quorn Wurst", bella)).toEqual({
+      title: "Bömischer Kartoffel Eintopf",
+      sides: ["Quorn Wurst"],
+      spoken: "Bömischer Kartoffel Eintopf mit Quorn Wurst",
+    });
+    expect(phraseDish("Pasta al tartufo mit Sommertrüffel", bella)).toEqual({
+      title: "Pasta al tartufo",
+      sides: ["Sommertrüffel"],
+      spoken: "Pasta al tartufo mit Sommertrüffel",
+    });
+    expect(phraseDish("Schweinefilet auf Spargel-Risotto", bella).sides).toEqual([]);
+    expect(phraseDish("Zanderfilet -Piccata an Tomatennudeln", bella).sides).toEqual([]);
   });
 });

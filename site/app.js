@@ -7,9 +7,9 @@ import {
   isoWeek,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=90d9b728";
-import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=c641e16a";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=e065d896";
+} from "./calendar.js?v=7b67e5f6";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=3d5ede76";
 import {
   alarmLabel,
   dishKey,
@@ -18,8 +18,8 @@ import {
   isLiked,
   listAllFavorites,
   toggleLikeSet,
-} from "./likes.js?v=c6d066a3";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=4b379d50";
+} from "./likes.js?v=9db8d9ec";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=72bfbecd";
 import {
   favoritePoint,
   favoriteToday,
@@ -32,9 +32,9 @@ import {
   voteOffline,
   winnerLead,
   winnerTie,
-} from "./larryLines.js?v=722807d7";
-import { LOCATIONS } from "./locations.js?v=cb8d289e";
-import { loadMenu } from "./menuFetch.js?v=64fd5683";
+} from "./larryLines.js?v=d6e94011";
+import { LOCATIONS } from "./locations.js?v=87fbb02b";
+import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
   berlinWeekday,
   isVoteDay,
@@ -44,12 +44,12 @@ import {
   normalizeNick,
   saveNick,
   winnerOf,
-} from "./vote.js?v=a52b5e64";
+} from "./vote.js?v=0b6f336e";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=b2f9ffc6";
+} from "./voteClient.js?v=ff3e8872";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -104,7 +104,7 @@ function saveLikes() {
 }
 
 function votingOpen() {
-  return currentDay === todayKey();
+  return isVoteDay() && currentDay === todayKey();
 }
 
 /** Menu freshness → Larry corner (not under nav). */
@@ -177,14 +177,14 @@ function syncDishHearts() {
   }
 }
 
-function unlikeFavorite(name) {
+function unlikeFavorite(name, canteen) {
   if (!name || !isLiked(name, likes)) return;
   hapticPulse();
   likes = toggleLikeSet(name, likes);
   saveLikes();
   syncDishHearts();
   if (menuData) renderHits(menuData, currentDay);
-  sayLarry(unlikeAck(alarmLabel(name)));
+  sayLarry(unlikeAck(alarmLabel(name, { canteen })));
 }
 
 function chromeOffset() {
@@ -224,7 +224,7 @@ function bindHits() {
     const heart = event.target.closest(".fav-row-heart");
     if (heart) {
       const row = heart.closest("[data-name]");
-      unlikeFavorite(row?.dataset.name || "");
+      unlikeFavorite(row?.dataset.name || "", row?.dataset.canteen || "");
       return;
     }
     const item = event.target.closest(".toast-hit-item");
@@ -268,7 +268,7 @@ function bindHits() {
     swipe = null;
     row.style.transform = "";
     row.style.opacity = "";
-    if (Math.abs(dx) >= 56) unlikeFavorite(name);
+    if (Math.abs(dx) >= 56) unlikeFavorite(name, row.dataset.canteen || "");
   };
   hits?.addEventListener("pointerup", endSwipe);
   hits?.addEventListener("pointercancel", () => {
@@ -572,6 +572,7 @@ function hapticPulse() {
 function toggleDishLike(data, dish) {
   const name = dish.dataset.name;
   if (!name) return;
+  const canteen = dish.closest("[data-canteen]")?.dataset.canteen;
   hapticPulse();
   const wasLiked = isLiked(name, likes);
   likes = toggleLikeSet(name, likes);
@@ -582,14 +583,14 @@ function toggleDishLike(data, dish) {
   renderHits(data, currentDay);
   if (on && !wasLiked) {
     const key = dishKey(name);
-    const label = alarmLabel(name);
+    const label = alarmLabel(name, { canteen });
     justLikedKey = key;
     sayLarry(likeAck(label));
     window.setTimeout(() => {
       if (justLikedKey === key) justLikedKey = "";
     }, 800);
   } else if (wasLiked && !on) {
-    sayLarry(unlikeAck(alarmLabel(name)));
+    sayLarry(unlikeAck(alarmLabel(name, { canteen })));
   }
 }
 

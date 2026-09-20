@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatIsoDateTime,
   inferDiet,
+  isoWeek,
   parseGermanPrice,
   stripDietLabels,
   weekStartBerlin,
@@ -81,6 +82,14 @@ describe("formatIsoDateTime", () => {
 describe("weekStartBerlin", () => {
   it("returns the Monday of the Berlin week", () => {
     expect(weekStartBerlin(new Date("2026-09-04T10:00:00+02:00"))).toBe("2026-08-31");
+  });
+});
+
+describe("isoWeek", () => {
+  it("numbers the Berlin week the Sodexo CW dropdown uses", () => {
+    expect(isoWeek("2026-09-14")).toBe(38);
+    expect(isoWeek("2026-09-20")).toBe(38);
+    expect(isoWeek("2026-09-21")).toBe(39);
   });
 });
 

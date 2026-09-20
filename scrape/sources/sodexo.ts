@@ -1,6 +1,6 @@
 import type { Page } from "playwright";
 import { dismissCookies, screenshot } from "../browser.ts";
-import { cleanText } from "../lib.ts";
+import { cleanText, isoWeek, weekdayDates, weekStartBerlin } from "../lib.ts";
 import { CANTEENS, WEEKDAYS, type Dish, type Weekday } from "../types.ts";
 import {
   CARD_TITLE,
@@ -9,22 +9,81 @@ import {
   SKIP_NAMES,
   UNAVAILABLE,
   mapSodexoDishes,
+  parseCalendarWeekLabel,
+  tabMatchesIsoDate,
   tabToWeekday,
   type SodexoRaw,
 } from "./sodexoParse.ts";
 
 type DayTab = { weekday: Weekday; href: string; label: string };
 
+const WEEK_SELECT = "mat-select";
+const WEEK_OPTION = "mat-option, [role='option']";
+
+async function pinSodexoCalendarWeek(page: Page, weekStart: string): Promise<void> {
+  const target = isoWeek(weekStart);
+  const combo = page.locator(WEEK_SELECT).filter({ hasText: /\b(?:CW|KW):/i }).first();
+  await combo.waitFor({ timeout: 15_000 });
+
+  const shown = parseCalendarWeekLabel(await combo.innerText());
+  if (shown !== target) {
+    await combo.click();
+    const option = page.locator(WEEK_OPTION).filter({
+      hasText: new RegExp(`(?:CW|KW):\\s*${target}\\b`, "i"),
+    });
+    if ((await option.count()) === 0) {
+      await screenshot(page, "sodexo-wrong-week");
+      throw new Error(
+        `Sodexo: Kalenderwoche ${target} nicht im Dropdown (steht auf ${shown ?? "?"})`,
+      );
+    }
+    await option.first().click();
+  }
+
+  const dates = weekdayDates(weekStart);
+  try {
+    await page.waitForFunction(
+      ({ monday, expectedWeek }) => {
+        const select = [...document.querySelectorAll("mat-select")].find((el) =>
+          /\b(?:CW|KW):/i.test(el.textContent || ""),
+        );
+        const label = (select?.textContent || "").replace(/\s+/g, " ");
+        const weekMatch = label.match(/\b(?:CW|KW):\s*(\d{1,2})\b/i);
+        if (!weekMatch || Number(weekMatch[1]) !== expectedWeek) return false;
+        const firstTab = document.querySelector(
+          "app-menu-container a.mdc-tab, app-menu-container .mdc-tab",
+        );
+        const text = (firstTab?.textContent || "").replace(/\s+/g, " ");
+        const match = text.match(/(\d{1,2})\.(\d{1,2})/);
+        if (!match) return false;
+        const parts = monday.split("-").map(Number);
+        const month = parts[1];
+        const day = parts[2];
+        return Number(match[1]) === day && Number(match[2]) === month;
+      },
+      { monday: dates.monday, expectedWeek: target },
+      { timeout: 15_000 },
+    );
+  } catch (error) {
+    await screenshot(page, "sodexo-wrong-week");
+    throw new Error(
+      `Sodexo: Tabs gehören nicht zu KW ${target} / ${dates.monday} (${error instanceof Error ? error.message : String(error)})`,
+    );
+  }
+}
+
 export async function scrapeSodexo(
   page: Page,
 ): Promise<Record<Weekday, Dish[]>> {
+  const weekStart = weekStartBerlin();
   await page.goto(CANTEENS.sodexo.url, {
     waitUntil: "domcontentloaded",
     timeout: 60_000,
   });
   await dismissCookies(page);
-  await page.locator("app-category, .product-card").first().waitFor({ timeout: 25_000 });
+  await page.locator("app-category, .product-card, mat-select").first().waitFor({ timeout: 25_000 });
   await dismissCookies(page);
+  await pinSodexoCalendarWeek(page, weekStart);
 
   const tabs = page.locator("app-menu-container a.mdc-tab, app-menu-container .mdc-tab");
   const tabCount = await tabs.count();
@@ -45,6 +104,18 @@ export async function scrapeSodexo(
   if (dayTabs.length === 0) {
     await screenshot(page, "sodexo-no-days");
     throw new Error("Sodexo: Wochentags-Tabs ohne Datum-Links");
+  }
+
+  const expectedDates = weekdayDates(weekStart);
+  const mismatched = dayTabs.filter(
+    (day) => !tabMatchesIsoDate(day.label, expectedDates[day.weekday]),
+  );
+  if (mismatched.length) {
+    await screenshot(page, "sodexo-wrong-week");
+    const detail = mismatched
+      .map((day) => `${day.label} ≠ ${expectedDates[day.weekday]}`)
+      .join("; ");
+    throw new Error(`Sodexo: Tages-Tabs passen nicht zur Berlin-Woche ${weekStart} (${detail})`);
   }
 
   const byDay = Object.fromEntries(WEEKDAYS.map((d) => [d, [] as Dish[]])) as Record<
