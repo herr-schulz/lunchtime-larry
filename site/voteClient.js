@@ -11,7 +11,7 @@ import {
   normalizeNick,
   staleVoteDays,
   votesPath,
-} from "./vote.js?v=caeb03ad";
+} from "./vote.js?v=0b6f336e";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;

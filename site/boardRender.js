@@ -1,8 +1,8 @@
 /** Pure HTML builders for the canteen board (no DOM writes). */
 
-import { escapeHtml } from "./dom.js?v=55e28ecf";
-import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, settingsIcon } from "./icons.js?v=57c96aa2";
-import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=c6d066a3";
+import { escapeHtml } from "./dom.js?v=d3d5b527";
+import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, settingsIcon } from "./icons.js?v=56a779d4";
+import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=9db8d9ec";
 
 const DIET = {
   vegan: "vegan",
@@ -25,8 +25,8 @@ export function ghostLine(seed) {
   return GHOST_LINES[index];
 }
 
-export function formatDishName(name) {
-  const { title, sides } = phraseDish(name);
+export function formatDishName(name, canteenId) {
+  const { title, sides } = phraseDish(name, { canteen: canteenId });
   const heart = heartIconFilled;
   const titleRow = `<span class="dish-title">${escapeHtml(title)}${heart}</span>`;
   const withSides = joinDishSides(sides);
@@ -34,7 +34,7 @@ export function formatDishName(name) {
   return `${titleRow}<span class="dish-sides">${escapeHtml(withSides)}</span>`;
 }
 
-export function dishRow(dish, index, likes) {
+export function dishRow(dish, index, likes, canteenId) {
   const key = dishKey(dish.name);
   const kept = isLiked(dish.name, likes);
   const diet =
@@ -45,10 +45,10 @@ export function dishRow(dish, index, likes) {
     ? `<span class="pill">${dish.category}</span>`
     : "";
   const price = dish.price ? `<span class="price">${dish.price}</span>` : "";
-  const spoken = phraseDish(dish.name).spoken;
+  const spoken = phraseDish(dish.name, { canteen: canteenId }).spoken;
   const label = kept ? `${spoken}, Favorit` : spoken;
   return `<article class="dish${kept ? " is-liked" : ""}" style="--dish-i:${index}" data-name="${escapeHtml(dish.name)}" data-key="${escapeHtml(key)}" role="button" tabindex="0" aria-pressed="${kept}" aria-label="${escapeHtml(label)}">
-    <div class="name">${formatDishName(dish.name)}</div>
+    <div class="name">${formatDishName(dish.name, canteenId)}</div>
     ${price}
     <div class="meta">${category}${diet}</div>
   </article>`;
@@ -73,7 +73,7 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
       }
       const missing = source?.status === "error" && !canteen.dishes?.length;
       const body = canteen.dishes?.length
-        ? canteen.dishes.map((dish, index) => dishRow(dish, index, likes)).join("")
+        ? canteen.dishes.map((dish, index) => dishRow(dish, index, likes, canteen.id)).join("")
         : missing
           ? ""
           : `<p class="ghost">${escapeHtml(ghostLine(canteen.id))}</p>`;
@@ -147,7 +147,7 @@ function favSheetHtml(saved, canteens, emptyHint) {
       const place = where
         ? `<span class="fav-row-place${off ? " is-off" : ""}">${escapeHtml(where)}</span>`
         : "";
-      return `<li class="fav-row" data-name="${escapeHtml(item.name || "")}" data-key="${escapeHtml(item.key || "")}" aria-label="${escapeHtml(spoken)}">
+      return `<li class="fav-row" data-name="${escapeHtml(item.name || "")}" data-key="${escapeHtml(item.key || "")}" data-canteen="${escapeHtml(item.places?.[0] || "")}" aria-label="${escapeHtml(spoken)}">
         <div class="fav-row-copy">
           <span class="fav-row-name">${escapeHtml(item.label)}</span>
           ${place}
