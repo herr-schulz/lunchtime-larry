@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { favoritePoint, menuFreshNote, nextLookLine, unlikeAck } from "../site/larryLines.js";
+import { favoritePoint, menuFreshNote, nextLookLine, unlikeAck, weekStaleHitsNote } from "../site/larryLines.js";
 
 describe("nextLookLine", () => {
   it("promises 10 o'clock after the 8:30 slot", () => {
@@ -48,6 +48,33 @@ describe("menuFreshNote", () => {
     expect(
       menuFreshNote({ issueNames: [], hour: 8, weekday: "monday" }),
     ).toBeNull();
+  });
+
+  it("uses Mo/Mi without a clock when the week is stale", () => {
+    const note = menuFreshNote({
+      weekStale: true,
+      issueNames: ["Dave B"],
+      hour: 8,
+      weekday: "monday",
+    });
+    expect(note?.kicker).toBe("Larry informiert:");
+    expect(note?.line).toContain("Montags und mittwochs");
+    expect(note?.line).not.toContain("10 Uhr");
+    expect(note?.line).not.toContain("11:30");
+    expect(note?.line).not.toMatch(/Dienstag|Donnerstag/);
+  });
+});
+
+describe("weekStaleHitsNote", () => {
+  it("names the last stand and crawl days without clock times", () => {
+    const note = weekStaleHitsNote("Fr., 18. Sept., 11:27");
+    expect(note.kicker).toBe("Kein neuer Plan");
+    expect(note.line).toContain("Für diese Woche");
+    expect(note.line).toContain("Letzter Stand: Fr., 18. Sept., 11:27");
+    expect(note.line).toContain("Montags und mittwochs");
+    expect(note.line).not.toContain("10 Uhr");
+    expect(note.line).not.toContain("11:30");
+    expect(note.line).not.toMatch(/Dienstag|Donnerstag/);
   });
 });
 

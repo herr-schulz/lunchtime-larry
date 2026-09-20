@@ -18,13 +18,32 @@ export function nextLookLine(hour, weekday) {
   return STUCK;
 }
 
+/** Crawl days without clock times — for week-stale copy only. */
+export const WEEK_STALE_LOOK =
+  "Montags und mittwochs wird nach neuen Plänen geschaut.";
+
+export function weekStaleHitsNote(lastStand = "") {
+  const stand = lastStand ? ` Letzter Stand: ${lastStand}.` : "";
+  return {
+    kicker: "Kein neuer Plan",
+    line: `Für diese Woche wurde kein neuer Speiseplan geholt.${stand} ${WEEK_STALE_LOOK}`,
+  };
+}
+
 export function menuFreshNote({
   old = false,
+  weekStale = false,
   issueNames = [],
   hour = 12,
   weekday = "friday",
 } = {}) {
   const kicker = "Larry informiert:";
+  if (weekStale || old) {
+    return {
+      kicker,
+      line: `Für diese Woche gibt’s keinen neuen Plan. ${WEEK_STALE_LOOK}`,
+    };
+  }
   const look = nextLookLine(hour, weekday);
   const partial = issueNames.length > 0 && issueNames.length < 3;
   if (partial) {
@@ -35,7 +54,7 @@ export function menuFreshNote({
       line: `Bei ${issueNames.join(", ")} hakt’s. ${follow}`,
     };
   }
-  if (old || issueNames.length >= 3) {
+  if (issueNames.length >= 3) {
     return {
       kicker,
       line:

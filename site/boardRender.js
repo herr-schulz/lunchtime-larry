@@ -61,8 +61,16 @@ export function dishRow(dish, index, likes, canteenId) {
  * @param {Record<string, { status?: string }> | null | undefined} opts.sources
  * @param {Set<string>} opts.likes
  * @param {boolean} opts.votingOpen
+ * @param {boolean} [opts.weekStale]
  */
-export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
+export function boardHtml({
+  block,
+  canteens,
+  sources,
+  likes,
+  votingOpen,
+  weekStale = false,
+}) {
   return (block?.canteens ?? [])
     .map((canteen, slipIndex) => {
       const meta = canteens[canteen.id];
@@ -84,10 +92,13 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
       const missStamp = missing
         ? `<p class="pizza pizza-miss" role="status" aria-label="Speiseplan nicht verfügbar">Heute nix da</p>`
         : "";
+      const weekStamp = weekStale
+        ? `<p class="pizza pizza-week" role="status" aria-label="Speiseplan von letzter Woche">Letzte Woche</p>`
+        : "";
       const voteBtn = votingOpen
         ? `<button type="button" class="vote-mark" data-vote="${canteen.id}" aria-pressed="false"><span class="vote-nicks"></span>${checkCircleSvg()}</button>`
         : "";
-      return `<section class="slip" style="--slip-i:${slipIndex}" data-canteen="${canteen.id}">
+      return `<section class="slip${weekStale ? " is-week-stale" : ""}" style="--slip-i:${slipIndex}" data-canteen="${canteen.id}">
         <div class="slip-head">
           <div>
             <h2>
@@ -103,6 +114,7 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
         <div class="slip-list${missing ? " is-empty" : ""}">
           ${body}
           ${missStamp}
+          ${weekStamp}
           ${pizza}
         </div>
       </section>`;
@@ -165,8 +177,27 @@ function favSheetHtml(saved, canteens, emptyHint) {
  * @param {Array<{ key?: string, name?: string, label: string, places?: string[], onWeek?: boolean }>} [opts.saved]
  * @param {boolean} [opts.sheetOpen]
  * @param {Record<string, { name: string }> | null | undefined} opts.canteens
+ * @param {boolean} [opts.weekStale]
+ * @param {{ kicker?: string, line?: string } | null} [opts.staleNote]
  */
-export function hitsHtml({ items, saved = [], sheetOpen = false, canteens }) {
+export function hitsHtml({
+  items,
+  saved = [],
+  sheetOpen = false,
+  canteens,
+  weekStale = false,
+  staleNote = null,
+}) {
+  if (weekStale) {
+    const kicker = staleNote?.kicker || "Kein neuer Plan";
+    const line =
+      staleNote?.line ||
+      "Für diese Woche wurde kein neuer Speiseplan geholt. Montags und mittwochs wird nach neuen Plänen geschaut.";
+    return `<div class="toast-head">
+      <p class="toast-kicker"><span>${escapeHtml(kicker)}</span></p>
+    </div>
+    <p class="toast-stale-copy">${escapeHtml(line)}</p>`;
+  }
   const parked = parkedFavorites(saved, items);
   const rows = items
     .map((item) => {
