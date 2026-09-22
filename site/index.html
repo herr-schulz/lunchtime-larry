@@ -34,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=bea80d3f" />
+    <link rel="stylesheet" href="./styles.css?v=1d0c5474" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -171,6 +171,13 @@
         </span>
         <span class="escape-sub">Spots · ein paar Minuten zu Fuß</span>
       </a>
+      <button type="button" class="escape-link dice-open" id="dice-open">
+        <span class="escape-kicker">Unentschlossen?</span>
+        <span class="escape-row">
+          <span class="escape-label">Lass Larry entscheiden</span>
+        </span>
+        <span class="escape-sub">Ein Hauptgericht. Kein Drama.</span>
+      </button>
     </div>
 
     <footer class="colophon">
@@ -246,6 +253,40 @@
         </menu>
       </form>
     </dialog>
+    <dialog id="dice-dialog" class="weekend-dialog dice-dialog" tabindex="-1">
+      <form method="dialog" id="dice-form">
+        <img
+          class="weekend-larry dice-larry"
+          src="./laughing-larry.svg?v=ae7875a7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <p class="weekend-kicker">Unentschlossen?</p>
+        <h2>Lass Larry entscheiden</h2>
+        <p class="dice-stale" hidden>Letzter Stand.</p>
+        <div class="dice-modes" role="tablist" aria-label="Walze">
+          <button type="button" role="tab" data-dice-mode="dish" aria-selected="true">
+            Gericht
+          </button>
+          <button type="button" role="tab" data-dice-mode="canteen" aria-selected="false">
+            Kantine
+          </button>
+        </div>
+        <div class="reel-window">
+          <div class="reel-strip"></div>
+        </div>
+        <p class="reel-live" aria-live="polite"></p>
+        <p class="reel-hint" hidden></p>
+        <menu>
+          <button type="button" data-dice="go" value="ok">Los</button>
+          <button type="button" data-dice="again" value="ok" hidden>Nochmal</button>
+          <button type="button" data-dice="show" value="show" hidden>Zeig her</button>
+          <button type="submit" value="cancel">Später</button>
+        </menu>
+      </form>
+    </dialog>
     <dialog id="weekend-dialog" class="weekend-dialog" tabindex="-1">
       <form method="dialog" id="weekend-form">
         <img
@@ -269,6 +310,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=3fc676d4" type="module"></script>
+    <script src="./app.js?v=5a69eab4" type="module"></script>
   </body>
 </html>

@@ -9,6 +9,14 @@ import {
   watchBerlinMidnight,
 } from "./calendar.js?v=7b67e5f6";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
+import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
+import {
+  berlinWeekMonday,
+  canteenEntries,
+  dishEntries,
+  isStaleMenuWeek,
+  mountDice,
+} from "./diceReel.js?v=e170002a";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=3d5ede76";
 import {
   alarmLabel,
@@ -33,7 +41,7 @@ import {
   winnerLead,
   winnerTie,
 } from "./larryLines.js?v=d6e94011";
-import { LOCATIONS } from "./locations.js?v=87fbb02b";
+import { LOCATIONS } from "./locations.js?v=8bbcd50b";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
   berlinWeekday,
@@ -684,6 +692,53 @@ try {
   bindBoardGestures(data);
   bindNickUi();
   bindMascotEgg();
+  mountDice({
+    openButton: document.querySelector("#dice-open"),
+    dialog: document.querySelector("#dice-dialog"),
+    modes: true,
+    showStale: isStaleMenuWeek(data.weekStart, berlinWeekMonday()),
+    getEntries(mode) {
+      const block = data.days?.[todayKey()];
+      return mode === "canteen" ? canteenEntries(block, CANTEENS) : dishEntries(block, CANTEENS);
+    },
+    pick(mode) {
+      const block = data.days?.[todayKey()];
+      if (mode === "canteen") {
+        const entries = canteenEntries(block, CANTEENS);
+        const picked = pickSpot(entries);
+        if (!picked) return null;
+        return { index: entries.indexOf(picked), entry: picked };
+      }
+      const picked = pickMainDish(block);
+      if (!picked) return null;
+      const index = listMainDishes(block).findIndex(
+        (item) => item.canteenId === picked.canteenId && item.dish === picked.dish,
+      );
+      const entry = dishEntries(block, CANTEENS)[index];
+      if (!entry || index < 0) return null;
+      return { index, entry };
+    },
+    onShow(entry) {
+      const day = todayKey();
+      if (currentDay !== day) selectDay(data, day, { instantIndicator: true });
+      window.requestAnimationFrame(() => {
+        if (entry.kind === "canteen") {
+          const slip = board?.querySelector(
+            `.slip[data-canteen="${CSS.escape(entry.canteenId || "")}"]`,
+          );
+          const dish = slip?.querySelector(".dish");
+          if (dish?.dataset.key) {
+            scrollToFavorite(entry.canteenId || "", dish.dataset.key);
+            return;
+          }
+          const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+          slip?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+          return;
+        }
+        scrollToFavorite(entry.canteenId || "", entry.key || "");
+      });
+    },
+  });
   syncNickButton();
   maybeWeekendNote();
   const onVotes = (next) => {

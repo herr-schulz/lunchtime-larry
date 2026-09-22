@@ -147,7 +147,7 @@ function renderLocationCard(spot, index = 0) {
   const closed = open
     ? ""
     : `<span class="spot-closed">Heute zu</span>`;
-  return `<a class="spot-card${open ? "" : " is-closed"}" href="${escapeHtml(spot.url)}" target="_blank" rel="noopener noreferrer" style="--i:${index}">
+  return `<a class="spot-card${open ? "" : " is-closed"}" data-spot="${escapeHtml(spot.name)}" href="${escapeHtml(spot.url)}" target="_blank" rel="noopener noreferrer" style="--i:${index}">
     <div class="spot-top">
       <h3>${escapeHtml(spot.name)}</h3>
       <span class="spot-walk">${spot.walk} min</span>
