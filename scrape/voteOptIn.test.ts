@@ -23,6 +23,15 @@ describe("vote opt-in and first visit", () => {
     expect(document.querySelectorAll("#intro-dialog")).toHaveLength(1);
   });
 
+  it("asks for an optional round code beside the nick", () => {
+    const label = document.querySelector("#nick-form .round-field");
+    expect(label?.textContent).toMatch(/Rundencode \(optional\)/);
+    expect(document.querySelector("#round-input")?.hasAttribute("required")).toBe(false);
+    const client = readFileSync("site/voteClient.js", "utf8");
+    expect(client).toMatch(/votesPath\(day, loadRoundCode\(\)\)/);
+    expect(client).toMatch(/votesPath\(day\)/);
+  });
+
   it("puts Mitstimmen in the footer and Abstimmen on the opt-in dialog", () => {
     expect(document.querySelector("#nick-edit")?.textContent).toBe("Mitstimmen");
     expect(document.querySelector("#optin-dialog button[value='ok']")?.textContent).toBe(
