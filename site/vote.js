@@ -1,4 +1,5 @@
 const NICK_KEY = "lunchtime-larry-nick";
+const ROUND_KEY = "lunchtime-larry-round";
 const VOTE_OPT_IN_KEY = "lunchtime-larry-vote-opt-in";
 const INTRO_KEY = "lunchtime-larry-intro";
 
@@ -118,8 +119,48 @@ export function winnerOf(counts, names) {
   return { status: "lead", id, name: names[id] ?? id };
 }
 
-export function votesPath(day = berlinDate()) {
-  return `votes/${day}`;
+/** Share code: 4–6 letters or digits. Dates stay on the house path. */
+export const ROUND_CODE_RE = /^[a-z0-9]{4,6}$/;
+
+export function normalizeRoundCode(value) {
+  const code = String(value ?? "")
+    .normalize("NFC")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  return ROUND_CODE_RE.test(code) ? code : "";
+}
+
+export function isRoundCode(value) {
+  return ROUND_CODE_RE.test(String(value ?? ""));
+}
+
+export function loadRoundCode() {
+  try {
+    const code = localStorage.getItem(ROUND_KEY) || "";
+    return isRoundCode(code) ? code : "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveRoundCode(raw) {
+  const code = normalizeRoundCode(raw);
+  try {
+    if (!code) localStorage.removeItem(ROUND_KEY);
+    else localStorage.setItem(ROUND_KEY, code);
+  } catch {
+    /* private mode */
+  }
+  return code;
+}
+
+/**
+ * House ballots stay at `votes/{day}`. A round code nests under `votes/{code}/{day}`.
+ * No migration: an empty code is the existing 6-seat group.
+ */
+export function votesPath(day = berlinDate(), roundCode = "") {
+  const code = isRoundCode(roundCode) ? roundCode : "";
+  return code ? `votes/${code}/${day}` : `votes/${day}`;
 }
 
 /** Day keys under `votes/` that are older than the keep-day (ISO YYYY-MM-DD). */

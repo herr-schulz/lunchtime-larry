@@ -34,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=23b460e2" />
+    <link rel="stylesheet" href="./styles.css?v=16c48ada" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -248,7 +248,7 @@
           <li>Abstimmung ist optional, über Mitstimmen im Footer.</li>
           <li>
             Stimme bis 11:55, geheim. Um 12 Uhr präsentiert Larry das Ziel.
-            Höchstens sechs. Ein Rundencode für andere Teams kommt später.
+            Höchstens sechs. Rundencode neben dem Spitznamen, sonst die Hausrunde.
           </li>
         </ol>
         <menu>
@@ -309,6 +309,20 @@
             title="Nur Buchstaben, max. 20 Zeichen"
             required
           />
+        </label>
+        <label class="round-field">
+          Rundencode (optional)
+          <input
+            id="round-input"
+            name="round"
+            maxlength="12"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            title="Vier bis sechs Buchstaben oder Ziffern. Leer lässt dich in der Hausrunde."
+          />
+          <span class="round-hint">Leer bleibt die Hausrunde.</span>
         </label>
         <menu>
           <button type="submit" value="ok">Los</button>
@@ -373,6 +387,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=06aeb0ee" type="module"></script>
+    <script src="./app.js?v=79faf642" type="module"></script>
   </body>
 </html>

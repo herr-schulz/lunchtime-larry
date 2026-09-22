@@ -1466,6 +1466,16 @@ button.escape-link {
   color: var(--ink-soft);
 }
 
+.nick-dialog label + label {
+  margin-top: 0.75rem;
+}
+
+.round-hint {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
 .nick-dialog input {
   width: 100%;
   padding: 0.55rem 0.65rem;

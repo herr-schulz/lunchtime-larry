@@ -1,7 +1,7 @@
 import { listMainDishes } from "./dice.js?v=b5a71252";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { dishKey, phraseDish } from "./likes.js?v=9db8d9ec";
-import { berlinDate } from "./vote.js?v=9d505a1b";
+import { berlinDate } from "./vote.js?v=f2ae9b6d";
 
 export const REEL_COPIES = 3;
 export const OVERSHOOT_PX = 2;

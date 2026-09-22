@@ -6,13 +6,14 @@ import {
   isValidNick,
   isVoteDay,
   loadNick,
+  loadRoundCode,
   MAX_VOTERS,
   mySlot,
   normalizeNick,
   staleVoteDays,
   votePhase,
   votesPath,
-} from "./vote.js?v=9d505a1b";
+} from "./vote.js?v=f2ae9b6d";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
@@ -21,7 +22,7 @@ let unsub = null;
 let purgeOnce = null;
 
 function dayVotesPath() {
-  return votesPath(berlinDate());
+  return votesPath(berlinDate(), loadRoundCode());
 }
 
 function assertVoteDay() {
@@ -90,32 +91,53 @@ export async function ensureVoteUser() {
 }
 
 /**
- * Advance meta/voteDay and delete older `votes/{day}` trees.
+ * Advance meta/voteDay and delete older house `votes/{day}` trees.
+ * A joined round purges only its own old days — never a list of every code.
  * Nick lives only in today’s ballots (+ localStorage); purged days leave no server nick.
  */
 export async function purgeStaleVotes() {
   if (!purgeOnce) {
-    purgeOnce = (async () => {
-      await ensureVoteUser();
-      const keep = berlinDate();
-      const { db, get, ref, remove, set } = await ensureApp();
-      const metaRef = ref(db, "meta/voteDay");
-      const metaSnap = await get(metaRef);
-      const current = metaSnap.val();
-      if (!current || keep > current) {
-        await set(metaRef, keep);
-      }
-      const votesSnap = await get(ref(db, "votes"));
-      const keys = Object.keys(votesSnap.val() || {});
-      await Promise.all(
-        staleVoteDays(keys, keep).map((day) => remove(ref(db, votesPath(day)))),
-      );
-    })().catch(() => {
+    purgeOnce = purgeHouseDays().catch(() => {
       /* offline / rules / first deploy */
       purgeOnce = null;
     });
   }
+  await purgeActiveRound();
   return purgeOnce;
+}
+
+async function purgeHouseDays() {
+  await ensureVoteUser();
+  const keep = berlinDate();
+  const { db, get, ref, remove, set } = await ensureApp();
+  const metaRef = ref(db, "meta/voteDay");
+  const metaSnap = await get(metaRef);
+  const current = metaSnap.val();
+  if (!current || keep > current) {
+    await set(metaRef, keep);
+  }
+  const votesSnap = await get(ref(db, "votes"));
+  const keys = Object.keys(votesSnap.val() || {});
+  await Promise.all(
+    staleVoteDays(keys, keep).map((day) => remove(ref(db, votesPath(day)))),
+  );
+}
+
+async function purgeActiveRound() {
+  const code = loadRoundCode();
+  if (!code) return;
+  try {
+    await ensureVoteUser();
+    const keep = berlinDate();
+    const { db, get, ref, remove } = await ensureApp();
+    const snap = await get(ref(db, `votes/${code}`));
+    const keys = Object.keys(snap.val() || {});
+    await Promise.all(
+      staleVoteDays(keys, keep).map((day) => remove(ref(db, votesPath(day, code)))),
+    );
+  } catch {
+    /* offline / rules */
+  }
 }
 
 export function listenVotes(onChange) {
@@ -137,7 +159,7 @@ export function listenVotes(onChange) {
         return;
       }
       const handle = onValue(
-        ref(db, votesPath(day)),
+        ref(db, votesPath(day, loadRoundCode())),
         (snap) => {
           const records = snap.val() || {};
           onChange({

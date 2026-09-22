@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ballotDate,
@@ -9,6 +10,7 @@ import {
   MAX_VOTERS,
   normalizeNick,
   nicksFor,
+  normalizeRoundCode,
   staleVoteDays,
   lockLine,
   minutesUntilReveal,
@@ -125,14 +127,42 @@ describe("isValidNick", () => {
 });
 
 describe("votesPath", () => {
-  it("nests ballots under the Berlin date", () => {
+  it("nests house ballots under the Berlin date", () => {
     expect(votesPath("2026-09-04")).toBe("votes/2026-09-04");
+    expect(votesPath("2026-09-04", "")).toBe("votes/2026-09-04");
   });
 
   it("builds the weekday ballot path from berlinDate", () => {
     const thursday = new Date("2026-09-03T12:00:00+02:00");
     expect(ballotDate(thursday)).toBe("2026-09-03");
     expect(votesPath(berlinDate(thursday))).toBe("votes/2026-09-03");
+  });
+
+  it("nests a round under its code and leaves the house path alone", () => {
+    expect(normalizeRoundCode("AI-Team")).toBe("aiteam");
+    expect(normalizeRoundCode("ab")).toBe("");
+    expect(normalizeRoundCode("2026-09-04")).toBe("");
+    expect(votesPath("2026-09-04", "aiteam")).toBe("votes/aiteam/2026-09-04");
+    expect(votesPath("2026-09-04", "AI-Team")).toBe("votes/2026-09-04");
+    expect(votesPath("2026-09-04", "no")).toBe("votes/2026-09-04");
+  });
+});
+
+describe("round rules", () => {
+  const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
+
+  it("keeps the house day path and adds a code path with the same cap", () => {
+    expect(rules.votes[".read"]).toBeUndefined();
+    const key = rules.votes.$key;
+    expect(key[".read"]).toMatch(/\[0-9\]\{4\}-\[0-9\]\{2\}-\[0-9\]\{2\}/);
+    expect(key[".read"]).toMatch(/\[a-z0-9\]\{4,6\}/);
+    expect(key[".write"]).toMatch(/!newData\.exists\(\)/);
+    expect(key.$child[".write"]).toMatch(/\[0-5\]/);
+    expect(key.$child.$slot[".write"]).toMatch(/\[a-z0-9\]\{4,6\}/);
+    expect(key.$child.$slot[".write"]).toMatch(/\[0-5\]/);
+    expect(key.$child.$slot[".write"]).toMatch(/auth\.uid/);
+    expect(key.$child.$slot[".validate"]).toMatch(/nick/);
+    expect(key.$child[".write"]).toMatch(/\$child < root\.child\('meta\/voteDay'\)/);
   });
 });
 

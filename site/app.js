@@ -7,7 +7,7 @@ import {
   isoWeek,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=0cbb1c08";
+} from "./calendar.js?v=fcc73fbf";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
 import {
@@ -16,7 +16,7 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=66542422";
+} from "./diceReel.js?v=88ffac38";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=5fd21cd8";
 import {
   alarmLabel,
@@ -27,7 +27,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=1310334e";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=a8540d3c";
 import {
   favoritePoint,
   favoriteToday,
@@ -48,23 +48,26 @@ import {
   lastVoteDate,
   loadIntroSeen,
   loadNick,
+  loadRoundCode,
   loadVoteOptIn,
   lockLine,
   minutesUntilReveal,
   nicksFor,
   normalizeNick,
+  normalizeRoundCode,
   roundNicks,
   saveIntroSeen,
   saveNick,
+  saveRoundCode,
   saveVoteOptIn,
   votePhase,
   winnerOf,
-} from "./vote.js?v=9d505a1b";
+} from "./vote.js?v=f2ae9b6d";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=11f7beaa";
+} from "./voteClient.js?v=7ed547e8";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -93,6 +96,7 @@ const revealName = document.querySelector("#reveal-name");
 const nickDialog = document.querySelector("#nick-dialog");
 const nickForm = document.querySelector("#nick-form");
 const nickInput = document.querySelector("#nick-input");
+const roundInput = document.querySelector("#round-input");
 const nickCancel = document.querySelector("#nick-cancel");
 const weekendDialog = document.querySelector("#weekend-dialog");
 const mascot = document.querySelector(".masthead .mascot");
@@ -470,7 +474,9 @@ function voteTotal() {
 }
 
 function winnerStorageKey() {
-  return `lunchtime-larry-winner-${lastVoteDate()}`;
+  const code = loadRoundCode();
+  const day = lastVoteDate();
+  return code ? `lunchtime-larry-winner-${day}-${code}` : `lunchtime-larry-winner-${day}`;
 }
 
 function syncVoteChrome() {
@@ -534,8 +540,9 @@ function syncNickButton() {
     nickEdit.textContent = "";
     return;
   }
+  const code = loadRoundCode();
   nickEdit.hidden = false;
-  nickEdit.textContent = `Spitzname: ${nick}`;
+  nickEdit.textContent = code ? `Spitzname: ${nick} · ${code}` : `Spitzname: ${nick}`;
 }
 
 function askOptIn() {
@@ -553,6 +560,10 @@ function askOptIn() {
 function askNick() {
   if (!nickDialog || !nickInput) return Promise.resolve("");
   nickInput.value = loadNick();
+  if (roundInput) {
+    roundInput.value = loadRoundCode();
+    roundInput.setCustomValidity("");
+  }
   nickDialog.showModal();
   // Defer focus so iOS lays out the modal before the keyboard opens.
   requestAnimationFrame(() => {
@@ -561,7 +572,13 @@ function askNick() {
   return new Promise((resolve) => {
     const onClose = () => {
       nickDialog.removeEventListener("close", onClose);
-      resolve(nickDialog.returnValue === "ok" ? saveNick(nickInput.value) : "");
+      if (nickDialog.returnValue !== "ok") {
+        resolve("");
+        return;
+      }
+      saveNick(nickInput.value);
+      saveRoundCode(roundInput?.value || "");
+      resolve(loadNick());
     };
     nickDialog.addEventListener("close", onClose, { once: true });
   });
@@ -621,7 +638,18 @@ function bindNickUi() {
     const cleaned = normalizeNick(nickInput.value);
     if (nickInput.value !== cleaned) nickInput.value = cleaned;
   });
-  nickForm?.addEventListener("submit", () => {
+  roundInput?.addEventListener("input", () => {
+    roundInput.setCustomValidity("");
+  });
+  nickForm?.addEventListener("submit", (event) => {
+    const raw = roundInput?.value || "";
+    if (raw.trim() && !normalizeRoundCode(raw)) {
+      event.preventDefault();
+      roundInput?.setCustomValidity("Vier bis sechs Buchstaben oder Ziffern.");
+      roundInput?.reportValidity();
+      return;
+    }
+    roundInput?.setCustomValidity("");
     nickDialog.returnValue = "ok";
   });
   nickCancel?.addEventListener("click", () => {
@@ -635,11 +663,14 @@ function bindNickUi() {
       await askNick();
       syncNickButton();
       if (menuData) renderDay(menuData, currentDay);
-      startVotes();
+      startVotes({ force: true });
       return;
     }
     const nick = await askNick();
-    if (nick) syncNickButton();
+    if (nick) {
+      syncNickButton();
+      startVotes({ force: true });
+    }
   });
   introAgain?.addEventListener("click", () => {
     introDialog?.showModal();
