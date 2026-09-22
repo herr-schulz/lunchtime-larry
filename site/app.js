@@ -7,7 +7,7 @@ import {
   isoWeek,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=7b67e5f6";
+} from "./calendar.js?v=0cbb1c08";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
 import {
@@ -16,8 +16,8 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=e170002a";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=3d5ede76";
+} from "./diceReel.js?v=66542422";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=5fd21cd8";
 import {
   alarmLabel,
   dishKey,
@@ -27,7 +27,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=72bfbecd";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=1310334e";
 import {
   favoritePoint,
   favoriteToday,
@@ -38,26 +38,33 @@ import {
   unlikeAck,
   voteFull,
   voteOffline,
-  winnerLead,
   winnerTie,
-} from "./larryLines.js?v=d6e94011";
+} from "./larryLines.js?v=eafab8b6";
 import { LOCATIONS } from "./locations.js?v=8bbcd50b";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
   berlinWeekday,
   isVoteDay,
   lastVoteDate,
+  loadIntroSeen,
   loadNick,
+  loadVoteOptIn,
+  lockLine,
+  minutesUntilReveal,
   nicksFor,
   normalizeNick,
+  roundNicks,
+  saveIntroSeen,
   saveNick,
+  saveVoteOptIn,
+  votePhase,
   winnerOf,
-} from "./vote.js?v=0b6f336e";
+} from "./vote.js?v=9d505a1b";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=ff3e8872";
+} from "./voteClient.js?v=11f7beaa";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -75,6 +82,14 @@ const daysNav = document.querySelector(".days");
 const kwEl = document.querySelector("#kw");
 const stamp = document.querySelector("#stamp");
 const nickEdit = document.querySelector("#nick-edit");
+const introAgain = document.querySelector("#intro-again");
+const introDialog = document.querySelector("#intro-dialog");
+const optinDialog = document.querySelector("#optin-dialog");
+const optinCancel = document.querySelector("#optin-cancel");
+const voteLock = document.querySelector("#vote-lock");
+const heuteDabei = document.querySelector("#heute-dabei");
+const revealDialog = document.querySelector("#reveal-dialog");
+const revealName = document.querySelector("#reveal-name");
 const nickDialog = document.querySelector("#nick-dialog");
 const nickForm = document.querySelector("#nick-form");
 const nickInput = document.querySelector("#nick-input");
@@ -112,7 +127,16 @@ function saveLikes() {
 }
 
 function votingOpen() {
-  return isVoteDay() && currentDay === todayKey();
+  return (
+    loadVoteOptIn() &&
+    isVoteDay() &&
+    currentDay === todayKey() &&
+    votePhase() === "open"
+  );
+}
+
+function showVoteMarks() {
+  return loadVoteOptIn() && isVoteDay() && currentDay === todayKey();
 }
 
 /** Menu freshness → Larry corner (not under nav). */
@@ -297,6 +321,7 @@ function renderDay(data, day) {
     sources: data.sources,
     likes,
     votingOpen: votingOpen(),
+    showVotes: showVoteMarks(),
   });
   renderHits(data, day);
   applyVoteUi();
@@ -402,22 +427,25 @@ function replayCheck(el) {
 
 function applyVoteUi() {
   const open = votingOpen();
+  const show = showVoteMarks();
+  const reveal = show && votePhase() === "reveal";
   const names = Object.fromEntries(
     Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
   );
   const result = winnerOf(voteState.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
-    const mine = open && voteState.mine === id;
-    const nickList = nicksFor(voteState.records, id);
+    const mine = show && voteState.mine === id;
+    const nickList = reveal ? nicksFor(voteState.records, id) : [];
     slip.classList.toggle("is-voted", mine);
     slip.classList.toggle(
       "is-leading",
-      open && result.status === "lead" && result.id === id,
+      reveal && result.status === "lead" && result.id === id,
     );
     const mark = slip.querySelector(".vote-mark");
     if (!mark) continue;
-    mark.hidden = !open;
+    mark.hidden = !show;
+    mark.disabled = !open;
     mark.setAttribute("aria-pressed", String(mine));
     const label = nickList.length
       ? nickList.join(" · ")
@@ -433,7 +461,8 @@ function applyVoteUi() {
       mark.classList.remove("is-drawn");
     }
   }
-  maybeAnnounceWinner(result, open);
+  syncVoteChrome();
+  maybeAnnounceWinner(result, reveal);
 }
 
 function voteTotal() {
@@ -444,14 +473,35 @@ function winnerStorageKey() {
   return `lunchtime-larry-winner-${lastVoteDate()}`;
 }
 
-function maybeAnnounceWinner(result, open) {
-  if (!open) return;
+function syncVoteChrome() {
+  const show = showVoteMarks();
+  const phase = votePhase();
+  if (voteLock) {
+    if (show && phase === "locked") {
+      voteLock.hidden = false;
+      voteLock.textContent = lockLine(minutesUntilReveal());
+    } else {
+      voteLock.hidden = true;
+    }
+  }
+  if (heuteDabei) {
+    const names = roundNicks(voteState.records);
+    if (show && names.length) {
+      heuteDabei.hidden = false;
+      heuteDabei.textContent = `Heute dabei · ${names.join(" · ")}`;
+    } else {
+      heuteDabei.hidden = true;
+      heuteDabei.textContent = "";
+    }
+  }
+}
+
+function maybeAnnounceWinner(result, reveal) {
+  if (!reveal || !loadVoteOptIn()) return;
   if (voteTotal() < 3) return;
-  if (berlinHour() < 12) return;
   if (result.status !== "lead" && result.status !== "tie") return;
 
-  const key =
-    result.status === "lead" ? `lead:${result.id}` : "tie";
+  const key = result.status === "lead" ? `lead:${result.id}` : "tie";
   try {
     if (localStorage.getItem(winnerStorageKey()) === key) return;
     localStorage.setItem(winnerStorageKey(), key);
@@ -460,15 +510,24 @@ function maybeAnnounceWinner(result, open) {
     lastWinnerKey = key;
   }
 
-  if (result.status === "lead") {
-    sayLarry(winnerLead(result.name));
-  } else {
+  if (result.status === "tie") {
     sayLarry(winnerTie());
+    return;
   }
+  if (revealName) revealName.textContent = result.name || "";
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  revealDialog?.classList.toggle("is-still", Boolean(reduce));
+  revealDialog?.showModal();
 }
 
 function syncNickButton() {
+  if (introAgain) introAgain.hidden = !loadVoteOptIn();
   if (!nickEdit) return;
+  if (!loadVoteOptIn()) {
+    nickEdit.hidden = false;
+    nickEdit.textContent = "Mitstimmen";
+    return;
+  }
   const nick = loadNick();
   if (!nick) {
     nickEdit.hidden = true;
@@ -477,6 +536,18 @@ function syncNickButton() {
   }
   nickEdit.hidden = false;
   nickEdit.textContent = `Spitzname: ${nick}`;
+}
+
+function askOptIn() {
+  if (!optinDialog) return Promise.resolve(false);
+  optinDialog.showModal();
+  return new Promise((resolve) => {
+    optinDialog.addEventListener(
+      "close",
+      () => resolve(optinDialog.returnValue === "ok"),
+      { once: true },
+    );
+  });
 }
 
 function askNick() {
@@ -513,6 +584,7 @@ async function handleVote(canteen) {
   } catch (err) {
     console.warn(err);
     const msg = String(err?.message || err);
+    if (msg.includes("locked")) return;
     if (msg.includes("full")) {
       sayLarry(voteFull());
     } else {
@@ -556,9 +628,58 @@ function bindNickUi() {
     nickDialog.close("cancel");
   });
   nickEdit?.addEventListener("click", async () => {
+    if (!loadVoteOptIn()) {
+      const joined = await askOptIn();
+      if (!joined) return;
+      saveVoteOptIn();
+      await askNick();
+      syncNickButton();
+      if (menuData) renderDay(menuData, currentDay);
+      startVotes();
+      return;
+    }
     const nick = await askNick();
     if (nick) syncNickButton();
   });
+  introAgain?.addEventListener("click", () => {
+    introDialog?.showModal();
+  });
+  optinCancel?.addEventListener("click", () => {
+    optinDialog?.close("cancel");
+  });
+}
+
+function maybeIntro() {
+  if (!introDialog || !isVoteDay() || loadIntroSeen()) return;
+  introDialog.showModal();
+  introDialog.addEventListener(
+    "close",
+    () => {
+      saveIntroSeen();
+    },
+    { once: true },
+  );
+}
+
+let votesListening = false;
+
+function startVotes({ force = false } = {}) {
+  if (!loadVoteOptIn()) return;
+  if (votesListening && !force) return;
+  votesListening = true;
+  const onVotes = (next) => {
+    voteState = next;
+    applyVoteUi();
+  };
+  const boot = async () => {
+    try {
+      if (loadNick()) await ensureVoteUser();
+    } catch {
+      /* offline or missing database */
+    }
+    listenVotes(onVotes);
+  };
+  boot();
 }
 
 function applyLikeState(dish, on) {
@@ -741,24 +862,21 @@ try {
   });
   syncNickButton();
   maybeWeekendNote();
-  const onVotes = (next) => {
-    voteState = next;
-    applyVoteUi();
-  };
-  const startVotes = async () => {
-    try {
-      if (loadNick()) await ensureVoteUser();
-    } catch {
-      /* offline or missing database */
-    }
-    listenVotes(onVotes);
-  };
+  maybeIntro();
   startVotes();
+  let phaseStamp = votePhase();
+  window.setInterval(() => {
+    syncVoteChrome();
+    const phase = votePhase();
+    if (phase === phaseStamp) return;
+    phaseStamp = phase;
+    renderDay(data, currentDay);
+  }, 15_000);
   watchBerlinMidnight(() => {
     const day = todayKey();
     if (currentDay !== day) selectDay(data, day, { instantIndicator: true });
     else applyVoteUi();
-    startVotes();
+    startVotes({ force: true });
   });
 } catch {
   empty.hidden = false;
@@ -768,6 +886,7 @@ try {
   bindLarryCorner();
   bindHits();
   bindMascotEgg();
+  syncNickButton();
   const miss = menuFreshNote({
     old: true,
     hour: berlinHour(),

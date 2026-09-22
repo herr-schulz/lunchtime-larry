@@ -10,8 +10,9 @@ import {
   mySlot,
   normalizeNick,
   staleVoteDays,
+  votePhase,
   votesPath,
-} from "./vote.js?v=0b6f336e";
+} from "./vote.js?v=9d505a1b";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
@@ -25,6 +26,11 @@ function dayVotesPath() {
 
 function assertVoteDay() {
   if (!isVoteDay()) throw new Error("closed");
+}
+
+function assertBallotOpen() {
+  assertVoteDay();
+  if (votePhase() !== "open") throw new Error("locked");
 }
 
 function assertCanteen(canteen) {
@@ -154,7 +160,7 @@ export function listenVotes(onChange) {
 }
 
 export async function setVote(canteen, records = {}) {
-  assertVoteDay();
+  assertBallotOpen();
   assertCanteen(canteen);
   const nick = normalizeNick(loadNick());
   if (!isValidNick(nick)) throw new Error("nick");
@@ -182,7 +188,7 @@ export async function setVote(canteen, records = {}) {
 }
 
 export async function clearVote(records = {}) {
-  assertVoteDay();
+  assertBallotOpen();
   const id = await ensureVoteUser();
   const slot = mySlot(records, id);
   if (slot == null) return;
@@ -192,7 +198,7 @@ export async function clearVote(records = {}) {
 }
 
 export async function toggleVote(canteen, current, records = {}) {
-  assertVoteDay();
+  assertBallotOpen();
   assertCanteen(canteen);
   if (current === canteen) {
     await clearVote(records);

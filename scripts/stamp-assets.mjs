@@ -37,7 +37,7 @@ const larryCornerBefore = await readFile(larryCornerPath, "utf8");
 const larryCornerAfter = larryCornerBefore.replace(
   /(\.\/larryLines\.js)(?:\?v=[^"']*)?/g,
   `./larryLines.js?v=${larryLinesHash}`,
-);
+).replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`);
 if (larryCornerAfter !== larryCornerBefore) {
   await writeFile(larryCornerPath, larryCornerAfter);
   console.log("stamped larryCorner.js imports");

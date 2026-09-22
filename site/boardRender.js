@@ -61,8 +61,9 @@ export function dishRow(dish, index, likes, canteenId) {
  * @param {Record<string, { status?: string }> | null | undefined} opts.sources
  * @param {Set<string>} opts.likes
  * @param {boolean} opts.votingOpen
+ * @param {boolean} [opts.showVotes]
  */
-export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
+export function boardHtml({ block, canteens, sources, likes, votingOpen, showVotes = false }) {
   return (block?.canteens ?? [])
     .map((canteen, slipIndex) => {
       const meta = canteens[canteen.id];
@@ -84,8 +85,8 @@ export function boardHtml({ block, canteens, sources, likes, votingOpen }) {
       const missStamp = missing
         ? `<p class="pizza pizza-miss" role="status" aria-label="Speiseplan nicht verfügbar">Heute nix da</p>`
         : "";
-      const voteBtn = votingOpen
-        ? `<button type="button" class="vote-mark" data-vote="${canteen.id}" aria-pressed="false"><span class="vote-nicks"></span>${checkCircleSvg()}</button>`
+      const voteBtn = showVotes || votingOpen
+        ? `<button type="button" class="vote-mark" data-vote="${canteen.id}" aria-pressed="false"${votingOpen ? "" : " disabled"}><span class="vote-nicks"></span>${checkCircleSvg()}</button>`
         : "";
       return `<section class="slip" style="--slip-i:${slipIndex}" data-canteen="${canteen.id}">
         <div class="slip-head">

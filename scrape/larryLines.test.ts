@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { favoritePoint, menuFreshNote, nextLookLine, unlikeAck } from "../site/larryLines.js";
+import { favoritePoint, IDLE_TIP, idleTip, menuFreshNote, nextLookLine, unlikeAck } from "../site/larryLines.js";
+
+describe("idleTip", () => {
+  it("does not mention voting until Mitstimmen is on", () => {
+    expect(IDLE_TIP.line).not.toMatch(/Abstimm/);
+    expect(idleTip(false).line).toBe(IDLE_TIP.line);
+    expect(idleTip(true).line).toMatch(/Abstimm/);
+  });
+});
 
 describe("nextLookLine", () => {
   it("promises 10 o'clock after the 8:30 slot", () => {

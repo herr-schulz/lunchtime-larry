@@ -10,6 +10,10 @@ import {
   normalizeNick,
   nicksFor,
   staleVoteDays,
+  lockLine,
+  minutesUntilReveal,
+  roundNicks,
+  votePhase,
   votesPath,
   winnerOf,
 } from "../site/vote.js";
@@ -175,5 +179,38 @@ describe("canAcceptVote", () => {
   it("accepts a new ballot while seats remain", () => {
     const five = Object.fromEntries(Object.entries(six).slice(0, 5));
     expect(canAcceptVote(five, "uid99")).toBe(true);
+  });
+});
+
+describe("votePhase", () => {
+  const at = (clock: string) => new Date(`2026-09-22T${clock}:00+02:00`);
+
+  it("stays open until 11:55, locks, then reveals at noon", () => {
+    expect(votePhase(at("11:54"))).toBe("open");
+    expect(votePhase(at("11:55"))).toBe("locked");
+    expect(votePhase(at("11:59"))).toBe("locked");
+    expect(votePhase(at("12:00"))).toBe("reveal");
+  });
+
+  it("closes on the weekend", () => {
+    expect(votePhase(new Date("2026-09-26T11:00:00+02:00"))).toBe("closed");
+  });
+
+  it("counts down to noon in whole minutes", () => {
+    expect(minutesUntilReveal(at("11:56"))).toBe(4);
+    expect(lockLine(4)).toBe("Noch 4 Minuten.");
+    expect(lockLine(1)).toBe("Noch eine Minute.");
+  });
+});
+
+describe("roundNicks", () => {
+  it("lists nicknames without their canteen", () => {
+    expect(
+      roundNicks({
+        0: { nick: "Sven", canteen: "stmuv" },
+        1: { nick: "Alex", canteen: "sodexo" },
+        2: { nick: "Sven", canteen: "bella23" },
+      }),
+    ).toEqual(["Sven", "Alex"]);
   });
 });

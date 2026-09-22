@@ -47,3 +47,15 @@ export function canAcceptVote(
   records: VoteRecords | null | undefined,
   uid: string | null | undefined,
 ): boolean;
+
+export type VotePhase = "open" | "locked" | "reveal" | "closed";
+
+export function loadVoteOptIn(): boolean;
+export function saveVoteOptIn(): void;
+export function loadIntroSeen(): boolean;
+export function saveIntroSeen(): void;
+export function berlinClock(now?: Date): { hour: number; minute: number };
+export function votePhase(now?: Date): VotePhase;
+export function minutesUntilReveal(now?: Date): number;
+export function lockLine(minutesLeft: number): string;
+export function roundNicks(records: VoteRecords | null | undefined): string[];
