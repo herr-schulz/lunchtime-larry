@@ -755,6 +755,9 @@ h1 {
 
 .escape-wrap {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.15rem;
   justify-content: center;
   margin-top: 1.35rem;
   margin-bottom: 0.2rem;
@@ -791,7 +794,8 @@ h1 {
 .nick-dialog menu button:focus-visible,
 .weekend-dialog menu button:focus-visible,
 .vote-mark:focus-visible,
-.nick-edit:focus-visible {
+.nick-edit:focus-visible,
+.dice-modes button:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
@@ -874,6 +878,20 @@ h1 {
 
 .escape-link:hover .escape-arrow {
   transform: translateX(5px);
+}
+
+button.escape-link {
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.alt-intro .dice-open {
+  margin: 0.9rem auto 0;
 }
 
 .alt-masthead {
@@ -1494,10 +1512,127 @@ h1 {
 }
 
 .nick-dialog menu button[value="cancel"],
-.nick-dialog menu #nick-cancel {
+.nick-dialog menu #nick-cancel,
+.dice-dialog menu button[value="cancel"] {
   border: 1px solid var(--rule);
   background: transparent;
   color: var(--ink-soft);
+}
+
+.dice-dialog {
+  width: min(24rem, calc(100vw - 1.5rem));
+}
+
+.dice-dialog form {
+  width: 100%;
+}
+
+.dice-stale {
+  margin: 0 0 0.35rem;
+  color: var(--stamp);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.dice-modes {
+  display: flex;
+  gap: 1rem;
+  margin: 0.1rem 0 0.75rem;
+}
+
+.dice-modes button {
+  border: 0;
+  border-bottom: 1.5px solid transparent;
+  background: none;
+  padding: 0.1rem 0 0.2rem;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.dice-modes button[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--stamp);
+}
+
+.reel-window {
+  position: relative;
+  width: 100%;
+  height: calc(var(--reel-row) * 3);
+  overflow: hidden;
+  --reel-row: 2.75rem;
+  background: color-mix(in srgb, var(--paper) 70%, var(--ticket));
+  border-radius: 10px;
+  -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+}
+
+.reel-window::after {
+  content: "";
+  position: absolute;
+  left: 0.35rem;
+  right: 0.35rem;
+  top: var(--reel-row);
+  height: var(--reel-row);
+  border-top: 1px solid color-mix(in srgb, var(--stamp) 55%, var(--rule));
+  border-bottom: 1px solid color-mix(in srgb, var(--stamp) 55%, var(--rule));
+  pointer-events: none;
+}
+
+.reel-strip {
+  will-change: transform;
+}
+
+.reel-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--reel-row);
+  padding: 0 0.65rem;
+}
+
+.reel-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 560;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.reel-strip.is-fast .reel-label {
+  filter: blur(1.35px);
+}
+
+.reel-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.reel-hint {
+  margin: 0.45rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.dice-dialog menu {
+  flex-wrap: wrap;
+}
+
+.dice-dialog menu button[value="show"] {
+  border: 1px solid var(--stamp);
+  background: transparent;
+  color: var(--stamp);
 }
 
 .pizza {
@@ -2004,7 +2139,8 @@ h1 {
   animation: heart-pop 0.38s var(--ease-out-expo) both;
 }
 
-.dish.is-pointed {
+.dish.is-pointed,
+.spot-card.is-pointed {
   margin-inline: -0.7rem;
   padding-inline: 0.7rem;
   border-radius: 0.9rem;
@@ -2244,14 +2380,22 @@ body:not(.page-alternatives) .colophon {
   .market-banner.is-entering,
   .toast.is-popping,
   .dish.is-liked .dish-heart,
-  .dish.is-pointed {
+  .dish.is-pointed,
+  .spot-card.is-pointed {
     animation: none !important;
     opacity: 1;
     transform: none;
   }
 
-  .dish.is-pointed {
+  .dish.is-pointed,
+  .spot-card.is-pointed {
     background: color-mix(in srgb, var(--stamp) 14%, var(--ticket));
+  }
+
+  .reel-strip,
+  .reel-strip.is-fast .reel-label {
+    filter: none !important;
+    transition: none !important;
   }
 
   .fav-sheet,

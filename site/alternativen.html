@@ -25,7 +25,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=bea80d3f" />
+    <link rel="stylesheet" href="./styles.css?v=1d0c5474" />
   </head>
   <body class="page-alternatives">
     <div class="status-bleed" aria-hidden="true"></div>
@@ -50,10 +50,14 @@
 
     <div class="alt-intro">
       <p class="page-title">Was anderes?!</p>
-      <p class="lede">
-        Wenn der Stempel nicht passt — feste Alternativen um die Ecke, täglich
-        erreichbar.
-      </p>
+      <p class="lede">Feste Alternativen um die Ecke, täglich erreichbar.</p>
+      <button type="button" class="escape-link dice-open" id="dice-open">
+        <span class="escape-kicker">Unentschlossen?</span>
+        <span class="escape-row">
+          <span class="escape-label">Lass Larry entscheiden</span>
+        </span>
+        <span class="escape-sub">Ein Spot. Kein Drama.</span>
+      </button>
     </div>
 
     <main class="spot-grid" id="spot-grid"></main>
@@ -66,6 +70,32 @@
         Zurück zum Wochenplan
       </a>
     </footer>
-    <script src="./locations.js?v=87fbb02b" type="module"></script>
+    <dialog id="dice-dialog" class="weekend-dialog dice-dialog" tabindex="-1">
+      <form method="dialog" id="dice-form">
+        <img
+          class="weekend-larry dice-larry"
+          src="./laughing-larry.svg?v=ae7875a7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <p class="weekend-kicker">Unentschlossen?</p>
+        <h2>Lass Larry entscheiden</h2>
+        <div class="reel-window">
+          <div class="reel-strip"></div>
+        </div>
+        <p class="reel-live" aria-live="polite"></p>
+        <p class="reel-hint" hidden></p>
+        <menu>
+          <button type="button" data-dice="go" value="ok">Los</button>
+          <button type="button" data-dice="again" value="ok" hidden>Nochmal</button>
+          <button type="button" data-dice="show" value="show" hidden>Zeig her</button>
+          <button type="submit" value="cancel">Später</button>
+        </menu>
+      </form>
+    </dialog>
+    <script src="./locations.js?v=8bbcd50b" type="module"></script>
+    <script src="./spotDice.js?v=6b9ae518" type="module"></script>
   </body>
 </html>
