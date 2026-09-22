@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "stamp": "node scripts/stamp-assets.mjs",
-    "icons": "node scripts/make-larry-assets.mjs"
+    "icons": "node scripts/make-larry-assets.mjs",
+    "og": "node scripts/make-og-image.mjs"
   },
   "engines": {
     "node": ">=22"
