@@ -94,6 +94,19 @@ describe("voting welcome", () => {
   });
 });
 
+describe("vote phases sit on a round", () => {
+  const app = readFileSync("site/app.js", "utf8");
+
+  it("does not keep a house-day winner key", () => {
+    expect(app).toMatch(/if \(!code\) return "";/);
+    expect(app).toMatch(/lunchtime-larry-winner-\$\{lastVoteDate\(\)\}-\$\{code\}/);
+    expect(app).not.toMatch(/lunchtime-larry-winner-\$\{day\}/);
+    expect(app).toMatch(
+      /if \(!reveal \|\| !loadVoteOptIn\(\) \|\| !loadRoundCode\(\)\) return/,
+    );
+  });
+});
+
 describe("round migration", () => {
   const app = readFileSync("site/app.js", "utf8");
 
