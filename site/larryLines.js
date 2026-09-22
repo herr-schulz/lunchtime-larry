@@ -2,8 +2,17 @@
 
 export const IDLE_TIP = {
   kicker: "Hey",
-  line: "Tipps und Abstimmungen landen bei mir.",
+  line: "Tipps landen bei mir.",
 };
+
+/** Voting copy only after Mitstimmen is on. */
+export function idleTip(voting = false) {
+  if (!voting) return IDLE_TIP;
+  return {
+    kicker: "Hey",
+    line: "Tipps und Abstimmungen landen bei mir.",
+  };
+}
 
 const CRAWL_DAYS = new Set(["monday", "wednesday"]);
 const LOOK_TEN = "Ich schau um 10 Uhr nochmal in der Küche vorbei.";

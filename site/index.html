@@ -25,7 +25,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=1d0c5474" />
+    <link rel="stylesheet" href="./styles.css?v=23b460e2" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -112,6 +112,8 @@
     </div>
     <div class="day-band">
       <p class="day-date" id="day-date"></p>
+      <p id="vote-lock" class="vote-lock" hidden></p>
+      <p id="heute-dabei" class="heute-dabei" hidden></p>
     </div>
 
     <a
@@ -175,7 +177,8 @@
       <p id="stamp">Stand: —</p>
       <p>Angaben ohne Gewähr (Stand der Kantinenseiten).</p>
       <p>
-        <button type="button" id="nick-edit" class="nick-edit" hidden></button>
+        <button type="button" id="nick-edit" class="nick-edit" hidden>Mitstimmen</button>
+        <button type="button" id="intro-again" class="nick-edit" hidden>Der Zettel</button>
       </p>
     </footer>
     <div id="larry-corner" class="larry-corner" hidden>
@@ -218,6 +221,66 @@
       </div>
     </div>
 
+    <dialog id="intro-dialog" class="weekend-dialog intro-dialog" tabindex="-1">
+      <form method="dialog">
+        <img
+          class="weekend-larry"
+          src="./larry.svg?v=3aa5e5c7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <p class="weekend-kicker">Erster Blick</p>
+        <h2>Die Tafel der Woche</h2>
+        <ol class="intro-points">
+          <li>Drei Kantinen. Der heutige Tag ist schon vorausgewählt.</li>
+          <li>Das Herz merkt Gerichte — nur auf diesem Gerät.</li>
+          <li>Abstimmung ist optional, über Mitstimmen im Footer.</li>
+          <li>
+            Stimme bis 11:55, geheim. Um 12 Uhr präsentiert Larry das Ziel.
+            Höchstens sechs. Ein Rundencode für andere Teams kommt später.
+          </li>
+        </ol>
+        <menu>
+          <button type="submit" value="ok">Alles klar</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="optin-dialog" class="nick-dialog" tabindex="-1">
+      <form method="dialog">
+        <p class="nick-kicker">Mitstimmen</p>
+        <h2>Eine 6er-Runde</h2>
+        <p class="optin-copy">
+          Haken am Zettel, ein Spitzname. Wer hier mitstimmt, sitzt in derselben Runde.
+        </p>
+        <menu>
+          <button type="submit" value="ok">Abstimmen</button>
+          <button type="button" id="optin-cancel" value="cancel">Später</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="reveal-dialog" class="weekend-dialog reveal-dialog" tabindex="-1">
+      <form method="dialog">
+        <div class="confetti" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <img
+          class="weekend-larry"
+          src="./laughing-larry.svg?v=ae7875a7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <h2>Larry präsentiert heute:</h2>
+        <p class="reveal-name" id="reveal-name"></p>
+        <menu>
+          <button type="submit" value="ok">Guten Appetit</button>
+        </menu>
+      </form>
+    </dialog>
     <dialog id="nick-dialog" class="nick-dialog" tabindex="-1">
       <form method="dialog" id="nick-form">
         <p class="nick-kicker">Mittagstisch</p>
@@ -301,6 +364,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=5a69eab4" type="module"></script>
+    <script src="./app.js?v=660e7c54" type="module"></script>
   </body>
 </html>

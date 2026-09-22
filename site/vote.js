@@ -1,4 +1,6 @@
 const NICK_KEY = "lunchtime-larry-nick";
+const VOTE_OPT_IN_KEY = "lunchtime-larry-vote-opt-in";
+const INTRO_KEY = "lunchtime-larry-intro";
 
 export const CANTEEN_IDS = ["stmuv", "sodexo", "bella23"];
 export const MAX_VOTERS = 6;
@@ -141,4 +143,86 @@ export function mySlot(records, uid) {
 export function canAcceptVote(records, uid) {
   if (mySlot(records, uid) != null) return true;
   return Object.keys(records ?? {}).length < MAX_VOTERS;
+}
+
+export function loadVoteOptIn() {
+  try {
+    return localStorage.getItem(VOTE_OPT_IN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function saveVoteOptIn() {
+  try {
+    localStorage.setItem(VOTE_OPT_IN_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+}
+
+export function loadIntroSeen() {
+  try {
+    return localStorage.getItem(INTRO_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function saveIntroSeen() {
+  try {
+    localStorage.setItem(INTRO_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+}
+
+/** Berlin hour and minute. Rules stay timezone-blind; the lock is client-side. */
+export function berlinClock(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Berlin",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const pick = (type) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+  return { hour: pick("hour"), minute: pick("minute") };
+}
+
+/**
+ * Weekday ballot phases in Europe/Berlin.
+ * `open` before 11:55, `locked` until 12:00, `reveal` after, `closed` on the weekend.
+ */
+export function votePhase(now = new Date()) {
+  if (!isVoteDay(now)) return "closed";
+  const { hour, minute } = berlinClock(now);
+  const mins = hour * 60 + minute;
+  if (mins < 11 * 60 + 55) return "open";
+  if (mins < 12 * 60) return "locked";
+  return "reveal";
+}
+
+/** Whole minutes from now until 12:00 Berlin. */
+export function minutesUntilReveal(now = new Date()) {
+  const { hour, minute } = berlinClock(now);
+  return Math.max(0, 12 * 60 - (hour * 60 + minute));
+}
+
+export function lockLine(minutesLeft) {
+  if (minutesLeft <= 1) return "Noch eine Minute.";
+  return `Noch ${minutesLeft} Minuten.`;
+}
+
+/** Nicknames in today's round, no canteen. */
+export function roundNicks(records) {
+  const seen = new Set();
+  const names = [];
+  for (const rec of Object.values(records ?? {})) {
+    const nick = normalizeNick(rec?.nick);
+    const key = nick.toLocaleLowerCase("de-DE");
+    if (!isValidNick(nick) || seen.has(key)) continue;
+    seen.add(key);
+    names.push(nick);
+  }
+  return names;
 }
