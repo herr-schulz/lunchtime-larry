@@ -16,7 +16,7 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=e01e784d";
+} from "./diceReel.js?v=66542422";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=5fd21cd8";
 import {
   alarmLabel,
