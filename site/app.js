@@ -96,6 +96,7 @@ const heuteDabei = document.querySelector("#heute-dabei");
 const revealDialog = document.querySelector("#reveal-dialog");
 const revealName = document.querySelector("#reveal-name");
 const nickDialog = document.querySelector("#nick-dialog");
+const nickHeading = nickDialog?.querySelector("h2");
 const nickForm = document.querySelector("#nick-form");
 const nickInput = document.querySelector("#nick-input");
 const roundInput = document.querySelector("#round-input");
@@ -568,13 +569,22 @@ function askOptIn() {
   });
 }
 
-function askNick() {
+let roundMigrateLock = false;
+
+function askNick({ migrate = false } = {}) {
   if (!nickDialog || !nickInput) return Promise.resolve("");
   nickInput.value = loadNick();
   if (roundInput) {
     roundInput.value = loadRoundCode();
     roundInput.setCustomValidity("");
   }
+  roundMigrateLock = migrate;
+  if (nickHeading) {
+    nickHeading.textContent = migrate
+      ? "Deine Stimme braucht eine Runde"
+      : "Dein Spitzname";
+  }
+  if (nickCancel) nickCancel.hidden = migrate;
   nickDialog.showModal();
   // Defer focus so iOS lays out the modal before the keyboard opens.
   requestAnimationFrame(() => {
@@ -583,6 +593,9 @@ function askNick() {
   return new Promise((resolve) => {
     const onClose = () => {
       nickDialog.removeEventListener("close", onClose);
+      roundMigrateLock = false;
+      if (nickHeading) nickHeading.textContent = "Dein Spitzname";
+      if (nickCancel) nickCancel.hidden = false;
       if (nickDialog.returnValue !== "ok") {
         resolve("");
         return;
@@ -592,6 +605,17 @@ function askNick() {
       resolve(loadNick());
     };
     nickDialog.addEventListener("close", onClose, { once: true });
+  });
+}
+
+/** Opt-in without a slug cannot vote, and the old house ballots stay where they are. */
+function maybeMigrateRound() {
+  if (!loadVoteOptIn() || loadRoundCode()) return Promise.resolve();
+  return askNick({ migrate: true }).then(() => {
+    syncNickButton();
+    if (!loadRoundCode()) return;
+    if (menuData) renderDay(menuData, currentDay);
+    startVotes({ force: true });
   });
 }
 
@@ -667,7 +691,11 @@ function bindNickUi() {
     roundInput?.setCustomValidity("");
     nickDialog.returnValue = "ok";
   });
+  nickDialog?.addEventListener("cancel", (event) => {
+    if (roundMigrateLock) event.preventDefault();
+  });
   nickCancel?.addEventListener("click", () => {
+    if (roundMigrateLock) return;
     nickDialog.close("cancel");
   });
   nickEdit?.addEventListener("click", async () => {
@@ -696,7 +724,7 @@ function bindNickUi() {
 }
 
 function maybeIntro() {
-  if (!introDialog || !isVoteDay() || loadIntroSeen()) return;
+  if (!introDialog || !isVoteDay() || loadIntroSeen()) return false;
   introDialog.showModal();
   introDialog.addEventListener(
     "close",
@@ -705,6 +733,7 @@ function maybeIntro() {
     },
     { once: true },
   );
+  return true;
 }
 
 let votesListening = false;
@@ -909,8 +938,13 @@ try {
   });
   syncNickButton();
   maybeWeekendNote();
-  maybeIntro();
-  startVotes();
+  const introOpen = maybeIntro();
+  const beginVotes = () => {
+    if (loadVoteOptIn() && !loadRoundCode()) maybeMigrateRound();
+    else startVotes();
+  };
+  if (introOpen) introDialog.addEventListener("close", beginVotes, { once: true });
+  else beginVotes();
   let phaseStamp = votePhase();
   window.setInterval(() => {
     syncVoteChrome();
