@@ -73,6 +73,7 @@ import {
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
+const WELCOME_KEY = "lunchtime-larry-vote-welcome";
 
 const board = document.querySelector("#board");
 const notices = document.querySelector("#notices");
@@ -102,6 +103,8 @@ const nickInput = document.querySelector("#nick-input");
 const roundInput = document.querySelector("#round-input");
 const roundRoll = document.querySelector("#round-roll");
 const nickCancel = document.querySelector("#nick-cancel");
+const welcomeDialog = document.querySelector("#welcome-dialog");
+const welcomeEdit = document.querySelector("#welcome-edit");
 const weekendDialog = document.querySelector("#weekend-dialog");
 const mascot = document.querySelector(".masthead .mascot");
 
@@ -134,9 +137,28 @@ function saveLikes() {
   localStorage.setItem(LIKES_KEY, JSON.stringify([...likes]));
 }
 
+function loadWelcomeSeen() {
+  try {
+    return localStorage.getItem(WELCOME_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveWelcomeSeen() {
+  try {
+    localStorage.setItem(WELCOME_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+}
+
+let welcomePassed = loadWelcomeSeen();
+
 function votingOpen() {
   return (
     loadVoteOptIn() &&
+    welcomePassed &&
     Boolean(loadRoundCode()) &&
     isVoteDay() &&
     currentDay === todayKey() &&
@@ -147,6 +169,7 @@ function votingOpen() {
 function showVoteMarks() {
   return (
     loadVoteOptIn() &&
+    welcomePassed &&
     Boolean(loadRoundCode()) &&
     isVoteDay() &&
     currentDay === todayKey()
@@ -608,15 +631,42 @@ function askNick({ migrate = false } = {}) {
   });
 }
 
+function showWelcome() {
+  if (!welcomeDialog) return Promise.resolve("ok");
+  welcomeDialog.showModal();
+  welcomeDialog.focus({ preventScroll: true });
+  return new Promise((resolve) => {
+    welcomeDialog.addEventListener(
+      "close",
+      () => {
+        saveWelcomeSeen();
+        welcomePassed = true;
+        resolve(welcomeDialog.returnValue || "ok");
+      },
+      { once: true },
+    );
+  });
+}
+
+/** Marks and the listener wait until nick, slug, and the welcome ticket. */
+async function settleRound() {
+  syncNickButton();
+  if (!loadNick() || !loadRoundCode()) return;
+  if (!welcomePassed) {
+    const action = await showWelcome();
+    if (action === "edit") {
+      const nick = await askNick();
+      if (nick && loadRoundCode()) syncNickButton();
+    }
+  }
+  if (menuData) renderDay(menuData, currentDay);
+  startVotes({ force: true });
+}
+
 /** Opt-in without a slug cannot vote, and the old house ballots stay where they are. */
 function maybeMigrateRound() {
   if (!loadVoteOptIn() || loadRoundCode()) return Promise.resolve();
-  return askNick({ migrate: true }).then(() => {
-    syncNickButton();
-    if (!loadRoundCode()) return;
-    if (menuData) renderDay(menuData, currentDay);
-    startVotes({ force: true });
-  });
+  return askNick({ migrate: true }).then(() => settleRound());
 }
 
 async function handleVote(canteen) {
@@ -624,7 +674,7 @@ async function handleVote(canteen) {
   if (!loadNick() || !loadRoundCode()) {
     const nick = await askNick();
     if (!nick || !loadRoundCode()) return;
-    syncNickButton();
+    await settleRound();
   }
   try {
     voteState.mine = await toggleVote(
@@ -698,22 +748,32 @@ function bindNickUi() {
     if (roundMigrateLock) return;
     nickDialog.close("cancel");
   });
+  welcomeEdit?.addEventListener("click", () => {
+    welcomeDialog?.close("edit");
+  });
   nickEdit?.addEventListener("click", async () => {
     if (!loadVoteOptIn()) {
       const joined = await askOptIn();
       if (!joined) return;
       saveVoteOptIn();
-      await askNick();
-      syncNickButton();
-      if (menuData) renderDay(menuData, currentDay);
-      if (loadRoundCode()) startVotes({ force: true });
+      const nick = await askNick();
+      if (!nick || !loadRoundCode()) return;
+      await settleRound();
       return;
     }
-    const nick = await askNick();
-    if (nick && loadRoundCode()) {
-      syncNickButton();
-      startVotes({ force: true });
+    if (!loadNick() || !loadRoundCode()) {
+      const nick = await askNick();
+      if (!nick || !loadRoundCode()) return;
+      await settleRound();
+      return;
     }
+    const action = await showWelcome();
+    if (action !== "edit") return;
+    const nick = await askNick();
+    if (!nick || !loadRoundCode()) return;
+    syncNickButton();
+    if (menuData) renderDay(menuData, currentDay);
+    startVotes({ force: true });
   });
   introAgain?.addEventListener("click", () => {
     introDialog?.showModal();
@@ -741,6 +801,7 @@ let votesListening = false;
 function startVotes({ force = false } = {}) {
   if (!loadVoteOptIn()) return;
   if (!loadRoundCode()) return;
+  if (!welcomePassed) return;
   if (votesListening && !force) return;
   votesListening = true;
   const onVotes = (next) => {
@@ -940,8 +1001,16 @@ try {
   maybeWeekendNote();
   const introOpen = maybeIntro();
   const beginVotes = () => {
-    if (loadVoteOptIn() && !loadRoundCode()) maybeMigrateRound();
-    else startVotes();
+    if (!loadVoteOptIn()) return;
+    if (!loadRoundCode()) {
+      maybeMigrateRound();
+      return;
+    }
+    if (!loadNick() || !welcomePassed) {
+      settleRound();
+      return;
+    }
+    startVotes();
   };
   if (introOpen) introDialog.addEventListener("close", beginVotes, { once: true });
   else beginVotes();

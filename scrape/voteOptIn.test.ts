@@ -54,6 +54,39 @@ describe("vote opt-in and first visit", () => {
   });
 });
 
+describe("voting welcome", () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const { document } = parseHTML(html);
+  const app = readFileSync("site/app.js", "utf8");
+
+  it("keeps the round rules on the welcome ticket", () => {
+    const welcome = document.querySelector("#welcome-dialog");
+    expect(welcome?.className).toMatch(/weekend-dialog/);
+    const text = welcome?.textContent?.replace(/\s+/g, " ") ?? "";
+    expect(text).toMatch(/11:55/);
+    expect(text).toMatch(/geheim/);
+    expect(text).toMatch(/12 Uhr/);
+    expect(text).toMatch(/sechs/);
+    expect(text).toMatch(/denselben Teamnamen oder Code/);
+    expect(document.querySelector("#welcome-dialog button[value='ok']")?.textContent).toBe(
+      "Alles klar",
+    );
+  });
+
+  it("opens the welcome only after a stored nick and slug", () => {
+    expect(app).toMatch(
+      /if \(!nick \|\| !loadRoundCode\(\)\) return;\s*await settleRound\(\)/,
+    );
+    expect(app).toMatch(
+      /if \(!loadNick\(\) \|\| !loadRoundCode\(\)\) return;\s*if \(!welcomePassed\)/,
+    );
+    expect(app).toMatch(/function startVotes[\s\S]*if \(!welcomePassed\) return/);
+    expect(app).toMatch(
+      /introAgain\?\.addEventListener\("click", \(\) => \{\s*introDialog\?\.showModal\(\);\s*\}\)/,
+    );
+  });
+});
+
 describe("round migration", () => {
   const app = readFileSync("site/app.js", "utf8");
 
