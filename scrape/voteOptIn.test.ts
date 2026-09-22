@@ -6,21 +6,27 @@ describe("vote opt-in and first visit", () => {
   const html = readFileSync("site/index.html", "utf8");
   const { document } = parseHTML(html);
 
-  it("keeps one intro ticket with the original three points plus the noon rule", () => {
+  it("keeps one board ticket and leaves voting off it", () => {
     const items = [...document.querySelectorAll("#intro-dialog .intro-points li")].map(
       (li) => li.textContent?.replace(/\s+/g, " ").trim(),
     );
+    const text = items.join(" ");
     expect(items).toHaveLength(4);
-    expect(items[0]).toMatch(/Drei Kantinen/);
+    expect(items[0]).toMatch(/StMUV/);
+    expect(items[0]).toMatch(/Dave B/);
+    expect(items[0]).toMatch(/Bella 23/);
+    expect(items[0]).toMatch(/vorausgewählt/);
     expect(items[1]).toMatch(/Herz/);
     expect(items[1]).toMatch(/diesem Gerät/);
-    expect(items[2]).toMatch(/Mitstimmen/);
-    expect(items[3]).toMatch(/11:55/);
-    expect(items[3]).toMatch(/geheim/);
-    expect(items[3]).toMatch(/12 Uhr/);
-    expect(items[3]).toMatch(/sechs/);
-    expect(items[3]).toMatch(/Rundencode/);
+    expect(items[2]).toMatch(/Lass Larry entscheiden/);
+    expect(items[2]).toMatch(/Was anderes/);
+    expect(items[3]).toMatch(/10:45/);
+    expect(text).not.toMatch(/11:55|Mitstimmen|Hausrunde|Rundencode|Haken/);
     expect(document.querySelectorAll("#intro-dialog")).toHaveLength(1);
+    const app = readFileSync("site/app.js", "utf8");
+    expect(app).toMatch(
+      /function maybeIntro\(\) \{\s*if \(!introDialog \|\| loadIntroSeen\(\)\) return false;/,
+    );
   });
 
   it("requires a round name and escapes it in the footer", () => {
@@ -42,7 +48,8 @@ describe("vote opt-in and first visit", () => {
     expect(document.querySelector("#optin-dialog button[value='ok']")?.textContent).toBe(
       "Abstimmen",
     );
-    expect(document.querySelector("#intro-again")?.textContent).toBe("Der Zettel");
+    expect(document.querySelector("#intro-again")?.textContent).toBe("Was ist das hier?");
+    expect(document.querySelector("#intro-again")?.hasAttribute("hidden")).toBe(false);
   });
 
   it("reveals with Larry's line and paper confetti, not a second tour", () => {
