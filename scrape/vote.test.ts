@@ -183,7 +183,7 @@ describe("canAcceptVote", () => {
 });
 
 describe("votePhase", () => {
-  const at = (clock) => new Date(`2026-09-22T${clock}:00+02:00`);
+  const at = (clock: string) => new Date(`2026-09-22T${clock}:00+02:00`);
 
   it("stays open until 11:55, locks, then reveals at noon", () => {
     expect(votePhase(at("11:54"))).toBe("open");
