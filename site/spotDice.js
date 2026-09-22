@@ -1,5 +1,5 @@
 import { pickSpot } from "./dice.js?v=b5a71252";
-import { mountDice, prefersReducedMotion, spotEntries } from "./diceReel.js?v=88ffac38";
+import { mountDice, prefersReducedMotion, spotEntries } from "./diceReel.js?v=8e6c8fb6";
 import { LOCATIONS } from "./locations.js?v=8bbcd50b";
 
 const openButton = document.querySelector("#dice-open");

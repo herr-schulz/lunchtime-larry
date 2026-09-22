@@ -23,13 +23,18 @@ describe("vote opt-in and first visit", () => {
     expect(document.querySelectorAll("#intro-dialog")).toHaveLength(1);
   });
 
-  it("asks for an optional round code beside the nick", () => {
+  it("requires a round name and escapes it in the footer", () => {
     const label = document.querySelector("#nick-form .round-field");
-    expect(label?.textContent).toMatch(/Rundencode \(optional\)/);
-    expect(document.querySelector("#round-input")?.hasAttribute("required")).toBe(false);
+    expect(label?.textContent).toMatch(/Runde/);
+    expect(label?.textContent).toMatch(/Teamname oder Code/);
+    expect(label?.textContent).not.toMatch(/Hausrunde/);
+    expect(document.querySelector("#round-roll")?.textContent).toBe("Code würfeln");
+    expect(document.querySelector("#round-input")?.hasAttribute("required")).toBe(true);
     const client = readFileSync("site/voteClient.js", "utf8");
     expect(client).toMatch(/votesPath\(day, loadRoundCode\(\)\)/);
-    expect(client).toMatch(/votesPath\(day\)/);
+    expect(client).not.toMatch(/votesPath\(day\)/);
+    const app = readFileSync("site/app.js", "utf8");
+    expect(app).toMatch(/escapeHtml\(code\)/);
   });
 
   it("puts Mitstimmen in the footer and Abstimmen on the opt-in dialog", () => {

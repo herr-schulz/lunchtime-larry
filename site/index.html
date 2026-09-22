@@ -34,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=16c48ada" />
+    <link rel="stylesheet" href="./styles.css?v=41d15024" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -311,18 +311,20 @@
           />
         </label>
         <label class="round-field">
-          Rundencode (optional)
+          Runde
           <input
             id="round-input"
             name="round"
-            maxlength="12"
+            maxlength="40"
             autocomplete="off"
             autocapitalize="off"
             autocorrect="off"
             spellcheck="false"
-            title="Vier bis sechs Buchstaben oder Ziffern. Leer lässt dich in der Hausrunde."
+            required
+            title="Teamname oder Code, zwei bis 24 Zeichen."
           />
-          <span class="round-hint">Leer bleibt die Hausrunde.</span>
+          <span class="round-hint">Teamname oder Code — Kolleg:innen geben dasselbe ein.</span>
+          <button type="button" id="round-roll" class="round-roll">Code würfeln</button>
         </label>
         <menu>
           <button type="submit" value="ok">Los</button>
@@ -387,6 +389,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=79faf642" type="module"></script>
+    <script src="./app.js?v=c5b19792" type="module"></script>
   </body>
 </html>

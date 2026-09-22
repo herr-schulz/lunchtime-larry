@@ -1476,6 +1476,25 @@ button.escape-link {
   color: var(--ink-soft);
 }
 
+.round-roll {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--stamp);
+  font: inherit;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.round-roll:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .nick-dialog input {
   width: 100%;
   padding: 0.55rem 0.65rem;
