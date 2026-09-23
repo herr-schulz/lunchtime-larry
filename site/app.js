@@ -5,9 +5,10 @@ import {
   formatDate,
   formatStamp,
   isoWeek,
+  isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=f69603ff";
+} from "./calendar.js?v=3316bbab";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
@@ -18,7 +19,7 @@ import {
   isStaleMenuWeek,
   mountDice,
 } from "./diceReel.js?v=c78c2727";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=24c1dc7f";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=c2f238ba";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
   alarmLabel,
@@ -29,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=839a961d";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=8ef9aa59";
 import {
   favoritePoint,
   favoriteToday,
@@ -40,8 +41,9 @@ import {
   unlikeAck,
   voteFull,
   voteOffline,
+  weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=ebabcf21";
+} from "./larryLines.js?v=a8fa1db7";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -79,7 +81,7 @@ import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=02a01dd9";
+} from "./devPreview.js?v=b32841dd";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -197,19 +199,33 @@ function showVoteMarks() {
   );
 }
 
+function menuWeekStale(data) {
+  return !isMenuWeekFresh(data?.scrapedAt);
+}
+
+function lastStandLabel(scrapedAt) {
+  const stand = formatStamp(scrapedAt);
+  return stand === "—" ? "" : stand;
+}
+
+function markWeekStaleChrome(stale) {
+  document.querySelector(".masthead:not(.alt-masthead) .kicker")?.classList.toggle(
+    "is-week-stale",
+    stale,
+  );
+  kwEl?.classList.toggle("is-week-stale", stale);
+  dayDate?.classList.toggle("is-week-stale", stale);
+}
+
 /** Menu freshness → Larry corner (not under nav). */
 function larryMenuNote(data) {
+  const weekStale = menuWeekStale(data);
   const issues = Object.entries(data.sources || {}).filter(([, src]) =>
     ["error", "stale"].includes(src.status),
   );
-  const scraped = data.scrapedAt ? new Date(data.scrapedAt) : null;
-  const old =
-    scraped && !Number.isNaN(scraped.getTime())
-      ? Date.now() - scraped.getTime() > 3 * 24 * 60 * 60 * 1000
-      : false;
   return menuFreshNote({
-    old,
-    issueNames: issues.map(([id]) => CANTEENS[id]?.name ?? id),
+    weekStale,
+    issueNames: weekStale ? [] : issues.map(([id]) => CANTEENS[id]?.name ?? id),
     hour: berlinHour(),
     weekday: berlinWeekday(),
   });
@@ -229,6 +245,23 @@ function popToast(toast) {
 
 function renderHits(data, day) {
   if (!hits) return;
+  if (menuWeekStale(data)) {
+    const html = hitsHtml({
+      items: [],
+      canteens: CANTEENS,
+      weekStale: true,
+      staleNote: weekStaleHitsNote(lastStandLabel(data.scrapedAt)),
+    });
+    const changed = hits.hidden || hits.innerHTML !== html;
+    hits.hidden = false;
+    hits.innerHTML = html;
+    hits.classList.add("is-week-stale");
+    hits.classList.remove("is-sheet-open");
+    syncNotices();
+    if (changed) popToast(hits);
+    return;
+  }
+  hits.classList.remove("is-week-stale");
   const found = findLikedDishes(data.days?.[day], likes);
   const saved = listAllFavorites(likes, data.days, day);
   if (!found.length) {
@@ -251,7 +284,7 @@ function renderHits(data, day) {
 }
 
 function toggleFavSheet() {
-  if (!hits || hits.hidden) return;
+  if (!hits || hits.hidden || hits.classList.contains("is-week-stale")) return;
   const open = !hits.classList.contains("is-sheet-open");
   hits.classList.toggle("is-sheet-open", open);
   const gear = hits.querySelector(".toast-gear");
@@ -377,8 +410,10 @@ function bindHits() {
 
 function renderDay(data, day) {
   const block = data.days[day];
+  const weekStale = menuWeekStale(data);
   dayDate.innerHTML = block ? formatDate(block.date) : "";
   if (marketRow) marketRow.hidden = day !== "thursday";
+  markWeekStaleChrome(weekStale);
   board.innerHTML = boardHtml({
     block,
     canteens: CANTEENS,
@@ -386,6 +421,7 @@ function renderDay(data, day) {
     likes,
     votingOpen: votingOpen(),
     showVotes: showVoteMarks(),
+    weekStale,
   });
   renderHits(data, day);
   applyVoteUi();
@@ -1079,6 +1115,7 @@ function toggleDishLike(data, dish) {
 }
 
 function maybeAnnounceFavoriteOnMenu(data, day) {
+  if (menuWeekStale(data)) return;
   const found = findLikedDishes(data.days?.[day], likes);
   for (const item of found) {
     if (!item.canteen) continue;
