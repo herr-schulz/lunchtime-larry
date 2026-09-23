@@ -1,7 +1,7 @@
 import {
   berlinDate,
   canAcceptVote,
-  CANTEEN_IDS,
+  berlinWeekday,
   countVotes,
   isValidNick,
   isVoteDay,
@@ -12,8 +12,9 @@ import {
   normalizeNick,
   staleVoteDays,
   votePhase,
+  voteTargetIds,
   votesPath,
-} from "./vote.js?v=98746362";
+} from "./vote.js?v=d0cc7678";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
@@ -37,7 +38,7 @@ function assertBallotOpen() {
 }
 
 function assertCanteen(canteen) {
-  if (!CANTEEN_IDS.includes(canteen)) throw new Error("canteen");
+  if (!voteTargetIds(berlinWeekday()).includes(canteen)) throw new Error("canteen");
 }
 
 async function firebase() {

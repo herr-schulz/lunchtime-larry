@@ -689,12 +689,26 @@ h1 {
   touch-action: pan-y;
 }
 
+.market-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.market-row[hidden],
+.market-row .vote-mark[hidden] {
+  display: none;
+}
+
 .market-banner {
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
   padding: 1rem 1.2rem;
   text-decoration: none;
   color: inherit;
@@ -1705,13 +1719,15 @@ button.escape-link {
   margin-bottom: 0;
 }
 
-.slip.is-voted {
+.slip.is-voted,
+.market-banner.is-voted {
   box-shadow:
     var(--shadow-x) var(--shadow-y) 0 var(--shadow-color),
     inset 0 0 0 2px color-mix(in srgb, var(--stamp) 35%, transparent);
 }
 
-.slip.is-leading:not(.is-voted) {
+.slip.is-leading:not(.is-voted),
+.market-banner.is-leading:not(.is-voted) {
   box-shadow:
     var(--shadow-x) var(--shadow-y) 0 var(--shadow-color),
     inset 0 0 0 1px color-mix(in srgb, var(--sage) 45%, transparent);

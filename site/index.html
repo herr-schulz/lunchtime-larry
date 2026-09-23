@@ -34,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=2c4b7b1a" />
+    <link rel="stylesheet" href="./styles.css?v=51ff6034" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -125,21 +125,48 @@
       <p id="heute-dabei" class="heute-dabei" hidden></p>
     </div>
 
-    <a
-      id="market-banner"
-      class="market-banner"
-      href="https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/"
-      target="_blank"
-      rel="noopener noreferrer"
-      hidden
-    >
-      <span class="market-badge">Do</span>
-      <span class="market-copy">
-        <strong>Wochenmarkt Bogenhausen</strong>
-        <span>Rosenkavalierplatz · 8–18 Uhr · Thai, Imbiss, Fisch, Gebäck</span>
-      </span>
-      <span class="market-go" aria-hidden="true">→</span>
-    </a>
+    <div id="market-row" class="market-row" hidden>
+      <a
+        id="market-banner"
+        class="market-banner"
+        href="https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="market-badge">Do</span>
+        <span class="market-copy">
+          <strong>Wochenmarkt Bogenhausen</strong>
+          <span>Rosenkavalierplatz · 8–18 Uhr · Thai, Imbiss, Fisch, Gebäck</span>
+        </span>
+        <span class="market-go" aria-hidden="true">→</span>
+      </a>
+      <button
+        type="button"
+        class="vote-mark"
+        id="market-vote"
+        data-vote="wochenmarkt"
+        aria-pressed="false"
+        hidden
+      >
+        <span class="vote-nicks"></span>
+        <svg
+          class="vote-check"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1" />
+          <path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1" />
+        </svg>
+      </button>
+    </div>
 
     <main
       id="board"
@@ -419,6 +446,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=e28f3087" type="module"></script>
+    <script src="./app.js?v=fd42d18e" type="module"></script>
   </body>
 </html>
