@@ -28,7 +28,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=fded81a2";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=73d74660";
 import {
   favoritePoint,
   favoriteToday,
@@ -40,7 +40,7 @@ import {
   voteFull,
   voteOffline,
   winnerTie,
-} from "./larryLines.js?v=eafab8b6";
+} from "./larryLines.js?v=ebabcf21";
 import { LOCATIONS } from "./locations.js?v=8bbcd50b";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -560,7 +560,7 @@ function maybeAnnounceWinner(result, reveal) {
 }
 
 function syncNickButton() {
-  if (introAgain) introAgain.hidden = !loadVoteOptIn();
+  if (introAgain) introAgain.hidden = false;
   if (!nickEdit) return;
   if (!loadVoteOptIn()) {
     nickEdit.hidden = false;
@@ -784,7 +784,7 @@ function bindNickUi() {
 }
 
 function maybeIntro() {
-  if (!introDialog || !isVoteDay() || loadIntroSeen()) return false;
+  if (!introDialog || loadIntroSeen()) return false;
   introDialog.showModal();
   introDialog.addEventListener(
     "close",
@@ -998,7 +998,6 @@ try {
     },
   });
   syncNickButton();
-  maybeWeekendNote();
   const introOpen = maybeIntro();
   const beginVotes = () => {
     if (!loadVoteOptIn()) return;
@@ -1012,8 +1011,19 @@ try {
     }
     startVotes();
   };
-  if (introOpen) introDialog.addEventListener("close", beginVotes, { once: true });
-  else beginVotes();
+  if (introOpen) {
+    introDialog.addEventListener(
+      "close",
+      () => {
+        beginVotes();
+        maybeWeekendNote();
+      },
+      { once: true },
+    );
+  } else {
+    maybeWeekendNote();
+    beginVotes();
+  }
   let phaseStamp = votePhase();
   window.setInterval(() => {
     syncVoteChrome();

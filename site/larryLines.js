@@ -5,13 +5,9 @@ export const IDLE_TIP = {
   line: "Tipps landen bei mir.",
 };
 
-/** Voting copy only after Mitstimmen is on. */
-export function idleTip(voting = false) {
-  if (!voting) return IDLE_TIP;
-  return {
-    kicker: "Hey",
-    line: "Tipps und Abstimmungen landen bei mir.",
-  };
+/** The corner stays on the board. Voting rules live on the welcome ticket. */
+export function idleTip() {
+  return IDLE_TIP;
 }
 
 const CRAWL_DAYS = new Set(["monday", "wednesday"]);

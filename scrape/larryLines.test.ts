@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { favoritePoint, IDLE_TIP, idleTip, menuFreshNote, nextLookLine, unlikeAck } from "../site/larryLines.js";
 
 describe("idleTip", () => {
-  it("does not mention voting until Mitstimmen is on", () => {
+  it("stays on the board and does not explain voting", () => {
     expect(IDLE_TIP.line).not.toMatch(/Abstimm/);
     expect(idleTip(false).line).toBe(IDLE_TIP.line);
-    expect(idleTip(true).line).toMatch(/Abstimm/);
+    expect(idleTip(true).line).toBe(IDLE_TIP.line);
   });
 });
 
