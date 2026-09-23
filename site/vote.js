@@ -119,19 +119,45 @@ export function winnerOf(counts, names) {
   return { status: "lead", id, name: names[id] ?? id };
 }
 
-/** Share code: 4–6 letters or digits. Dates stay on the house path. */
-export const ROUND_CODE_RE = /^[a-z0-9]{4,6}$/;
+/** No 0/O/1/l — a generated code stays readable when someone types it back. */
+export const ROUND_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
+const DATE_SLUG_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * Team name or code → Firebase slug. `AI Team` and `ai-team` meet.
+ * A calendar date is never a slug (that path used to be the house round).
+ */
 export function normalizeRoundCode(value) {
-  const code = String(value ?? "")
+  const slug = String(value ?? "")
     .normalize("NFC")
+    .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-  return ROUND_CODE_RE.test(code) ? code : "";
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (slug.length < 2 || slug.length > 24) return "";
+  if (DATE_SLUG_RE.test(slug)) return "";
+  return slug;
 }
 
 export function isRoundCode(value) {
-  return ROUND_CODE_RE.test(String(value ?? ""));
+  const raw = String(value ?? "");
+  const slug = normalizeRoundCode(raw);
+  return Boolean(slug) && slug === raw;
+}
+
+/** Five shareable characters. `rng` is injectable for tests. */
+export function generateRoundCode(rng = Math.random) {
+  let code = "";
+  for (let i = 0; i < 5; i += 1) {
+    const index = Math.min(
+      ROUND_ALPHABET.length - 1,
+      Math.max(0, Math.floor(Number(rng()) * ROUND_ALPHABET.length)),
+    );
+    code += ROUND_ALPHABET[index];
+  }
+  return code;
 }
 
 export function loadRoundCode() {
@@ -155,12 +181,12 @@ export function saveRoundCode(raw) {
 }
 
 /**
- * House ballots stay at `votes/{day}`. A round code nests under `votes/{code}/{day}`.
- * No migration: an empty code is the existing 6-seat group.
+ * Ballots live only at `votes/{slug}/{day}`. No slug, no path — never `votes/{day}`.
  */
 export function votesPath(day = berlinDate(), roundCode = "") {
-  const code = isRoundCode(roundCode) ? roundCode : "";
-  return code ? `votes/${code}/${day}` : `votes/${day}`;
+  const code = isRoundCode(roundCode) ? roundCode : normalizeRoundCode(roundCode);
+  if (!code) return "";
+  return `votes/${code}/${day}`;
 }
 
 /** Day keys under `votes/` that are older than the keep-day (ISO YYYY-MM-DD). */

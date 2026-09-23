@@ -13,7 +13,7 @@ import {
   staleVoteDays,
   votePhase,
   votesPath,
-} from "./vote.js?v=f2ae9b6d";
+} from "./vote.js?v=98746362";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
@@ -22,7 +22,9 @@ let unsub = null;
 let purgeOnce = null;
 
 function dayVotesPath() {
-  return votesPath(berlinDate(), loadRoundCode());
+  const path = votesPath(berlinDate(), loadRoundCode());
+  if (!path) throw new Error("round");
+  return path;
 }
 
 function assertVoteDay() {
@@ -91,13 +93,12 @@ export async function ensureVoteUser() {
 }
 
 /**
- * Advance meta/voteDay and delete older house `votes/{day}` trees.
- * A joined round purges only its own old days — never a list of every code.
- * Nick lives only in today’s ballots (+ localStorage); purged days leave no server nick.
+ * Advance meta/voteDay. Old days are deleted only inside the joined round.
+ * Nothing here writes a ballot to `votes/{day}`.
  */
 export async function purgeStaleVotes() {
   if (!purgeOnce) {
-    purgeOnce = purgeHouseDays().catch(() => {
+    purgeOnce = advanceVoteDay().catch(() => {
       /* offline / rules / first deploy */
       purgeOnce = null;
     });
@@ -106,21 +107,16 @@ export async function purgeStaleVotes() {
   return purgeOnce;
 }
 
-async function purgeHouseDays() {
+async function advanceVoteDay() {
   await ensureVoteUser();
   const keep = berlinDate();
-  const { db, get, ref, remove, set } = await ensureApp();
+  const { db, get, ref, set } = await ensureApp();
   const metaRef = ref(db, "meta/voteDay");
   const metaSnap = await get(metaRef);
   const current = metaSnap.val();
   if (!current || keep > current) {
     await set(metaRef, keep);
   }
-  const votesSnap = await get(ref(db, "votes"));
-  const keys = Object.keys(votesSnap.val() || {});
-  await Promise.all(
-    staleVoteDays(keys, keep).map((day) => remove(ref(db, votesPath(day)))),
-  );
 }
 
 async function purgeActiveRound() {
@@ -154,12 +150,13 @@ export function listenVotes(onChange) {
   ensureApp()
     .then(async ({ db, onValue, ref }) => {
       await purgeStaleVotes();
-      if (!isVoteDay(now)) {
+      const path = votesPath(day, loadRoundCode());
+      if (!isVoteDay(now) || !path) {
         onChange(empty);
         return;
       }
       const handle = onValue(
-        ref(db, votesPath(day, loadRoundCode())),
+        ref(db, path),
         (snap) => {
           const records = snap.val() || {};
           onChange({

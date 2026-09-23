@@ -9,8 +9,10 @@ import {
   lastVoteDate,
   MAX_VOTERS,
   normalizeNick,
+  generateRoundCode,
   nicksFor,
   normalizeRoundCode,
+  ROUND_ALPHABET,
   staleVoteDays,
   lockLine,
   minutesUntilReveal,
@@ -126,42 +128,62 @@ describe("isValidNick", () => {
   });
 });
 
-describe("votesPath", () => {
-  it("nests house ballots under the Berlin date", () => {
-    expect(votesPath("2026-09-04")).toBe("votes/2026-09-04");
-    expect(votesPath("2026-09-04", "")).toBe("votes/2026-09-04");
+describe("round slug", () => {
+  it("meets AI-Team and ai-team in one slug", () => {
+    expect(normalizeRoundCode("AI-Team")).toBe("ai-team");
+    expect(normalizeRoundCode("AI Team")).toBe("ai-team");
+    expect(normalizeRoundCode("ai-team")).toBe("ai-team");
+    expect(normalizeRoundCode("kantine")).toBe("kantine");
+    expect(normalizeRoundCode("mittags4")).toBe("mittags4");
   });
 
-  it("builds the weekday ballot path from berlinDate", () => {
+  it("rejects a date, a single character, and firebase punctuation", () => {
+    expect(normalizeRoundCode("2026-09-22")).toBe("");
+    expect(normalizeRoundCode("a")).toBe("");
+    expect(normalizeRoundCode("foo.bar")).toBe("foobar");
+    expect(normalizeRoundCode("a$b#c")).toBe("abc");
+  });
+
+  it("rolls five characters without 0, O, 1, or l", () => {
+    expect(ROUND_ALPHABET).not.toMatch(/[01lo]/);
+    expect(generateRoundCode(() => 0)).toBe("aaaaa");
+    expect(generateRoundCode(() => 0.999)).toHaveLength(5);
+    expect(generateRoundCode(() => 0.999)).toMatch(
+      new RegExp(`^[${ROUND_ALPHABET}]{5}$`),
+    );
+  });
+});
+
+describe("votesPath", () => {
+  it("never falls back to the bare day", () => {
+    expect(votesPath("2026-09-04")).toBe("");
+    expect(votesPath("2026-09-04", "")).toBe("");
+    expect(votesPath("2026-09-22", "2026-09-22")).toBe("");
+  });
+
+  it("nests both spellings of a team under the same day", () => {
     const thursday = new Date("2026-09-03T12:00:00+02:00");
     expect(ballotDate(thursday)).toBe("2026-09-03");
-    expect(votesPath(berlinDate(thursday))).toBe("votes/2026-09-03");
-  });
-
-  it("nests a round under its code and leaves the house path alone", () => {
-    expect(normalizeRoundCode("AI-Team")).toBe("aiteam");
-    expect(normalizeRoundCode("ab")).toBe("");
-    expect(normalizeRoundCode("2026-09-04")).toBe("");
-    expect(votesPath("2026-09-04", "aiteam")).toBe("votes/aiteam/2026-09-04");
-    expect(votesPath("2026-09-04", "AI-Team")).toBe("votes/2026-09-04");
-    expect(votesPath("2026-09-04", "no")).toBe("votes/2026-09-04");
+    expect(votesPath("2026-09-04", "AI-Team")).toBe("votes/ai-team/2026-09-04");
+    expect(votesPath("2026-09-04", "ai-team")).toBe("votes/ai-team/2026-09-04");
+    expect(votesPath(berlinDate(thursday), generateRoundCode(() => 0))).toBe(
+      "votes/aaaaa/2026-09-03",
+    );
   });
 });
 
 describe("round rules", () => {
   const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
 
-  it("keeps the house day path and adds a code path with the same cap", () => {
+  it("writes ballots only under a slug, never on a bare date", () => {
     expect(rules.votes[".read"]).toBeUndefined();
     const key = rules.votes.$key;
-    expect(key[".read"]).toMatch(/\[0-9\]\{4\}-\[0-9\]\{2\}-\[0-9\]\{2\}/);
-    expect(key[".read"]).toMatch(/\[a-z0-9\]\{4,6\}/);
-    expect(key[".write"]).toMatch(/!newData\.exists\(\)/);
-    expect(key.$child[".write"]).toMatch(/\[0-5\]/);
-    expect(key.$child.$slot[".write"]).toMatch(/\[a-z0-9\]\{4,6\}/);
+    expect(key.$child.$slot[".write"]).toMatch(/a-z0-9-/);
+    expect(key.$child.$slot[".write"]).toMatch(/!\$key\.matches/);
     expect(key.$child.$slot[".write"]).toMatch(/\[0-5\]/);
     expect(key.$child.$slot[".write"]).toMatch(/auth\.uid/);
-    expect(key.$child.$slot[".validate"]).toMatch(/nick/);
+    expect(key.$child[".write"]).not.toMatch(/\$key == root\.child\('meta\/voteDay'\)/);
+    expect(key[".write"]).toMatch(/!newData\.exists\(\)/);
     expect(key.$child[".write"]).toMatch(/\$child < root\.child\('meta\/voteDay'\)/);
   });
 });

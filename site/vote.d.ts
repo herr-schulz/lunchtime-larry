@@ -37,9 +37,10 @@ export function winnerOf(
   | { status: "empty" }
   | { status: "tie" }
   | { status: "lead"; id: CanteenId; name: string };
-export const ROUND_CODE_RE: RegExp;
+export const ROUND_ALPHABET: string;
 export function normalizeRoundCode(value: unknown): string;
 export function isRoundCode(value: unknown): boolean;
+export function generateRoundCode(rng?: () => number): string;
 export function loadRoundCode(): string;
 export function saveRoundCode(raw: unknown): string;
 export function votesPath(day?: string, roundCode?: string | null): string;

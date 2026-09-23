@@ -7,8 +7,9 @@ import {
   isoWeek,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=fcc73fbf";
+} from "./calendar.js?v=7329e3b0";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
+import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
 import {
   berlinWeekMonday,
@@ -16,7 +17,7 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=88ffac38";
+} from "./diceReel.js?v=8e6c8fb6";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=5fd21cd8";
 import {
   alarmLabel,
@@ -27,7 +28,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=a8540d3c";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=fded81a2";
 import {
   favoritePoint,
   favoriteToday,
@@ -48,6 +49,7 @@ import {
   lastVoteDate,
   loadIntroSeen,
   loadNick,
+  generateRoundCode,
   loadRoundCode,
   loadVoteOptIn,
   lockLine,
@@ -62,12 +64,12 @@ import {
   saveVoteOptIn,
   votePhase,
   winnerOf,
-} from "./vote.js?v=f2ae9b6d";
+} from "./vote.js?v=98746362";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=7ed547e8";
+} from "./voteClient.js?v=fc742bf6";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -97,6 +99,7 @@ const nickDialog = document.querySelector("#nick-dialog");
 const nickForm = document.querySelector("#nick-form");
 const nickInput = document.querySelector("#nick-input");
 const roundInput = document.querySelector("#round-input");
+const roundRoll = document.querySelector("#round-roll");
 const nickCancel = document.querySelector("#nick-cancel");
 const weekendDialog = document.querySelector("#weekend-dialog");
 const mascot = document.querySelector(".masthead .mascot");
@@ -133,6 +136,7 @@ function saveLikes() {
 function votingOpen() {
   return (
     loadVoteOptIn() &&
+    Boolean(loadRoundCode()) &&
     isVoteDay() &&
     currentDay === todayKey() &&
     votePhase() === "open"
@@ -140,7 +144,12 @@ function votingOpen() {
 }
 
 function showVoteMarks() {
-  return loadVoteOptIn() && isVoteDay() && currentDay === todayKey();
+  return (
+    loadVoteOptIn() &&
+    Boolean(loadRoundCode()) &&
+    isVoteDay() &&
+    currentDay === todayKey()
+  );
 }
 
 /** Menu freshness → Larry corner (not under nav). */
@@ -542,7 +551,9 @@ function syncNickButton() {
   }
   const code = loadRoundCode();
   nickEdit.hidden = false;
-  nickEdit.textContent = code ? `Spitzname: ${nick} · ${code}` : `Spitzname: ${nick}`;
+  nickEdit.innerHTML = code
+    ? `Spitzname: ${escapeHtml(nick)} · ${escapeHtml(code)}`
+    : `Spitzname: ${escapeHtml(nick)}`;
 }
 
 function askOptIn() {
@@ -586,10 +597,9 @@ function askNick() {
 
 async function handleVote(canteen) {
   if (!votingOpen()) return;
-  let nick = loadNick();
-  if (!nick) {
-    nick = await askNick();
-    if (!nick) return;
+  if (!loadNick() || !loadRoundCode()) {
+    const nick = await askNick();
+    if (!nick || !loadRoundCode()) return;
     syncNickButton();
   }
   try {
@@ -641,11 +651,16 @@ function bindNickUi() {
   roundInput?.addEventListener("input", () => {
     roundInput.setCustomValidity("");
   });
+  roundRoll?.addEventListener("click", () => {
+    if (!roundInput) return;
+    roundInput.value = generateRoundCode();
+    roundInput.setCustomValidity("");
+  });
   nickForm?.addEventListener("submit", (event) => {
     const raw = roundInput?.value || "";
-    if (raw.trim() && !normalizeRoundCode(raw)) {
+    if (!normalizeRoundCode(raw)) {
       event.preventDefault();
-      roundInput?.setCustomValidity("Vier bis sechs Buchstaben oder Ziffern.");
+      roundInput?.setCustomValidity("Teamname oder Code, zwei bis 24 Zeichen.");
       roundInput?.reportValidity();
       return;
     }
@@ -663,11 +678,11 @@ function bindNickUi() {
       await askNick();
       syncNickButton();
       if (menuData) renderDay(menuData, currentDay);
-      startVotes({ force: true });
+      if (loadRoundCode()) startVotes({ force: true });
       return;
     }
     const nick = await askNick();
-    if (nick) {
+    if (nick && loadRoundCode()) {
       syncNickButton();
       startVotes({ force: true });
     }
@@ -696,6 +711,7 @@ let votesListening = false;
 
 function startVotes({ force = false } = {}) {
   if (!loadVoteOptIn()) return;
+  if (!loadRoundCode()) return;
   if (votesListening && !force) return;
   votesListening = true;
   const onVotes = (next) => {
