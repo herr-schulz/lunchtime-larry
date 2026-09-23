@@ -1,7 +1,7 @@
 /** Pure HTML builders for the canteen board (no DOM writes). */
 
 import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, settingsIcon } from "./icons.js?v=56a779d4";
+import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=0e5f763d";
 import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=9db8d9ec";
 
 const DIET = {
@@ -28,7 +28,7 @@ export function ghostLine(seed) {
 export function formatDishName(name, canteenId) {
   const { title, sides } = phraseDish(name, { canteen: canteenId });
   const heart = heartIconFilled;
-  const titleRow = `<span class="dish-title">${escapeHtml(title)}${heart}</span>`;
+  const titleRow = `<span class="dish-title"><span class="dish-mark">${escapeHtml(title)}${penUnderlineSvg()}</span>${heart}</span>`;
   const withSides = joinDishSides(sides);
   if (!withSides) return titleRow;
   return `${titleRow}<span class="dish-sides">${escapeHtml(withSides)}</span>`;
@@ -61,6 +61,7 @@ export function dishRow(dish, index, likes, canteenId) {
  * @param {Record<string, { status?: string }> | null | undefined} opts.sources
  * @param {Set<string>} opts.likes
  * @param {boolean} opts.votingOpen
+ * @param {boolean} [opts.showVotes]
  * @param {boolean} [opts.weekStale]
  */
 export function boardHtml({
@@ -69,6 +70,7 @@ export function boardHtml({
   sources,
   likes,
   votingOpen,
+  showVotes = false,
   weekStale = false,
 }) {
   return (block?.canteens ?? [])
@@ -95,8 +97,8 @@ export function boardHtml({
       const weekStamp = weekStale
         ? `<p class="pizza pizza-week" role="status" aria-label="Speiseplan von letzter Woche">Letzte Woche</p>`
         : "";
-      const voteBtn = votingOpen
-        ? `<button type="button" class="vote-mark" data-vote="${canteen.id}" aria-pressed="false"><span class="vote-nicks"></span>${checkCircleSvg()}</button>`
+      const voteBtn = showVotes || votingOpen
+        ? `<button type="button" class="vote-mark" data-vote="${canteen.id}" aria-pressed="false"${votingOpen ? "" : " disabled"}><span class="vote-nicks"></span>${checkCircleSvg()}</button>`
         : "";
       return `<section class="slip${weekStale ? " is-week-stale" : ""}" style="--slip-i:${slipIndex}" data-canteen="${canteen.id}">
         <div class="slip-head">

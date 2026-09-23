@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { favoritePoint, menuFreshNote, nextLookLine, unlikeAck, weekStaleHitsNote } from "../site/larryLines.js";
+import {
+  favoritePoint,
+  IDLE_TIP,
+  idleTip,
+  menuFreshNote,
+  nextLookLine,
+  unlikeAck,
+  weekStaleHitsNote,
+} from "../site/larryLines.js";
+
+describe("idleTip", () => {
+  it("stays on the board and does not explain voting", () => {
+    expect(IDLE_TIP.line).not.toMatch(/Abstimm/);
+    expect(idleTip(false).line).toBe(IDLE_TIP.line);
+    expect(idleTip(true).line).toBe(IDLE_TIP.line);
+  });
+});
 
 describe("nextLookLine", () => {
   it("promises 10 o'clock after the 8:30 slot", () => {

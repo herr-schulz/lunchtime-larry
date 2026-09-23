@@ -11,6 +11,15 @@
       name="description"
       content="Was gibt’s heute in StMUV, Dave B und Bella 23? Wochenspeiseplan für den Arabellapark."
     />
+    <meta property="og:title" content="Lunchtime Larry — Arabellapark" />
+    <meta property="og:description" content="Drei Kantinen. Eine Woche. Kein Azure." />
+    <meta property="og:image" content="https://lunchtime-larry.web.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Lunchtime Larry — Arabellapark" />
+    <meta name="twitter:description" content="Drei Kantinen. Eine Woche. Kein Azure." />
+    <meta name="twitter:image" content="https://lunchtime-larry.web.app/og-image.png" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -25,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=d9f90abc" />
+    <link rel="stylesheet" href="./styles.css?v=84594527" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -112,23 +121,52 @@
     </div>
     <div class="day-band">
       <p class="day-date" id="day-date"></p>
+      <p id="vote-lock" class="vote-lock" hidden></p>
+      <p id="heute-dabei" class="heute-dabei" hidden></p>
     </div>
 
-    <a
-      id="market-banner"
-      class="market-banner"
-      href="https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/"
-      target="_blank"
-      rel="noopener noreferrer"
-      hidden
-    >
-      <span class="market-badge">Do</span>
-      <span class="market-copy">
-        <strong>Wochenmarkt Bogenhausen</strong>
-        <span>Rosenkavalierplatz · 8–18 Uhr · Thai, Imbiss, Fisch, Gebäck</span>
-      </span>
-      <span class="market-go" aria-hidden="true">→</span>
-    </a>
+    <div id="market-row" class="market-row" hidden>
+      <a
+        id="market-banner"
+        class="market-banner"
+        href="https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="market-badge">Do</span>
+        <span class="market-copy">
+          <strong>Wochenmarkt Bogenhausen</strong>
+          <span>Rosenkavalierplatz · 8–18 Uhr · Thai, Imbiss, Fisch, Gebäck</span>
+        </span>
+        <span class="market-go" aria-hidden="true">→</span>
+      </a>
+      <button
+        type="button"
+        class="vote-mark"
+        id="market-vote"
+        data-vote="wochenmarkt"
+        aria-pressed="false"
+        hidden
+      >
+        <span class="vote-nicks"></span>
+        <svg
+          class="vote-check"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1" />
+          <path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1" />
+        </svg>
+      </button>
+    </div>
 
     <main
       id="board"
@@ -154,13 +192,20 @@
     </section>
 
     <div class="escape-wrap" id="escape-wrap" hidden>
+      <button type="button" class="escape-link dice-open" id="dice-open">
+        <span class="escape-kicker">Unentschlossen?</span>
+        <span class="escape-row">
+          <span class="escape-label">Lass Larry entscheiden</span>
+        </span>
+        <span class="escape-sub">Ein Hauptgericht. Kein Drama.</span>
+      </button>
       <a href="./alternativen.html" class="escape-link" id="escape-link">
         <span class="escape-kicker">Keine Kantine?</span>
         <span class="escape-row">
           <span class="escape-label">Was anderes?!</span>
           <span class="escape-arrow" aria-hidden="true">→</span>
         </span>
-        <span class="escape-sub">Spots · ein paar Minuten zu Fuß</span>
+        <span class="escape-sub">8 Spots · ein paar Minuten zu Fuß</span>
       </a>
     </div>
 
@@ -168,7 +213,8 @@
       <p id="stamp">Stand: —</p>
       <p>Angaben ohne Gewähr (Stand der Kantinenseiten).</p>
       <p>
-        <button type="button" id="nick-edit" class="nick-edit" hidden></button>
+        <button type="button" id="nick-edit" class="nick-edit" hidden>Mitstimmen</button>
+        <button type="button" id="intro-again" class="nick-edit">Was ist das hier?</button>
       </p>
     </footer>
     <div id="larry-corner" class="larry-corner" hidden>
@@ -211,6 +257,73 @@
       </div>
     </div>
 
+    <dialog id="intro-dialog" class="weekend-dialog intro-dialog" tabindex="-1">
+      <form method="dialog">
+        <img
+          class="weekend-larry"
+          src="./larry.svg?v=3aa5e5c7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <p class="weekend-kicker">Arabellapark</p>
+        <h2>Willkommen bei Lunchtime Larry</h2>
+        <ol class="intro-points">
+          <li>
+            Hier siehst du die Speisepläne von StMUV, Dave B und Bella 23. Der
+            heutige Tag ist schon vorausgewählt.
+          </li>
+          <li>
+            Tippe oder klicke auf ein Gericht, um es zu liken — das Herz merkt es
+            nur auf diesem Gerät.
+          </li>
+          <li>Unentschlossen? Lass Larry entscheiden. Keine Kantine? Was anderes?!</li>
+          <li>Die Speisepläne kommen werktags gegen 10:45.</li>
+        </ol>
+        <menu>
+          <button type="submit" value="ok">Alles klar</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="optin-dialog" class="nick-dialog" tabindex="-1">
+      <form method="dialog">
+        <p class="nick-kicker">Mitstimmen</p>
+        <h2>Eine 6er-Runde</h2>
+        <p class="optin-copy">
+          Haken am Zettel, ein Spitzname. Wer hier mitstimmt, sitzt in derselben Runde.
+        </p>
+        <menu>
+          <button type="submit" value="ok">Abstimmen</button>
+          <button type="button" id="optin-cancel" value="cancel">Später</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="reveal-dialog" class="weekend-dialog reveal-dialog" tabindex="-1">
+      <form method="dialog">
+        <div class="confetti" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <img
+          class="weekend-larry"
+          src="./laughing-larry.svg?v=ae7875a7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <h2>Larry präsentiert heute:</h2>
+        <p class="reveal-name" id="reveal-name" aria-live="polite">
+          <span class="reveal-window">
+            <span class="reveal-strip" id="reveal-strip"></span>
+          </span>
+        </p>
+        <menu>
+          <button type="submit" value="ok">Guten Appetit</button>
+        </menu>
+      </form>
+    </dialog>
     <dialog id="nick-dialog" class="nick-dialog" tabindex="-1">
       <form method="dialog" id="nick-form">
         <p class="nick-kicker">Mittagstisch</p>
@@ -231,9 +344,131 @@
             required
           />
         </label>
+        <label class="round-field">
+          Runde
+          <span class="round-input-wrap">
+            <input
+              id="round-input"
+              name="round"
+              maxlength="8"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              required
+              title="Teamname oder Code, zwei bis 8 Zeichen."
+            />
+            <button type="button" id="round-roll" class="round-roll" aria-label="Code würfeln">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect width="12" height="12" x="2" y="10" rx="2" ry="2" />
+                <path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6" />
+                <path d="M6 18h.01" />
+                <path d="M10 14h.01" />
+                <path d="M15 6h.01" />
+                <path d="M18 9h.01" />
+              </svg>
+            </button>
+          </span>
+          <span class="round-hint">Teamname oder Code — Kolleg:innen geben dasselbe ein.</span>
+        </label>
         <menu>
           <button type="submit" value="ok">Los</button>
           <button type="button" id="nick-cancel" value="cancel">Abbrechen</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="welcome-dialog" class="weekend-dialog welcome-dialog" tabindex="-1">
+      <form method="dialog" id="welcome-form">
+        <img
+          class="weekend-larry"
+          src="./larry.svg?v=3aa5e5c7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <p class="weekend-kicker">Mitstimmen</p>
+        <h2 id="welcome-title">Rundencode:</h2>
+        <div class="welcome-code-row">
+          <code id="welcome-code" class="welcome-code">—</code>
+          <button type="button" id="welcome-copy" class="welcome-copy" aria-label="Code kopieren">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+            </svg>
+          </button>
+        </div>
+        <ol class="intro-points">
+          <li>Schick den Code an deine Kolleg:innen — sie geben denselben ein.</li>
+          <li>
+            Dein Vote für den Food-Spot des Tages kann bis 11:55 jederzeit frei
+            gewählt werden.
+          </li>
+          <li>Ab 11:55 ist zu. Um 12 Uhr präsentiert Larry das Ziel.</li>
+          <li>
+            Höchstens 6 Teilnehmer pro Runde. Alle Teilnehmer der Runde werden
+            über den Zetteln angezeigt.
+          </li>
+        </ol>
+        <menu>
+          <button type="submit" value="ok">Alles klar</button>
+          <button type="button" id="welcome-edit">Spitzname ändern</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="dice-dialog" class="weekend-dialog dice-dialog" tabindex="-1">
+      <form method="dialog" id="dice-form">
+        <img
+          class="weekend-larry dice-larry"
+          src="./laughing-larry.svg?v=ae7875a7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <p class="weekend-kicker">Unentschlossen?</p>
+        <h2>Lass Larry entscheiden</h2>
+        <p class="dice-stale" hidden>Letzter Stand.</p>
+        <div class="dice-modes" role="tablist" aria-label="Walze">
+          <button type="button" role="tab" data-dice-mode="dish" aria-selected="true">
+            Gericht
+          </button>
+          <button type="button" role="tab" data-dice-mode="canteen" aria-selected="false">
+            Kantine
+          </button>
+        </div>
+        <div class="reel-window">
+          <div class="reel-strip"></div>
+        </div>
+        <p class="reel-live" aria-live="polite"></p>
+        <p class="reel-hint" hidden></p>
+        <menu>
+          <button type="button" data-dice="go" value="ok">Los</button>
+          <button type="button" data-dice="again" value="ok" hidden>Nochmal</button>
+          <button type="button" data-dice="show" value="show" hidden>Zeig her</button>
+          <button type="submit" value="cancel">Später</button>
         </menu>
       </form>
     </dialog>
@@ -260,6 +495,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=b3af8d2f" type="module"></script>
+    <script src="./app.js?v=2845f04a" type="module"></script>
   </body>
 </html>

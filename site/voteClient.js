@@ -1,17 +1,20 @@
 import {
   berlinDate,
   canAcceptVote,
-  CANTEEN_IDS,
+  berlinWeekday,
   countVotes,
   isValidNick,
   isVoteDay,
   loadNick,
+  loadRoundCode,
   MAX_VOTERS,
   mySlot,
   normalizeNick,
   staleVoteDays,
+  votePhase,
+  voteTargetIds,
   votesPath,
-} from "./vote.js?v=0b6f336e";
+} from "./vote.js?v=c72a8e83";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
@@ -20,15 +23,22 @@ let unsub = null;
 let purgeOnce = null;
 
 function dayVotesPath() {
-  return votesPath(berlinDate());
+  const path = votesPath(berlinDate(), loadRoundCode());
+  if (!path) throw new Error("round");
+  return path;
 }
 
 function assertVoteDay() {
   if (!isVoteDay()) throw new Error("closed");
 }
 
+function assertBallotOpen() {
+  assertVoteDay();
+  if (votePhase() !== "open") throw new Error("locked");
+}
+
 function assertCanteen(canteen) {
-  if (!CANTEEN_IDS.includes(canteen)) throw new Error("canteen");
+  if (!voteTargetIds(berlinWeekday()).includes(canteen)) throw new Error("canteen");
 }
 
 async function firebase() {
@@ -84,32 +94,47 @@ export async function ensureVoteUser() {
 }
 
 /**
- * Advance meta/voteDay and delete older `votes/{day}` trees.
- * Nick lives only in today’s ballots (+ localStorage); purged days leave no server nick.
+ * Advance meta/voteDay. Old days are deleted only inside the joined round.
+ * Nothing here writes a ballot to `votes/{day}`.
  */
 export async function purgeStaleVotes() {
   if (!purgeOnce) {
-    purgeOnce = (async () => {
-      await ensureVoteUser();
-      const keep = berlinDate();
-      const { db, get, ref, remove, set } = await ensureApp();
-      const metaRef = ref(db, "meta/voteDay");
-      const metaSnap = await get(metaRef);
-      const current = metaSnap.val();
-      if (!current || keep > current) {
-        await set(metaRef, keep);
-      }
-      const votesSnap = await get(ref(db, "votes"));
-      const keys = Object.keys(votesSnap.val() || {});
-      await Promise.all(
-        staleVoteDays(keys, keep).map((day) => remove(ref(db, votesPath(day)))),
-      );
-    })().catch(() => {
+    purgeOnce = advanceVoteDay().catch(() => {
       /* offline / rules / first deploy */
       purgeOnce = null;
     });
   }
+  await purgeActiveRound();
   return purgeOnce;
+}
+
+async function advanceVoteDay() {
+  await ensureVoteUser();
+  const keep = berlinDate();
+  const { db, get, ref, set } = await ensureApp();
+  const metaRef = ref(db, "meta/voteDay");
+  const metaSnap = await get(metaRef);
+  const current = metaSnap.val();
+  if (!current || keep > current) {
+    await set(metaRef, keep);
+  }
+}
+
+async function purgeActiveRound() {
+  const code = loadRoundCode();
+  if (!code) return;
+  try {
+    await ensureVoteUser();
+    const keep = berlinDate();
+    const { db, get, ref, remove } = await ensureApp();
+    const snap = await get(ref(db, `votes/${code}`));
+    const keys = Object.keys(snap.val() || {});
+    await Promise.all(
+      staleVoteDays(keys, keep).map((day) => remove(ref(db, votesPath(day, code)))),
+    );
+  } catch {
+    /* offline / rules */
+  }
 }
 
 export function listenVotes(onChange) {
@@ -126,12 +151,13 @@ export function listenVotes(onChange) {
   ensureApp()
     .then(async ({ db, onValue, ref }) => {
       await purgeStaleVotes();
-      if (!isVoteDay(now)) {
+      const path = votesPath(day, loadRoundCode());
+      if (!isVoteDay(now) || !path) {
         onChange(empty);
         return;
       }
       const handle = onValue(
-        ref(db, votesPath(day)),
+        ref(db, path),
         (snap) => {
           const records = snap.val() || {};
           onChange({
@@ -154,7 +180,7 @@ export function listenVotes(onChange) {
 }
 
 export async function setVote(canteen, records = {}) {
-  assertVoteDay();
+  assertBallotOpen();
   assertCanteen(canteen);
   const nick = normalizeNick(loadNick());
   if (!isValidNick(nick)) throw new Error("nick");
@@ -182,7 +208,7 @@ export async function setVote(canteen, records = {}) {
 }
 
 export async function clearVote(records = {}) {
-  assertVoteDay();
+  assertBallotOpen();
   const id = await ensureVoteUser();
   const slot = mySlot(records, id);
   if (slot == null) return;
@@ -192,7 +218,7 @@ export async function clearVote(records = {}) {
 }
 
 export async function toggleVote(canteen, current, records = {}) {
-  assertVoteDay();
+  assertBallotOpen();
   assertCanteen(canteen);
   if (current === canteen) {
     await clearVote(records);

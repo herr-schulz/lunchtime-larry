@@ -1,5 +1,7 @@
 export const IDLE_TIP: { kicker: string; line: string };
 
+export function idleTip(voting?: boolean): { kicker: string; line: string };
+
 export function nextLookLine(hour: number, weekday: string): string;
 
 export const WEEK_STALE_LOOK: string;

@@ -12,7 +12,7 @@ describe("scrape triggers", () => {
 
   it("accepts workflow_dispatch and repository_dispatch", () => {
     expect(onBlock).toMatch(/^\s+workflow_dispatch:/m);
-    expect(onBlock).toMatch(/repository_dispatch:\n\s+types: \[scrape\]/);
+    expect(onBlock).toMatch(/repository_dispatch:\r?\n\s+types: \[scrape\]/);
     expect(yaml).toMatch("github.event_name == 'repository_dispatch'");
   });
 });

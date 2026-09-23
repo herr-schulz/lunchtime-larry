@@ -1,6 +1,6 @@
 /** Berlin-calendar helpers and weekday labels for the board. */
 
-import { berlinDate } from "./vote.js?v=0b6f336e";
+import { berlinDate, getNow } from "./vote.js?v=c72a8e83";
 
 export const DAYS = {
   monday: "Montag",
@@ -93,7 +93,7 @@ export function todayKey() {
     weekday: "long",
     timeZone: "Europe/Berlin",
   })
-    .format(new Date())
+    .format(getNow())
     .toLowerCase();
   if (day === "saturday" || day === "sunday") return "friday";
   return day;
@@ -105,7 +105,7 @@ export function berlinHour() {
       timeZone: "Europe/Berlin",
       hour: "numeric",
       hourCycle: "h23",
-    }).format(new Date()),
+    }).format(getNow()),
   );
 }
 

@@ -18,6 +18,7 @@ const locationsHash = await hashFile("locations.js");
 const domHash = await hashFile("dom.js");
 const menuFetchHash = await hashFile("menuFetch.js");
 const firebaseHash = await hashFile("firebase.json");
+const diceHash = await hashFile("dice.js");
 
 const calendarPath = join(site, "calendar.js");
 const calendarBefore = await readFile(calendarPath, "utf8");
@@ -36,7 +37,7 @@ const larryCornerBefore = await readFile(larryCornerPath, "utf8");
 const larryCornerAfter = larryCornerBefore.replace(
   /(\.\/larryLines\.js)(?:\?v=[^"']*)?/g,
   `./larryLines.js?v=${larryLinesHash}`,
-);
+).replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`);
 if (larryCornerAfter !== larryCornerBefore) {
   await writeFile(larryCornerPath, larryCornerAfter);
   console.log("stamped larryCorner.js imports");
@@ -67,6 +68,32 @@ if (voteClientAfter !== voteClientBefore) {
 }
 const voteClientHashFinal = await hashFile("voteClient.js");
 
+const diceReelPath = join(site, "diceReel.js");
+const diceReelBefore = await readFile(diceReelPath, "utf8");
+const diceReelAfter = diceReelBefore
+  .replace(/(\.\/dice\.js)(?:\?v=[^"']*)?/g, `./dice.js?v=${diceHash}`)
+  .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
+  .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
+  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`);
+if (diceReelAfter !== diceReelBefore) {
+  await writeFile(diceReelPath, diceReelAfter);
+  console.log("stamped diceReel.js imports");
+}
+const diceReelHash = await hashFile("diceReel.js");
+const devPreviewHash = await hashFile("devPreview.js");
+
+const spotDicePath = join(site, "spotDice.js");
+const spotDiceBefore = await readFile(spotDicePath, "utf8");
+const spotDiceAfter = spotDiceBefore
+  .replace(/(\.\/dice\.js)(?:\?v=[^"']*)?/g, `./dice.js?v=${diceHash}`)
+  .replace(/(\.\/diceReel\.js)(?:\?v=[^"']*)?/g, `./diceReel.js?v=${diceReelHash}`)
+  .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
+  .replace(/(\.\/locations\.js)(?:\?v=[^"']*)?/g, `./locations.js?v=${locationsHash}`);
+if (spotDiceAfter !== spotDiceBefore) {
+  await writeFile(spotDicePath, spotDiceAfter);
+  console.log("stamped spotDice.js imports");
+}
+
 const appPath = join(site, "app.js");
 const appBefore = await readFile(appPath, "utf8");
 const appAfter = appBefore
@@ -81,7 +108,10 @@ const appAfter = appBefore
   .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
   .replace(/(\.\/menuFetch\.js)(?:\?v=[^"']*)?/g, `./menuFetch.js?v=${menuFetchHash}`)
   .replace(/(\.\/boardRender\.js)(?:\?v=[^"']*)?/g, `./boardRender.js?v=${boardRenderHash}`)
-  .replace(/(\.\/boardGestures\.js)(?:\?v=[^"']*)?/g, `./boardGestures.js?v=${boardGesturesHash}`);
+  .replace(/(\.\/boardGestures\.js)(?:\?v=[^"']*)?/g, `./boardGestures.js?v=${boardGesturesHash}`)
+  .replace(/(\.\/dice\.js)(?:\?v=[^"']*)?/g, `./dice.js?v=${diceHash}`)
+  .replace(/(\.\/diceReel\.js)(?:\?v=[^"']*)?/g, `./diceReel.js?v=${diceReelHash}`)
+  .replace(/(\.\/devPreview\.js)(?:\?v=[^"']*)?/g, `./devPreview.js?v=${devPreviewHash}`);
 if (appAfter !== appBefore) {
   await writeFile(appPath, appAfter);
   console.log("stamped app.js imports");
@@ -96,6 +126,7 @@ const assets = [
   "laughing-larry.svg",
   "lazy-larry.svg",
   "canteens.json",
+  "spotDice.js",
 ];
 const hashes = Object.fromEntries(
   await Promise.all(assets.map(async (name) => [name, await hashFile(name)])),

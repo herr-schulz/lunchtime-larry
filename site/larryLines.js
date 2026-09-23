@@ -2,8 +2,13 @@
 
 export const IDLE_TIP = {
   kicker: "Hey",
-  line: "Tipps und Abstimmungen landen bei mir.",
+  line: "Tipps landen bei mir.",
 };
+
+/** The corner stays on the board. Voting rules live on the welcome ticket. */
+export function idleTip() {
+  return IDLE_TIP;
+}
 
 const CRAWL_DAYS = new Set(["monday", "wednesday"]);
 const LOOK_TEN = "Ich schau um 10 Uhr nochmal in der Küche vorbei.";

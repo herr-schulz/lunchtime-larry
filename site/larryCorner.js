@@ -1,6 +1,7 @@
 /** Single Larry speech-bubble — toast-like, free drag, gravity snap. */
 
-import { IDLE_TIP } from "./larryLines.js?v=c2848373";
+import { idleTip } from "./larryLines.js?v=a8fa1db7";
+import { loadVoteOptIn } from "./vote.js?v=c72a8e83";
 
 const DOCK_KEY = "lunchtime-larry-corner-dock";
 const SIDE_KEY = "lunchtime-larry-corner-side";
@@ -371,9 +372,10 @@ function hideBubble() {
 function onFaceTap() {
   ensureDom();
   if (!history.length) {
-    history = [IDLE_TIP];
+    const tip = idleTip(loadVoteOptIn());
+    history = [tip];
     historyIndex = 0;
-    paint(IDLE_TIP);
+    paint(tip);
     return;
   }
   if (!speaking) {

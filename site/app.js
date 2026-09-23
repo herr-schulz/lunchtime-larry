@@ -8,9 +8,19 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=f580c454";
+} from "./calendar.js?v=3316bbab";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=2380b0b1";
+import { escapeHtml } from "./dom.js?v=d3d5b527";
+import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
+import {
+  berlinWeekMonday,
+  canteenEntries,
+  dishEntries,
+  isStaleMenuWeek,
+  mountDice,
+} from "./diceReel.js?v=c78c2727";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=c2f238ba";
+import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
   alarmLabel,
   dishKey,
@@ -20,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=03bb3f3f";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=8ef9aa59";
 import {
   favoritePoint,
   favoriteToday,
@@ -32,29 +42,50 @@ import {
   voteFull,
   voteOffline,
   weekStaleHitsNote,
-  winnerLead,
   winnerTie,
-} from "./larryLines.js?v=c2848373";
-import { LOCATIONS } from "./locations.js?v=87fbb02b";
+} from "./larryLines.js?v=a8fa1db7";
+import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
   berlinWeekday,
   isVoteDay,
   lastVoteDate,
+  loadIntroSeen,
   loadNick,
+  generateRoundCode,
+  loadRoundCode,
+  loadVoteOptIn,
+  lockLine,
+  minutesUntilReveal,
   nicksFor,
+  MARKET_ID,
+  MARKET_NAME,
   normalizeNick,
+  normalizeRoundCode,
+  roundNicks,
+  saveIntroSeen,
   saveNick,
+  saveRoundCode,
+  saveVoteOptIn,
+  setNowOverride,
+  clearNowOverride,
+  votePhase,
   winnerOf,
-} from "./vote.js?v=0b6f336e";
+} from "./vote.js?v=c72a8e83";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=ff3e8872";
+} from "./voteClient.js?v=0957c3e1";
+import {
+  berlinAt,
+  demoVotes,
+  mountDevPreview,
+} from "./devPreview.js?v=b32841dd";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
+const WELCOME_KEY = "lunchtime-larry-vote-welcome";
 
 const board = document.querySelector("#board");
 const notices = document.querySelector("#notices");
@@ -62,17 +93,39 @@ const banner = document.querySelector("#banner");
 const hits = document.querySelector("#hits");
 const empty = document.querySelector("#empty");
 const dayDate = document.querySelector("#day-date");
+const marketRow = document.querySelector("#market-row");
 const marketBanner = document.querySelector("#market-banner");
+const marketVote = document.querySelector("#market-vote");
 const escapeWrap = document.querySelector("#escape-wrap");
-const escapeSub = document.querySelector(".escape-sub");
+const escapeSub = document.querySelector("#escape-link .escape-sub");
 const daysNav = document.querySelector(".days");
 const kwEl = document.querySelector("#kw");
 const stamp = document.querySelector("#stamp");
 const nickEdit = document.querySelector("#nick-edit");
+const introAgain = document.querySelector("#intro-again");
+const introDialog = document.querySelector("#intro-dialog");
+const optinDialog = document.querySelector("#optin-dialog");
+const optinCancel = document.querySelector("#optin-cancel");
+const voteLock = document.querySelector("#vote-lock");
+const heuteDabei = document.querySelector("#heute-dabei");
+const revealDialog = document.querySelector("#reveal-dialog");
+const revealName = document.querySelector("#reveal-name");
+const revealStrip = document.querySelector("#reveal-strip");
+const REVEAL_SPIN_MS = 2400;
+const REVEAL_SPIN_EASE = "cubic-bezier(0.12, 0.62, 0.08, 1)";
+let revealSpinTimer = 0;
 const nickDialog = document.querySelector("#nick-dialog");
+const nickHeading = nickDialog?.querySelector("h2");
 const nickForm = document.querySelector("#nick-form");
 const nickInput = document.querySelector("#nick-input");
+const roundInput = document.querySelector("#round-input");
+const roundRoll = document.querySelector("#round-roll");
 const nickCancel = document.querySelector("#nick-cancel");
+const welcomeDialog = document.querySelector("#welcome-dialog");
+const welcomeCode = document.querySelector("#welcome-code");
+const welcomeCopy = document.querySelector("#welcome-copy");
+const welcomeEdit = document.querySelector("#welcome-edit");
+let welcomeCopyTimer = 0;
 const weekendDialog = document.querySelector("#weekend-dialog");
 const mascot = document.querySelector(".masthead .mascot");
 
@@ -80,11 +133,13 @@ let enterTimer;
 let currentDay = "monday";
 let likes = loadLikes();
 let voteState = {
-  counts: { stmuv: 0, sodexo: 0, bella23: 0 },
+  counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
   records: {},
   mine: null,
   uid: null,
 };
+/** Localhost ?dev=1 — freezes ballots so the 12:00 presentation can be replayed. */
+let previewVotes = null;
 let lastWinnerKey = "";
 let leisureMode = false;
 let justLikedKey = "";
@@ -105,8 +160,43 @@ function saveLikes() {
   localStorage.setItem(LIKES_KEY, JSON.stringify([...likes]));
 }
 
+function loadWelcomeSeen() {
+  try {
+    return localStorage.getItem(WELCOME_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveWelcomeSeen() {
+  try {
+    localStorage.setItem(WELCOME_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+}
+
+let welcomePassed = loadWelcomeSeen();
+
 function votingOpen() {
-  return isVoteDay() && currentDay === todayKey();
+  return (
+    loadVoteOptIn() &&
+    welcomePassed &&
+    Boolean(loadRoundCode()) &&
+    isVoteDay() &&
+    currentDay === todayKey() &&
+    votePhase() === "open"
+  );
+}
+
+function showVoteMarks() {
+  return (
+    loadVoteOptIn() &&
+    welcomePassed &&
+    Boolean(loadRoundCode()) &&
+    isVoteDay() &&
+    currentDay === todayKey()
+  );
 }
 
 function menuWeekStale(data) {
@@ -230,6 +320,12 @@ function chromeOffset() {
   return 16;
 }
 
+function clearPenMarks(root = document) {
+  for (const el of root.querySelectorAll(".is-pointed")) {
+    el.classList.remove("is-pointed");
+  }
+}
+
 function scrollToFavorite(canteen, key) {
   if (!board || !key) return false;
   const slip = canteen ? board.querySelector(`.slip[data-canteen="${canteen}"]`) : board;
@@ -241,10 +337,10 @@ function scrollToFavorite(canteen, key) {
   dish.style.scrollMarginTop = `${offset}px`;
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   dish.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start", inline: "nearest" });
-  dish.classList.remove("is-pointed");
+  clearPenMarks(board);
   void dish.offsetWidth;
+  applyPenMark(dish);
   dish.classList.add("is-pointed");
-  window.setTimeout(() => dish.classList.remove("is-pointed"), 1200);
   return true;
 }
 
@@ -316,14 +412,15 @@ function renderDay(data, day) {
   const block = data.days[day];
   const weekStale = menuWeekStale(data);
   dayDate.innerHTML = block ? formatDate(block.date) : "";
+  if (marketRow) marketRow.hidden = day !== "thursday";
   markWeekStaleChrome(weekStale);
-  marketBanner.hidden = day !== "thursday";
   board.innerHTML = boardHtml({
     block,
     canteens: CANTEENS,
     sources: data.sources,
     likes,
     votingOpen: votingOpen(),
+    showVotes: showVoteMarks(),
     weekStale,
   });
   renderHits(data, day);
@@ -359,7 +456,7 @@ function playEnterAnimation() {
   void board.offsetWidth;
   board.classList.add("is-entering");
   dayDate.classList.add("is-entering");
-  if (marketBanner && !marketBanner.hidden) {
+  if (marketBanner && marketRow && !marketRow.hidden) {
     marketBanner.classList.add("is-entering");
   }
   enterTimer = window.setTimeout(() => {
@@ -428,24 +525,33 @@ function replayCheck(el) {
   el.classList.add("is-drawn");
 }
 
+function activeVotes() {
+  return previewVotes ?? voteState;
+}
+
 function applyVoteUi() {
   const open = votingOpen();
+  const show = showVoteMarks();
+  const reveal = show && votePhase() === "reveal";
+  const votes = activeVotes();
   const names = Object.fromEntries(
     Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
   );
-  const result = winnerOf(voteState.counts, names);
+  names[MARKET_ID] = MARKET_NAME;
+  const result = winnerOf(votes.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
-    const mine = open && voteState.mine === id;
-    const nickList = nicksFor(voteState.records, id);
+    const mine = show && votes.mine === id;
+    const nickList = reveal ? nicksFor(votes.records, id) : [];
     slip.classList.toggle("is-voted", mine);
     slip.classList.toggle(
       "is-leading",
-      open && result.status === "lead" && result.id === id,
+      reveal && result.status === "lead" && result.id === id,
     );
     const mark = slip.querySelector(".vote-mark");
     if (!mark) continue;
-    mark.hidden = !open;
+    mark.hidden = !show;
+    mark.disabled = !open;
     mark.setAttribute("aria-pressed", String(mine));
     const label = nickList.length
       ? nickList.join(" · ")
@@ -461,55 +567,269 @@ function applyVoteUi() {
       mark.classList.remove("is-drawn");
     }
   }
-  maybeAnnounceWinner(result, open);
+  const showMarket = show && currentDay === "thursday";
+  if (marketVote) {
+    marketVote.hidden = !showMarket;
+    marketVote.disabled = !open;
+    const mine = showMarket && votes.mine === MARKET_ID;
+    const nickList = showMarket && reveal ? nicksFor(votes.records, MARKET_ID) : [];
+    marketVote.setAttribute("aria-pressed", String(mine));
+    const label = nickList.length
+      ? nickList.join(" · ")
+      : mine
+        ? "Deine Stimme"
+        : "Hierhin";
+    marketVote.setAttribute("aria-label", label);
+    const nicks = marketVote.querySelector(".vote-nicks");
+    if (nicks) nicks.textContent = nickList.join(" · ");
+    if (mine) {
+      if (!marketVote.classList.contains("is-drawn")) replayCheck(marketVote);
+    } else {
+      marketVote.classList.remove("is-drawn");
+    }
+  }
+  marketBanner?.classList.toggle("is-voted", showMarket && votes.mine === MARKET_ID);
+  marketBanner?.classList.toggle(
+    "is-leading",
+    showMarket && reveal && result.status === "lead" && result.id === MARKET_ID,
+  );
+  syncVoteChrome();
+  maybeAnnounceWinner(result, reveal);
 }
 
 function voteTotal() {
-  return Object.values(voteState.counts).reduce((sum, n) => sum + (n || 0), 0);
+  return Object.values(activeVotes().counts).reduce((sum, n) => sum + (n || 0), 0);
 }
 
-function winnerStorageKey() {
-  return `lunchtime-larry-winner-${lastVoteDate()}`;
+function syncVoteChrome() {
+  const show = showVoteMarks();
+  const phase = votePhase();
+  if (voteLock) {
+    if (show && phase === "locked") {
+      voteLock.hidden = false;
+      voteLock.textContent = lockLine(minutesUntilReveal());
+    } else {
+      voteLock.hidden = true;
+    }
+  }
+  if (heuteDabei) {
+    const names = roundNicks(activeVotes().records);
+    if (show && names.length) {
+      heuteDabei.hidden = false;
+      heuteDabei.textContent = `Heute dabei · ${names.join(" · ")}`;
+    } else {
+      heuteDabei.hidden = true;
+      heuteDabei.textContent = "";
+    }
+  }
 }
 
-function maybeAnnounceWinner(result, open) {
-  if (!open) return;
+function winnerSessionKey(result) {
+  if (result.status === "lead") return `lead:${result.id}`;
+  if (result.status === "tie") return "tie";
+  return "";
+}
+
+function maybeAnnounceWinner(result, reveal) {
+  if (!reveal || !loadVoteOptIn() || !loadRoundCode()) return;
   if (voteTotal() < 3) return;
-  if (berlinHour() < 12) return;
   if (result.status !== "lead" && result.status !== "tie") return;
 
-  const key =
-    result.status === "lead" ? `lead:${result.id}` : "tie";
-  try {
-    if (localStorage.getItem(winnerStorageKey()) === key) return;
-    localStorage.setItem(winnerStorageKey(), key);
-  } catch {
-    if (lastWinnerKey === key) return;
-    lastWinnerKey = key;
-  }
+  /* Session-only: refresh after 12:00 shows the ticket again until the next vote day. */
+  const key = winnerSessionKey(result);
+  if (!key || lastWinnerKey === key) return;
+  lastWinnerKey = key;
 
-  if (result.status === "lead") {
-    sayLarry(winnerLead(result.name));
-  } else {
+  if (result.status === "tie") {
     sayLarry(winnerTie());
+    return;
   }
+  showRevealDialog(result.name || "");
+}
+
+function revealPool(winner) {
+  const names = Object.values(CANTEENS).map((meta) => meta.name);
+  if (!names.includes(MARKET_NAME)) names.push(MARKET_NAME);
+  const pool = names.filter(Boolean);
+  if (winner && !pool.includes(winner)) pool.push(winner);
+  return pool.length ? pool : [winner || "…"];
+}
+
+function buildRevealStrip(winner) {
+  if (!revealStrip) return;
+  const pool = revealPool(winner);
+  const labels = [];
+  for (let i = 0; i < 12; i += 1) labels.push(pool[i % pool.length]);
+  labels[labels.length - 1] = winner;
+  if (labels.length > 1 && labels[labels.length - 2] === winner) {
+    labels[labels.length - 2] = pool.find((label) => label !== winner) || winner;
+  }
+  revealStrip.innerHTML = labels
+    .map((label) => `<span class="reveal-item">${escapeHtml(label)}</span>`)
+    .join("");
+  revealStrip.style.transition = "none";
+  revealStrip.style.transform = "translateY(0)";
+}
+
+function settleReveal() {
+  window.clearTimeout(revealSpinTimer);
+  revealSpinTimer = 0;
+  revealDialog?.classList.add("is-settled");
+  const still = revealDialog?.classList.contains("is-still");
+  for (const scrap of revealDialog?.querySelectorAll(".confetti i") ?? []) {
+    scrap.style.animation = "none";
+    void scrap.offsetWidth;
+    if (still) {
+      scrap.style.animation = "";
+      continue;
+    }
+    const delay = getComputedStyle(scrap).getPropertyValue("--fall-delay").trim() || "0s";
+    scrap.style.animation = `scrap-fall 2.8s linear ${delay} both`;
+  }
+}
+
+function showRevealDialog(name) {
+  const winner = String(name || "").trim() || "…";
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  window.clearTimeout(revealSpinTimer);
+  revealDialog?.classList.remove("is-settled");
+  revealDialog?.classList.toggle("is-still", Boolean(reduce));
+  if (revealDialog?.open) revealDialog.close();
+  for (const scrap of revealDialog?.querySelectorAll(".confetti i") ?? []) {
+    scrap.style.animation = "none";
+  }
+  buildRevealStrip(winner);
+  if (revealName) revealName.dataset.winner = winner;
+  revealDialog?.showModal();
+  if (reduce || !revealStrip) {
+    settleReveal();
+    return;
+  }
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const items = revealStrip.querySelectorAll(".reveal-item");
+      const last = items[items.length - 1];
+      if (!last || !revealDialog?.open) {
+        settleReveal();
+        return;
+      }
+      const offset = last.offsetTop;
+      revealStrip.style.transition = `transform ${REVEAL_SPIN_MS}ms ${REVEAL_SPIN_EASE}`;
+      revealStrip.style.transform = `translateY(${-offset}px)`;
+      const onEnd = (event) => {
+        if (event.target !== revealStrip || event.propertyName !== "transform") return;
+        revealStrip.removeEventListener("transitionend", onEnd);
+        settleReveal();
+      };
+      revealStrip.addEventListener("transitionend", onEnd);
+      revealSpinTimer = window.setTimeout(() => {
+        revealStrip.removeEventListener("transitionend", onEnd);
+        settleReveal();
+      }, REVEAL_SPIN_MS + 80);
+    });
+  });
+}
+
+function clearWinnerSeen() {
+  lastWinnerKey = "";
+}
+
+revealDialog?.addEventListener("close", () => {
+  window.clearTimeout(revealSpinTimer);
+  revealSpinTimer = 0;
+});
+
+function ensurePreviewSession() {
+  if (!loadVoteOptIn()) saveVoteOptIn();
+  if (!loadNick()) saveNick("Sven");
+  if (!loadRoundCode()) saveRoundCode(generateRoundCode());
+  welcomePassed = true;
+  try {
+    localStorage.setItem(WELCOME_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+  syncNickButton();
+}
+
+function runDevPhase(phase, mode = "lead") {
+  if (revealDialog?.open) revealDialog.close();
+  if (phase == null) {
+    clearNowOverride();
+    previewVotes = null;
+    if (menuData) selectDay(menuData, todayKey(), { instantIndicator: true });
+    else applyVoteUi();
+    return;
+  }
+  ensurePreviewSession();
+  const clock =
+    phase === "open"
+      ? berlinAt(11, 0)
+      : phase === "locked"
+        ? berlinAt(11, 55)
+        : berlinAt(12, 0);
+  setNowOverride(clock);
+  previewVotes = demoVotes(mode === "tie" ? "tie" : "lead");
+  clearWinnerSeen();
+  if (menuData) selectDay(menuData, todayKey(), { instantIndicator: true });
+  else applyVoteUi();
+}
+
+function syncDevPhaseLabel() {
+  const override = votePhase();
+  if (!previewVotes) return `Phase · ${override} (live)`;
+  return `Phase · ${override} · Demo-Stimmen`;
 }
 
 function syncNickButton() {
+  if (introAgain) introAgain.hidden = false;
   if (!nickEdit) return;
+  if (!loadVoteOptIn()) {
+    nickEdit.hidden = false;
+    nickEdit.textContent = "Mitstimmen";
+    return;
+  }
   const nick = loadNick();
   if (!nick) {
     nickEdit.hidden = true;
     nickEdit.textContent = "";
     return;
   }
+  const code = loadRoundCode();
   nickEdit.hidden = false;
-  nickEdit.textContent = `Spitzname: ${nick}`;
+  nickEdit.innerHTML = code
+    ? `Spitzname: ${escapeHtml(nick)} · ${escapeHtml(code)}`
+    : `Spitzname: ${escapeHtml(nick)}`;
 }
 
-function askNick() {
+function askOptIn() {
+  if (!optinDialog) return Promise.resolve(false);
+  optinDialog.showModal();
+  return new Promise((resolve) => {
+    optinDialog.addEventListener(
+      "close",
+      () => resolve(optinDialog.returnValue === "ok"),
+      { once: true },
+    );
+  });
+}
+
+let roundMigrateLock = false;
+
+function askNick({ migrate = false } = {}) {
   if (!nickDialog || !nickInput) return Promise.resolve("");
   nickInput.value = loadNick();
+  if (roundInput) {
+    roundInput.value = loadRoundCode();
+    roundInput.setCustomValidity("");
+  }
+  roundMigrateLock = migrate;
+  if (nickHeading) {
+    nickHeading.textContent = migrate
+      ? "Deine Stimme braucht eine Runde"
+      : "Dein Spitzname";
+  }
+  if (nickCancel) nickCancel.hidden = migrate;
   nickDialog.showModal();
   // Defer focus so iOS lays out the modal before the keyboard opens.
   requestAnimationFrame(() => {
@@ -518,19 +838,94 @@ function askNick() {
   return new Promise((resolve) => {
     const onClose = () => {
       nickDialog.removeEventListener("close", onClose);
-      resolve(nickDialog.returnValue === "ok" ? saveNick(nickInput.value) : "");
+      roundMigrateLock = false;
+      if (nickHeading) nickHeading.textContent = "Dein Spitzname";
+      if (nickCancel) nickCancel.hidden = false;
+      if (nickDialog.returnValue !== "ok") {
+        resolve("");
+        return;
+      }
+      saveNick(nickInput.value);
+      saveRoundCode(roundInput?.value || "");
+      resolve(loadNick());
     };
     nickDialog.addEventListener("close", onClose, { once: true });
   });
 }
 
+function showWelcome() {
+  if (!welcomeDialog) return Promise.resolve("ok");
+  const code = loadRoundCode();
+  if (welcomeCode) welcomeCode.textContent = code || "—";
+  if (welcomeCopy) {
+    welcomeCopy.disabled = !code;
+    welcomeCopy.classList.remove("is-copied");
+    welcomeCopy.setAttribute("aria-label", "Code kopieren");
+  }
+  welcomeDialog.showModal();
+  welcomeDialog.focus({ preventScroll: true });
+  return new Promise((resolve) => {
+    welcomeDialog.addEventListener(
+      "close",
+      () => {
+        saveWelcomeSeen();
+        welcomePassed = true;
+        resolve(welcomeDialog.returnValue || "ok");
+      },
+      { once: true },
+    );
+  });
+}
+
+async function copyWelcomeCode() {
+  const code = welcomeCode?.textContent?.trim();
+  if (!code || code === "—" || !welcomeCopy) return;
+  try {
+    await navigator.clipboard.writeText(code);
+  } catch {
+    return;
+  }
+  window.clearTimeout(welcomeCopyTimer);
+  welcomeCopy.classList.add("is-copied");
+  welcomeCopy.setAttribute("aria-label", "Kopiert");
+  welcomeCopyTimer = window.setTimeout(() => {
+    welcomeCopy.classList.remove("is-copied");
+    welcomeCopy.setAttribute("aria-label", "Code kopieren");
+  }, 1600);
+}
+
+/** Marks and the listener wait until nick, slug, and the welcome ticket. */
+async function settleRound() {
+  syncNickButton();
+  if (!loadNick() || !loadRoundCode()) return;
+  if (!welcomePassed) {
+    const action = await showWelcome();
+    if (action === "edit") {
+      const nick = await askNick();
+      if (nick && loadRoundCode()) syncNickButton();
+    }
+  }
+  if (menuData) renderDay(menuData, currentDay);
+  startVotes({ force: true });
+}
+
+/** Opt-in without a slug cannot vote, and the old house ballots stay where they are. */
+function maybeMigrateRound() {
+  if (!loadVoteOptIn() || loadRoundCode()) return Promise.resolve();
+  return askNick({ migrate: true }).then(() => settleRound());
+}
+
+marketVote?.addEventListener("click", () => {
+  if (!votingOpen()) return;
+  handleVote(MARKET_ID);
+});
+
 async function handleVote(canteen) {
   if (!votingOpen()) return;
-  let nick = loadNick();
-  if (!nick) {
-    nick = await askNick();
-    if (!nick) return;
-    syncNickButton();
+  if (!loadNick() || !loadRoundCode()) {
+    const nick = await askNick();
+    if (!nick || !loadRoundCode()) return;
+    await settleRound();
   }
   try {
     voteState.mine = await toggleVote(
@@ -541,6 +936,7 @@ async function handleVote(canteen) {
   } catch (err) {
     console.warn(err);
     const msg = String(err?.message || err);
+    if (msg.includes("locked")) return;
     if (msg.includes("full")) {
       sayLarry(voteFull());
     } else {
@@ -577,16 +973,104 @@ function bindNickUi() {
     const cleaned = normalizeNick(nickInput.value);
     if (nickInput.value !== cleaned) nickInput.value = cleaned;
   });
-  nickForm?.addEventListener("submit", () => {
+  roundInput?.addEventListener("input", () => {
+    roundInput.setCustomValidity("");
+  });
+  roundRoll?.addEventListener("click", () => {
+    if (!roundInput) return;
+    roundInput.value = generateRoundCode();
+    roundInput.setCustomValidity("");
+  });
+  nickForm?.addEventListener("submit", (event) => {
+    const raw = roundInput?.value || "";
+    if (!normalizeRoundCode(raw)) {
+      event.preventDefault();
+      roundInput?.setCustomValidity("Teamname oder Code, zwei bis 8 Zeichen.");
+      roundInput?.reportValidity();
+      return;
+    }
+    roundInput?.setCustomValidity("");
     nickDialog.returnValue = "ok";
   });
+  nickDialog?.addEventListener("cancel", (event) => {
+    if (roundMigrateLock) event.preventDefault();
+  });
   nickCancel?.addEventListener("click", () => {
+    if (roundMigrateLock) return;
     nickDialog.close("cancel");
   });
-  nickEdit?.addEventListener("click", async () => {
-    const nick = await askNick();
-    if (nick) syncNickButton();
+  welcomeEdit?.addEventListener("click", () => {
+    welcomeDialog?.close("edit");
   });
+  welcomeCopy?.addEventListener("click", () => {
+    copyWelcomeCode();
+  });
+  nickEdit?.addEventListener("click", async () => {
+    if (!loadVoteOptIn()) {
+      const joined = await askOptIn();
+      if (!joined) return;
+      saveVoteOptIn();
+      const nick = await askNick();
+      if (!nick || !loadRoundCode()) return;
+      await settleRound();
+      return;
+    }
+    if (!loadNick() || !loadRoundCode()) {
+      const nick = await askNick();
+      if (!nick || !loadRoundCode()) return;
+      await settleRound();
+      return;
+    }
+    const action = await showWelcome();
+    if (action !== "edit") return;
+    const nick = await askNick();
+    if (!nick || !loadRoundCode()) return;
+    syncNickButton();
+    if (menuData) renderDay(menuData, currentDay);
+    startVotes({ force: true });
+  });
+  introAgain?.addEventListener("click", () => {
+    introDialog?.showModal();
+  });
+  optinCancel?.addEventListener("click", () => {
+    optinDialog?.close("cancel");
+  });
+}
+
+function maybeIntro() {
+  if (!introDialog || loadIntroSeen()) return false;
+  introDialog.showModal();
+  introDialog.addEventListener(
+    "close",
+    () => {
+      saveIntroSeen();
+    },
+    { once: true },
+  );
+  return true;
+}
+
+let votesListening = false;
+
+function startVotes({ force = false } = {}) {
+  if (!loadVoteOptIn()) return;
+  if (!loadRoundCode()) return;
+  if (!welcomePassed) return;
+  if (votesListening && !force) return;
+  votesListening = true;
+  const onVotes = (next) => {
+    voteState = next;
+    applyVoteUi();
+  };
+  const boot = async () => {
+    try {
+      if (loadNick()) await ensureVoteUser();
+    } catch {
+      /* offline or missing database */
+    }
+    listenVotes(onVotes);
+  };
+  boot();
 }
 
 function applyLikeState(dish, on) {
@@ -721,26 +1205,99 @@ try {
   bindBoardGestures(data);
   bindNickUi();
   bindMascotEgg();
+  mountDice({
+    openButton: document.querySelector("#dice-open"),
+    dialog: document.querySelector("#dice-dialog"),
+    modes: true,
+    showStale: isStaleMenuWeek(data.weekStart, berlinWeekMonday()),
+    getEntries(mode) {
+      const block = data.days?.[todayKey()];
+      return mode === "canteen" ? canteenEntries(block, CANTEENS) : dishEntries(block, CANTEENS);
+    },
+    pick(mode) {
+      const block = data.days?.[todayKey()];
+      if (mode === "canteen") {
+        const entries = canteenEntries(block, CANTEENS);
+        const picked = pickSpot(entries);
+        if (!picked) return null;
+        return { index: entries.indexOf(picked), entry: picked };
+      }
+      const picked = pickMainDish(block);
+      if (!picked) return null;
+      const index = listMainDishes(block).findIndex(
+        (item) => item.canteenId === picked.canteenId && item.dish === picked.dish,
+      );
+      const entry = dishEntries(block, CANTEENS)[index];
+      if (!entry || index < 0) return null;
+      return { index, entry };
+    },
+    onShow(entry) {
+      const day = todayKey();
+      if (currentDay !== day) selectDay(data, day, { instantIndicator: true });
+      window.requestAnimationFrame(() => {
+        if (entry.kind === "canteen") {
+          const slip = board?.querySelector(
+            `.slip[data-canteen="${CSS.escape(entry.canteenId || "")}"]`,
+          );
+          const dish = slip?.querySelector(".dish");
+          if (dish?.dataset.key) {
+            scrollToFavorite(entry.canteenId || "", dish.dataset.key);
+            return;
+          }
+          const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+          slip?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+          return;
+        }
+        scrollToFavorite(entry.canteenId || "", entry.key || "");
+      });
+    },
+  });
   syncNickButton();
-  maybeWeekendNote();
-  const onVotes = (next) => {
-    voteState = next;
-    applyVoteUi();
-  };
-  const startVotes = async () => {
-    try {
-      if (loadNick()) await ensureVoteUser();
-    } catch {
-      /* offline or missing database */
+  const introOpen = maybeIntro();
+  const beginVotes = () => {
+    if (!loadVoteOptIn()) return;
+    if (!loadRoundCode()) {
+      maybeMigrateRound();
+      return;
     }
-    listenVotes(onVotes);
+    if (!loadNick() || !welcomePassed) {
+      settleRound();
+      return;
+    }
+    startVotes();
   };
-  startVotes();
+  if (introOpen) {
+    introDialog.addEventListener(
+      "close",
+      () => {
+        beginVotes();
+        maybeWeekendNote();
+      },
+      { once: true },
+    );
+  } else {
+    maybeWeekendNote();
+    beginVotes();
+  }
+  let phaseStamp = votePhase();
+  window.setInterval(() => {
+    syncVoteChrome();
+    const phase = votePhase();
+    if (phase === phaseStamp) return;
+    phaseStamp = phase;
+    renderDay(data, currentDay);
+  }, 15_000);
   watchBerlinMidnight(() => {
+    lastWinnerKey = "";
+    if (revealDialog?.open) revealDialog.close();
     const day = todayKey();
     if (currentDay !== day) selectDay(data, day, { instantIndicator: true });
     else applyVoteUi();
-    startVotes();
+    startVotes({ force: true });
+  });
+  mountDevPreview({
+    run: runDevPhase,
+    phaseLabel: syncDevPhaseLabel,
   });
 } catch {
   empty.hidden = false;
@@ -750,6 +1307,7 @@ try {
   bindLarryCorner();
   bindHits();
   bindMascotEgg();
+  syncNickButton();
   const miss = menuFreshNote({
     old: true,
     hour: berlinHour(),

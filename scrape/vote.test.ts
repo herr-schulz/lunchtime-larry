@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ballotDate,
@@ -8,11 +9,23 @@ import {
   lastVoteDate,
   MAX_VOTERS,
   normalizeNick,
+  generateRoundCode,
   nicksFor,
+  normalizeRoundCode,
+  ROUND_ALPHABET,
   staleVoteDays,
+  lockLine,
+  minutesUntilReveal,
+  roundNicks,
+  votePhase,
+  voteTargetIds,
   votesPath,
   winnerOf,
+  setNowOverride,
+  clearNowOverride,
 } from "../site/vote.js";
+import { berlinAt, demoVotes, isDevHost, readDevQuery } from "../site/devPreview.js";
+import { parseHTML } from "linkedom";
 
 describe("berlinDate", () => {
   it("returns an ISO calendar date in Europe/Berlin", () => {
@@ -52,7 +65,7 @@ describe("countVotes", () => {
         c: { canteen: "stmuv" },
         d: { canteen: "pizza" },
       }),
-    ).toEqual({ stmuv: 1, sodexo: 2, bella23: 0 });
+    ).toEqual({ stmuv: 1, sodexo: 2, bella23: 0, wochenmarkt: 0 });
   });
 });
 
@@ -120,15 +133,113 @@ describe("isValidNick", () => {
   });
 });
 
-describe("votesPath", () => {
-  it("nests ballots under the Berlin date", () => {
-    expect(votesPath("2026-09-04")).toBe("votes/2026-09-04");
+describe("round slug", () => {
+  it("meets AI-Team and ai-team in one slug", () => {
+    expect(normalizeRoundCode("AI-Team")).toBe("ai-team");
+    expect(normalizeRoundCode("AI Team")).toBe("ai-team");
+    expect(normalizeRoundCode("ai-team")).toBe("ai-team");
+    expect(normalizeRoundCode("kantine")).toBe("kantine");
+    expect(normalizeRoundCode("mittags4")).toBe("mittags4");
   });
 
-  it("builds the weekday ballot path from berlinDate", () => {
+  it("rejects a date, a single character, and firebase punctuation", () => {
+    expect(normalizeRoundCode("2026-09-22")).toBe("");
+    expect(normalizeRoundCode("a")).toBe("");
+    expect(normalizeRoundCode("foo.bar")).toBe("foobar");
+    expect(normalizeRoundCode("a$b#c")).toBe("abc");
+    expect(normalizeRoundCode("abcdefgh")).toBe("abcdefgh");
+    expect(normalizeRoundCode("abcdefghi")).toBe("");
+  });
+
+  it("rolls five characters without 0, O, 1, or l", () => {
+    expect(ROUND_ALPHABET).not.toMatch(/[01lo]/);
+    expect(generateRoundCode(() => 0)).toBe("aaaaa");
+    expect(generateRoundCode(() => 0.999)).toHaveLength(5);
+    expect(generateRoundCode(() => 0.999)).toMatch(
+      new RegExp(`^[${ROUND_ALPHABET}]{5}$`),
+    );
+  });
+});
+
+describe("votesPath", () => {
+  it("never falls back to the bare day", () => {
+    expect(votesPath("2026-09-04")).toBe("");
+    expect(votesPath("2026-09-04", "")).toBe("");
+    expect(votesPath("2026-09-22", "2026-09-22")).toBe("");
+  });
+
+  it("nests both spellings of a team under the same day", () => {
     const thursday = new Date("2026-09-03T12:00:00+02:00");
     expect(ballotDate(thursday)).toBe("2026-09-03");
-    expect(votesPath(berlinDate(thursday))).toBe("votes/2026-09-03");
+    expect(votesPath("2026-09-04", "AI-Team")).toBe("votes/ai-team/2026-09-04");
+    expect(votesPath("2026-09-04", "ai-team")).toBe("votes/ai-team/2026-09-04");
+    expect(votesPath(berlinDate(thursday), generateRoundCode(() => 0))).toBe(
+      "votes/aaaaa/2026-09-03",
+    );
+  });
+});
+
+describe("thursday market", () => {
+  it("offers the market only on Thursday", () => {
+    expect(voteTargetIds("thursday")).toEqual([
+      "stmuv",
+      "sodexo",
+      "bella23",
+      "wochenmarkt",
+    ]);
+    for (const day of ["monday", "tuesday", "wednesday", "friday"]) {
+      expect(voteTargetIds(day)).toEqual(["stmuv", "sodexo", "bella23"]);
+    }
+  });
+
+  it("can crown the market instead of falling back to a canteen", () => {
+    const names = {
+      stmuv: "StMUV",
+      sodexo: "Dave B",
+      bella23: "Bella 23",
+      wochenmarkt: "Wochenmarkt",
+    };
+    expect(
+      countVotes({
+        a: { canteen: "wochenmarkt" },
+        b: { canteen: "wochenmarkt" },
+        c: { canteen: "stmuv" },
+      }),
+    ).toMatchObject({ wochenmarkt: 2, stmuv: 1 });
+    expect(
+      winnerOf({ stmuv: 1, sodexo: 0, bella23: 0, wochenmarkt: 3 }, names),
+    ).toEqual({ status: "lead", id: "wochenmarkt", name: "Wochenmarkt" });
+    expect(
+      winnerOf({ stmuv: 2, sodexo: 0, bella23: 0, wochenmarkt: 2 }, names),
+    ).toEqual({ status: "tie" });
+  });
+
+  it("keeps the mark beside the Thursday banner, not inside the link", () => {
+    const { document } = parseHTML(readFileSync("site/index.html", "utf8"));
+    const mark = document.querySelector("#market-vote");
+    expect(mark?.getAttribute("data-vote")).toBe("wochenmarkt");
+    expect(mark?.closest("a")).toBeNull();
+    expect(mark?.closest("#market-row")).toBeTruthy();
+    const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
+    expect(rules.votes.$key.$child.$slot[".validate"]).toMatch(/wochenmarkt/);
+    const client = readFileSync("site/voteClient.js", "utf8");
+    expect(client).toMatch(/voteTargetIds\(berlinWeekday\(\)\)/);
+  });
+});
+
+describe("round rules", () => {
+  const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
+
+  it("writes ballots only under a slug, never on a bare date", () => {
+    expect(rules.votes[".read"]).toBeUndefined();
+    const key = rules.votes.$key;
+    expect(key.$child.$slot[".write"]).toMatch(/a-z0-9-/);
+    expect(key.$child.$slot[".write"]).toMatch(/!\$key\.matches/);
+    expect(key.$child.$slot[".write"]).toMatch(/\[0-5\]/);
+    expect(key.$child.$slot[".write"]).toMatch(/auth\.uid/);
+    expect(key.$child[".write"]).not.toMatch(/\$key == root\.child\('meta\/voteDay'\)/);
+    expect(key[".write"]).toMatch(/!newData\.exists\(\)/);
+    expect(key.$child[".write"]).toMatch(/\$child < root\.child\('meta\/voteDay'\)/);
   });
 });
 
@@ -175,5 +286,67 @@ describe("canAcceptVote", () => {
   it("accepts a new ballot while seats remain", () => {
     const five = Object.fromEntries(Object.entries(six).slice(0, 5));
     expect(canAcceptVote(five, "uid99")).toBe(true);
+  });
+});
+
+describe("votePhase", () => {
+  const at = (clock: string) => new Date(`2026-09-22T${clock}:00+02:00`);
+
+  it("stays open until 11:55, locks, then reveals at noon", () => {
+    expect(votePhase(at("11:54"))).toBe("open");
+    expect(votePhase(at("11:55"))).toBe("locked");
+    expect(votePhase(at("11:59"))).toBe("locked");
+    expect(votePhase(at("12:00"))).toBe("reveal");
+  });
+
+  it("closes on the weekend", () => {
+    expect(votePhase(new Date("2026-09-26T11:00:00+02:00"))).toBe("closed");
+  });
+
+  it("counts down to noon in whole minutes", () => {
+    expect(minutesUntilReveal(at("11:56"))).toBe(4);
+    expect(lockLine(4)).toBe("Noch 4 Minuten.");
+    expect(lockLine(1)).toBe("Noch eine Minute.");
+  });
+
+  it("lets a localhost preview freeze the berlin clock", () => {
+    setNowOverride(at("12:00"));
+    expect(votePhase()).toBe("reveal");
+    clearNowOverride();
+    expect(votePhase(at("11:54"))).toBe("open");
+  });
+});
+
+describe("roundNicks", () => {
+  it("lists nicknames without their canteen", () => {
+    expect(
+      roundNicks({
+        0: { nick: "Sven", canteen: "stmuv" },
+        1: { nick: "Alex", canteen: "sodexo" },
+        2: { nick: "Sven", canteen: "bella23" },
+      }),
+    ).toEqual(["Sven", "Alex"]);
+  });
+});
+
+describe("dev preview helpers", () => {
+  it("gates the panel to localhost and ?dev=", () => {
+    expect(isDevHost("localhost")).toBe(true);
+    expect(isDevHost("lunchtime-larry.web.app")).toBe(false);
+    expect(readDevQuery("?dev=1")).toBe("1");
+    expect(readDevQuery("?dev=reveal")).toBe("reveal");
+    expect(readDevQuery("?dev=0")).toBe(null);
+    expect(readDevQuery("")).toBe(null);
+  });
+
+  it("builds a berlin noon and seeds a lead ballot", () => {
+    const noon = berlinAt(12, 0, new Date("2026-09-23T08:00:00+02:00"));
+    expect(votePhase(noon)).toBe("reveal");
+    const lead = demoVotes("lead");
+    expect(winnerOf(lead.counts, { stmuv: "StMUV", sodexo: "Dave B", bella23: "Bella 23", wochenmarkt: "Wochenmarkt" })).toMatchObject({
+      status: "lead",
+      id: "stmuv",
+    });
+    expect(demoVotes("tie").counts.stmuv).toBe(demoVotes("tie").counts.sodexo);
   });
 });

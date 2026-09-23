@@ -10,6 +10,7 @@ blob-report/
 !site/icon-512.png
 !site/icon-maskable-192.png
 !site/icon-maskable-512.png
+!site/og-image.png
 .DS_Store
 Thumbs.db
 .env
