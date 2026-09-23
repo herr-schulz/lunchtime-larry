@@ -508,8 +508,8 @@ function voteTotal() {
 
 function winnerStorageKey() {
   const code = loadRoundCode();
-  const day = lastVoteDate();
-  return code ? `lunchtime-larry-winner-${day}-${code}` : `lunchtime-larry-winner-${day}`;
+  if (!code) return "";
+  return `lunchtime-larry-winner-${lastVoteDate()}-${code}`;
 }
 
 function syncVoteChrome() {
@@ -536,14 +536,16 @@ function syncVoteChrome() {
 }
 
 function maybeAnnounceWinner(result, reveal) {
-  if (!reveal || !loadVoteOptIn()) return;
+  if (!reveal || !loadVoteOptIn() || !loadRoundCode()) return;
   if (voteTotal() < 3) return;
   if (result.status !== "lead" && result.status !== "tie") return;
 
+  const storageKey = winnerStorageKey();
+  if (!storageKey) return;
   const key = result.status === "lead" ? `lead:${result.id}` : "tie";
   try {
-    if (localStorage.getItem(winnerStorageKey()) === key) return;
-    localStorage.setItem(winnerStorageKey(), key);
+    if (localStorage.getItem(storageKey) === key) return;
+    localStorage.setItem(storageKey, key);
   } catch {
     if (lastWinnerKey === key) return;
     lastWinnerKey = key;
