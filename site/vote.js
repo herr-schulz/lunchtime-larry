@@ -4,7 +4,14 @@ const VOTE_OPT_IN_KEY = "lunchtime-larry-vote-opt-in";
 const INTRO_KEY = "lunchtime-larry-intro";
 
 export const CANTEEN_IDS = ["stmuv", "sodexo", "bella23"];
+/** Thursday only in the client. Rules accept the slug on any day. */
+export const MARKET_ID = "wochenmarkt";
+export const MARKET_NAME = "Wochenmarkt";
 export const MAX_VOTERS = 6;
+
+export function voteTargetIds(weekday) {
+  return weekday === "thursday" ? [...CANTEEN_IDS, MARKET_ID] : [...CANTEEN_IDS];
+}
 
 export function berlinDate(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -94,7 +101,7 @@ export function saveNick(nick) {
 }
 
 export function countVotes(records) {
-  const counts = { stmuv: 0, sodexo: 0, bella23: 0 };
+  const counts = { stmuv: 0, sodexo: 0, bella23: 0, [MARKET_ID]: 0 };
   for (const rec of Object.values(records ?? {})) {
     if (rec?.canteen && Object.hasOwn(counts, rec.canteen)) counts[rec.canteen] += 1;
   }
@@ -109,11 +116,12 @@ export function nicksFor(records, canteen) {
 }
 
 export function winnerOf(counts, names) {
-  const parts = CANTEEN_IDS.map((id) => counts[id] ?? 0);
+  const ids = [...CANTEEN_IDS, MARKET_ID];
+  const parts = ids.map((id) => counts[id] ?? 0);
   const total = parts.reduce((sum, n) => sum + n, 0);
   if (!total) return { status: "empty" };
   const max = Math.max(...parts);
-  const leaders = CANTEEN_IDS.filter((id) => (counts[id] ?? 0) === max);
+  const leaders = ids.filter((id) => (counts[id] ?? 0) === max);
   if (leaders.length > 1) return { status: "tie" };
   const id = leaders[0];
   return { status: "lead", id, name: names[id] ?? id };

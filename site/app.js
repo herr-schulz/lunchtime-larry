@@ -7,7 +7,7 @@ import {
   isoWeek,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=7329e3b0";
+} from "./calendar.js?v=0db017d5";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
@@ -17,7 +17,7 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=8e6c8fb6";
+} from "./diceReel.js?v=48460e99";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=5fd21cd8";
 import {
   alarmLabel,
@@ -28,7 +28,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=73d74660";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=521f9d4e";
 import {
   favoritePoint,
   favoriteToday,
@@ -55,6 +55,8 @@ import {
   lockLine,
   minutesUntilReveal,
   nicksFor,
+  MARKET_ID,
+  MARKET_NAME,
   normalizeNick,
   normalizeRoundCode,
   roundNicks,
@@ -64,12 +66,12 @@ import {
   saveVoteOptIn,
   votePhase,
   winnerOf,
-} from "./vote.js?v=98746362";
+} from "./vote.js?v=d0cc7678";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=fc742bf6";
+} from "./voteClient.js?v=8ab77fa9";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -81,7 +83,9 @@ const banner = document.querySelector("#banner");
 const hits = document.querySelector("#hits");
 const empty = document.querySelector("#empty");
 const dayDate = document.querySelector("#day-date");
+const marketRow = document.querySelector("#market-row");
 const marketBanner = document.querySelector("#market-banner");
+const marketVote = document.querySelector("#market-vote");
 const escapeWrap = document.querySelector("#escape-wrap");
 const escapeSub = document.querySelector(".escape-sub");
 const daysNav = document.querySelector(".days");
@@ -112,7 +116,7 @@ let enterTimer;
 let currentDay = "monday";
 let likes = loadLikes();
 let voteState = {
-  counts: { stmuv: 0, sodexo: 0, bella23: 0 },
+  counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
   records: {},
   mine: null,
   uid: null,
@@ -351,7 +355,7 @@ function bindHits() {
 function renderDay(data, day) {
   const block = data.days[day];
   dayDate.innerHTML = block ? formatDate(block.date) : "";
-  marketBanner.hidden = day !== "thursday";
+  if (marketRow) marketRow.hidden = day !== "thursday";
   board.innerHTML = boardHtml({
     block,
     canteens: CANTEENS,
@@ -393,7 +397,7 @@ function playEnterAnimation() {
   void board.offsetWidth;
   board.classList.add("is-entering");
   dayDate.classList.add("is-entering");
-  if (marketBanner && !marketBanner.hidden) {
+  if (marketBanner && marketRow && !marketRow.hidden) {
     marketBanner.classList.add("is-entering");
   }
   enterTimer = window.setTimeout(() => {
@@ -469,6 +473,7 @@ function applyVoteUi() {
   const names = Object.fromEntries(
     Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
   );
+  names[MARKET_ID] = MARKET_NAME;
   const result = winnerOf(voteState.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
@@ -498,6 +503,32 @@ function applyVoteUi() {
       mark.classList.remove("is-drawn");
     }
   }
+  const showMarket = show && currentDay === "thursday";
+  if (marketVote) {
+    marketVote.hidden = !showMarket;
+    marketVote.disabled = !open;
+    const mine = showMarket && voteState.mine === MARKET_ID;
+    const nickList = showMarket && reveal ? nicksFor(voteState.records, MARKET_ID) : [];
+    marketVote.setAttribute("aria-pressed", String(mine));
+    const label = nickList.length
+      ? nickList.join(" · ")
+      : mine
+        ? "Deine Stimme"
+        : "Hierhin";
+    marketVote.setAttribute("aria-label", label);
+    const nicks = marketVote.querySelector(".vote-nicks");
+    if (nicks) nicks.textContent = nickList.join(" · ");
+    if (mine) {
+      if (!marketVote.classList.contains("is-drawn")) replayCheck(marketVote);
+    } else {
+      marketVote.classList.remove("is-drawn");
+    }
+  }
+  marketBanner?.classList.toggle("is-voted", showMarket && voteState.mine === MARKET_ID);
+  marketBanner?.classList.toggle(
+    "is-leading",
+    showMarket && reveal && result.status === "lead" && result.id === MARKET_ID,
+  );
   syncVoteChrome();
   maybeAnnounceWinner(result, reveal);
 }
@@ -670,6 +701,11 @@ function maybeMigrateRound() {
   if (!loadVoteOptIn() || loadRoundCode()) return Promise.resolve();
   return askNick({ migrate: true }).then(() => settleRound());
 }
+
+marketVote?.addEventListener("click", () => {
+  if (!votingOpen()) return;
+  handleVote(MARKET_ID);
+});
 
 async function handleVote(canteen) {
   if (!votingOpen()) return;

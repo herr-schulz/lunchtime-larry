@@ -18,9 +18,11 @@ import {
   minutesUntilReveal,
   roundNicks,
   votePhase,
+  voteTargetIds,
   votesPath,
   winnerOf,
 } from "../site/vote.js";
+import { parseHTML } from "linkedom";
 
 describe("berlinDate", () => {
   it("returns an ISO calendar date in Europe/Berlin", () => {
@@ -60,7 +62,7 @@ describe("countVotes", () => {
         c: { canteen: "stmuv" },
         d: { canteen: "pizza" },
       }),
-    ).toEqual({ stmuv: 1, sodexo: 2, bella23: 0 });
+    ).toEqual({ stmuv: 1, sodexo: 2, bella23: 0, wochenmarkt: 0 });
   });
 });
 
@@ -169,6 +171,54 @@ describe("votesPath", () => {
     expect(votesPath(berlinDate(thursday), generateRoundCode(() => 0))).toBe(
       "votes/aaaaa/2026-09-03",
     );
+  });
+});
+
+describe("thursday market", () => {
+  it("offers the market only on Thursday", () => {
+    expect(voteTargetIds("thursday")).toEqual([
+      "stmuv",
+      "sodexo",
+      "bella23",
+      "wochenmarkt",
+    ]);
+    for (const day of ["monday", "tuesday", "wednesday", "friday"]) {
+      expect(voteTargetIds(day)).toEqual(["stmuv", "sodexo", "bella23"]);
+    }
+  });
+
+  it("can crown the market instead of falling back to a canteen", () => {
+    const names = {
+      stmuv: "StMUV",
+      sodexo: "Dave B",
+      bella23: "Bella 23",
+      wochenmarkt: "Wochenmarkt",
+    };
+    expect(
+      countVotes({
+        a: { canteen: "wochenmarkt" },
+        b: { canteen: "wochenmarkt" },
+        c: { canteen: "stmuv" },
+      }),
+    ).toMatchObject({ wochenmarkt: 2, stmuv: 1 });
+    expect(
+      winnerOf({ stmuv: 1, sodexo: 0, bella23: 0, wochenmarkt: 3 }, names),
+    ).toEqual({ status: "lead", id: "wochenmarkt", name: "Wochenmarkt" });
+    expect(
+      winnerOf({ stmuv: 2, sodexo: 0, bella23: 0, wochenmarkt: 2 }, names),
+    ).toEqual({ status: "tie" });
+  });
+
+  it("keeps the mark beside the Thursday banner, not inside the link", () => {
+    const { document } = parseHTML(readFileSync("site/index.html", "utf8"));
+    const mark = document.querySelector("#market-vote");
+    expect(mark?.getAttribute("data-vote")).toBe("wochenmarkt");
+    expect(mark?.closest("a")).toBeNull();
+    expect(mark?.closest("#market-row")).toBeTruthy();
+    const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
+    expect(rules.votes.$key.$child.$slot[".validate"]).toMatch(/wochenmarkt/);
+    const client = readFileSync("site/voteClient.js", "utf8");
+    expect(client).toMatch(/voteTargetIds\(berlinWeekday\(\)\)/);
   });
 });
 
