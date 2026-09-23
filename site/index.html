@@ -34,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=41d15024" />
+    <link rel="stylesheet" href="./styles.css?v=2c4b7b1a" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -332,6 +332,36 @@
         </menu>
       </form>
     </dialog>
+    <dialog id="welcome-dialog" class="weekend-dialog welcome-dialog" tabindex="-1">
+      <form method="dialog" id="welcome-form">
+        <img
+          class="weekend-larry"
+          src="./larry.svg?v=3aa5e5c7"
+          alt=""
+          width="192"
+          height="192"
+          decoding="async"
+        />
+        <p class="weekend-kicker">Mitstimmen</p>
+        <h2>Ihr seid eine Runde</h2>
+        <ol class="intro-points">
+          <li>Zeigt Kolleg:innen denselben Teamnamen oder Code.</li>
+          <li>
+            Haken am Zettel bis 11:55, geheim und änderbar. Auf den Zetteln sieht
+            niemand, wer wo steht.
+          </li>
+          <li>Ab 11:55 ist zu. Um 12 Uhr präsentiert Larry das Ziel.</li>
+          <li>
+            Höchstens sechs. Heute dabei zeigt die Namen, nicht die Kantine, bis
+            12 Uhr.
+          </li>
+        </ol>
+        <menu>
+          <button type="submit" value="ok">Alles klar</button>
+          <button type="button" id="welcome-edit">Spitzname ändern</button>
+        </menu>
+      </form>
+    </dialog>
     <dialog id="dice-dialog" class="weekend-dialog dice-dialog" tabindex="-1">
       <form method="dialog" id="dice-form">
         <img
@@ -389,6 +419,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=c55f323c" type="module"></script>
+    <script src="./app.js?v=c402ed14" type="module"></script>
   </body>
 </html>

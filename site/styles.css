@@ -1547,6 +1547,7 @@ button.escape-link {
 
 .nick-dialog menu button[value="cancel"],
 .nick-dialog menu #nick-cancel,
+.welcome-dialog menu #welcome-edit,
 .dice-dialog menu button[value="cancel"] {
   border: 1px solid var(--rule);
   background: transparent;
