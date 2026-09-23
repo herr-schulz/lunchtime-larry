@@ -21,7 +21,10 @@ import {
   voteTargetIds,
   votesPath,
   winnerOf,
+  setNowOverride,
+  clearNowOverride,
 } from "../site/vote.js";
+import { berlinAt, demoVotes, isDevHost, readDevQuery } from "../site/devPreview.js";
 import { parseHTML } from "linkedom";
 
 describe("berlinDate", () => {
@@ -144,6 +147,8 @@ describe("round slug", () => {
     expect(normalizeRoundCode("a")).toBe("");
     expect(normalizeRoundCode("foo.bar")).toBe("foobar");
     expect(normalizeRoundCode("a$b#c")).toBe("abc");
+    expect(normalizeRoundCode("abcdefgh")).toBe("abcdefgh");
+    expect(normalizeRoundCode("abcdefghi")).toBe("");
   });
 
   it("rolls five characters without 0, O, 1, or l", () => {
@@ -303,6 +308,13 @@ describe("votePhase", () => {
     expect(lockLine(4)).toBe("Noch 4 Minuten.");
     expect(lockLine(1)).toBe("Noch eine Minute.");
   });
+
+  it("lets a localhost preview freeze the berlin clock", () => {
+    setNowOverride(at("12:00"));
+    expect(votePhase()).toBe("reveal");
+    clearNowOverride();
+    expect(votePhase(at("11:54"))).toBe("open");
+  });
 });
 
 describe("roundNicks", () => {
@@ -314,5 +326,27 @@ describe("roundNicks", () => {
         2: { nick: "Sven", canteen: "bella23" },
       }),
     ).toEqual(["Sven", "Alex"]);
+  });
+});
+
+describe("dev preview helpers", () => {
+  it("gates the panel to localhost and ?dev=", () => {
+    expect(isDevHost("localhost")).toBe(true);
+    expect(isDevHost("lunchtime-larry.web.app")).toBe(false);
+    expect(readDevQuery("?dev=1")).toBe("1");
+    expect(readDevQuery("?dev=reveal")).toBe("reveal");
+    expect(readDevQuery("?dev=0")).toBe(null);
+    expect(readDevQuery("")).toBe(null);
+  });
+
+  it("builds a berlin noon and seeds a lead ballot", () => {
+    const noon = berlinAt(12, 0, new Date("2026-09-23T08:00:00+02:00"));
+    expect(votePhase(noon)).toBe("reveal");
+    const lead = demoVotes("lead");
+    expect(winnerOf(lead.counts, { stmuv: "StMUV", sodexo: "Dave B", bella23: "Bella 23", wochenmarkt: "Wochenmarkt" })).toMatchObject({
+      status: "lead",
+      id: "stmuv",
+    });
+    expect(demoVotes("tie").counts.stmuv).toBe(demoVotes("tie").counts.sodexo);
   });
 });

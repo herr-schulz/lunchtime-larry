@@ -42,6 +42,7 @@ export function winnerOf(
   | { status: "tie" }
   | { status: "lead"; id: VoteTargetId; name: string };
 export const ROUND_ALPHABET: string;
+export const MAX_ROUND_CODE: 8;
 export function normalizeRoundCode(value: unknown): string;
 export function isRoundCode(value: unknown): boolean;
 export function generateRoundCode(rng?: () => number): string;
@@ -64,6 +65,9 @@ export function loadVoteOptIn(): boolean;
 export function saveVoteOptIn(): void;
 export function loadIntroSeen(): boolean;
 export function saveIntroSeen(): void;
+export function getNow(fallback?: Date): Date;
+export function setNowOverride(value: Date | string | null | undefined): Date | null;
+export function clearNowOverride(): void;
 export function berlinClock(now?: Date): { hour: number; minute: number };
 export function votePhase(now?: Date): VotePhase;
 export function minutesUntilReveal(now?: Date): number;

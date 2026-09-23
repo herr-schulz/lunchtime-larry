@@ -122,11 +122,11 @@ describe("shake and stale week", () => {
 });
 
 describe("dice markup", () => {
-  it("puts the board CTA under Was anderes and opens one reel dialog", () => {
+  it("puts Lass Larry entscheiden above Was anderes and opens one reel dialog", () => {
     const { document } = parseHTML(readFileSync("site/index.html", "utf8"));
     const wrap = document.querySelector("#escape-wrap");
     const kids = [...(wrap?.children ?? [])].map((node) => node.id);
-    expect(kids).toEqual(["escape-link", "dice-open"]);
+    expect(kids).toEqual(["dice-open", "escape-link"]);
     const open = document.querySelector("#dice-open");
     expect(open?.textContent).toMatch(/Unentschlossen\?/);
     expect(open?.textContent).toMatch(/Lass Larry entscheiden/);

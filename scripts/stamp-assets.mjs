@@ -80,12 +80,14 @@ if (diceReelAfter !== diceReelBefore) {
   console.log("stamped diceReel.js imports");
 }
 const diceReelHash = await hashFile("diceReel.js");
+const devPreviewHash = await hashFile("devPreview.js");
 
 const spotDicePath = join(site, "spotDice.js");
 const spotDiceBefore = await readFile(spotDicePath, "utf8");
 const spotDiceAfter = spotDiceBefore
   .replace(/(\.\/dice\.js)(?:\?v=[^"']*)?/g, `./dice.js?v=${diceHash}`)
   .replace(/(\.\/diceReel\.js)(?:\?v=[^"']*)?/g, `./diceReel.js?v=${diceReelHash}`)
+  .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
   .replace(/(\.\/locations\.js)(?:\?v=[^"']*)?/g, `./locations.js?v=${locationsHash}`);
 if (spotDiceAfter !== spotDiceBefore) {
   await writeFile(spotDicePath, spotDiceAfter);
@@ -108,7 +110,8 @@ const appAfter = appBefore
   .replace(/(\.\/boardRender\.js)(?:\?v=[^"']*)?/g, `./boardRender.js?v=${boardRenderHash}`)
   .replace(/(\.\/boardGestures\.js)(?:\?v=[^"']*)?/g, `./boardGestures.js?v=${boardGesturesHash}`)
   .replace(/(\.\/dice\.js)(?:\?v=[^"']*)?/g, `./dice.js?v=${diceHash}`)
-  .replace(/(\.\/diceReel\.js)(?:\?v=[^"']*)?/g, `./diceReel.js?v=${diceReelHash}`);
+  .replace(/(\.\/diceReel\.js)(?:\?v=[^"']*)?/g, `./diceReel.js?v=${diceReelHash}`)
+  .replace(/(\.\/devPreview\.js)(?:\?v=[^"']*)?/g, `./devPreview.js?v=${devPreviewHash}`);
 if (appAfter !== appBefore) {
   await writeFile(appPath, appAfter);
   console.log("stamped app.js imports");

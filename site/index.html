@@ -34,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=51ff6034" />
+    <link rel="stylesheet" href="./styles.css?v=ac20ebb7" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -192,6 +192,13 @@
     </section>
 
     <div class="escape-wrap" id="escape-wrap" hidden>
+      <button type="button" class="escape-link dice-open" id="dice-open">
+        <span class="escape-kicker">Unentschlossen?</span>
+        <span class="escape-row">
+          <span class="escape-label">Lass Larry entscheiden</span>
+        </span>
+        <span class="escape-sub">Ein Hauptgericht. Kein Drama.</span>
+      </button>
       <a href="./alternativen.html" class="escape-link" id="escape-link">
         <span class="escape-kicker">Keine Kantine?</span>
         <span class="escape-row">
@@ -200,13 +207,6 @@
         </span>
         <span class="escape-sub">Spots · ein paar Minuten zu Fuß</span>
       </a>
-      <button type="button" class="escape-link dice-open" id="dice-open">
-        <span class="escape-kicker">Unentschlossen?</span>
-        <span class="escape-row">
-          <span class="escape-label">Lass Larry entscheiden</span>
-        </span>
-        <span class="escape-sub">Ein Hauptgericht. Kein Drama.</span>
-      </button>
     </div>
 
     <footer class="colophon">
@@ -267,14 +267,17 @@
           height="192"
           decoding="async"
         />
-        <p class="weekend-kicker">Erster Blick</p>
-        <h2>Die Tafel der Woche</h2>
+        <p class="weekend-kicker">Arabellapark</p>
+        <h2>Willkommen bei Lunchtime Larry</h2>
         <ol class="intro-points">
           <li>
-            Drei Kantinen: StMUV, Dave B und Bella 23. Der heutige Tag ist schon
-            vorausgewählt.
+            Hier siehst du die Speisepläne von StMUV, Dave B und Bella 23. Der
+            heutige Tag ist schon vorausgewählt.
           </li>
-          <li>Das Herz merkt Gerichte — nur auf diesem Gerät.</li>
+          <li>
+            Tippe oder klicke auf ein Gericht, um es zu liken — das Herz merkt es
+            nur auf diesem Gerät.
+          </li>
           <li>Unentschlossen? Lass Larry entscheiden. Keine Kantine? Was anderes?!</li>
           <li>Die Speisepläne kommen werktags gegen 10:45.</li>
         </ol>
@@ -311,7 +314,11 @@
           decoding="async"
         />
         <h2>Larry präsentiert heute:</h2>
-        <p class="reveal-name" id="reveal-name"></p>
+        <p class="reveal-name" id="reveal-name" aria-live="polite">
+          <span class="reveal-window">
+            <span class="reveal-strip" id="reveal-strip"></span>
+          </span>
+        </p>
         <menu>
           <button type="submit" value="ok">Guten Appetit</button>
         </menu>
@@ -339,19 +346,41 @@
         </label>
         <label class="round-field">
           Runde
-          <input
-            id="round-input"
-            name="round"
-            maxlength="40"
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            required
-            title="Teamname oder Code, zwei bis 24 Zeichen."
-          />
+          <span class="round-input-wrap">
+            <input
+              id="round-input"
+              name="round"
+              maxlength="8"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              required
+              title="Teamname oder Code, zwei bis 8 Zeichen."
+            />
+            <button type="button" id="round-roll" class="round-roll" aria-label="Code würfeln">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect width="12" height="12" x="2" y="10" rx="2" ry="2" />
+                <path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6" />
+                <path d="M6 18h.01" />
+                <path d="M10 14h.01" />
+                <path d="M15 6h.01" />
+                <path d="M18 9h.01" />
+              </svg>
+            </button>
+          </span>
           <span class="round-hint">Teamname oder Code — Kolleg:innen geben dasselbe ein.</span>
-          <button type="button" id="round-roll" class="round-roll">Code würfeln</button>
         </label>
         <menu>
           <button type="submit" value="ok">Los</button>
@@ -370,17 +399,37 @@
           decoding="async"
         />
         <p class="weekend-kicker">Mitstimmen</p>
-        <h2>Ihr seid eine Runde</h2>
+        <h2 id="welcome-title">Rundencode:</h2>
+        <div class="welcome-code-row">
+          <code id="welcome-code" class="welcome-code">—</code>
+          <button type="button" id="welcome-copy" class="welcome-copy" aria-label="Code kopieren">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+            </svg>
+          </button>
+        </div>
         <ol class="intro-points">
-          <li>Zeigt Kolleg:innen denselben Teamnamen oder Code.</li>
+          <li>Schick den Code an deine Kolleg:innen — sie geben denselben ein.</li>
           <li>
-            Haken am Zettel bis 11:55, geheim und änderbar. Auf den Zetteln sieht
-            niemand, wer wo steht.
+            Dein Vote für den Food-Spot des Tages kann bis 11:55 jederzeit frei
+            gewählt werden.
           </li>
           <li>Ab 11:55 ist zu. Um 12 Uhr präsentiert Larry das Ziel.</li>
           <li>
-            Höchstens sechs. Heute dabei zeigt die Namen, nicht die Kantine, bis
-            12 Uhr.
+            Höchstens 6 Teilnehmer pro Runde. Alle Teilnehmer der Runde werden
+            über den Zetteln angezeigt.
           </li>
         </ol>
         <menu>
@@ -446,6 +495,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=fd42d18e" type="module"></script>
+    <script src="./app.js?v=61b9661e" type="module"></script>
   </body>
 </html>

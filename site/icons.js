@@ -31,3 +31,32 @@ export const heartIconSolid = lucideSvg(
 export function checkCircleSvg(className = "vote-check") {
   return `<svg class="${className}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1"/><path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1"/></svg>`;
 }
+
+/** Near-straight red-pen strokes for “Zeig her” underlines (viewBox 0 0 120 6). */
+export const PEN_UNDERLINE_PATHS = [
+  "M1.5 3.1 L 118.5 2.9",
+  "M1.5 2.85 L 118.5 3.15",
+  "M1.5 3.05 L 118.5 2.95",
+  "M1.5 2.95 L 118.5 3.2",
+  "M1.5 3.2 L 118.5 2.85",
+];
+
+export function penUnderlineSvg() {
+  return `<svg class="pen-underline" viewBox="0 0 120 6" preserveAspectRatio="none" aria-hidden="true"><path d="${PEN_UNDERLINE_PATHS[0]}" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" pathLength="1"/></svg>`;
+}
+
+/** Pick a random tilt + path on a `.dish-mark` (or host containing one). */
+export function applyPenMark(host) {
+  if (!host) return;
+  const mark = host.matches?.(".dish-mark") ? host : host.querySelector(".dish-mark");
+  if (!mark) return;
+  const tilt = (Math.random() * 2.4 - 1.2).toFixed(2);
+  mark.style.setProperty("--pen-tilt", `${tilt}deg`);
+  const ink = mark.querySelector(".pen-underline path");
+  if (ink) {
+    ink.setAttribute(
+      "d",
+      PEN_UNDERLINE_PATHS[Math.floor(Math.random() * PEN_UNDERLINE_PATHS.length)],
+    );
+  }
+}

@@ -7,7 +7,7 @@ import {
   isoWeek,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=0db017d5";
+} from "./calendar.js?v=f69603ff";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
@@ -17,8 +17,9 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=48460e99";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=5fd21cd8";
+} from "./diceReel.js?v=c78c2727";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=24c1dc7f";
+import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
   alarmLabel,
   dishKey,
@@ -28,7 +29,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=521f9d4e";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=839a961d";
 import {
   favoritePoint,
   favoriteToday,
@@ -41,7 +42,7 @@ import {
   voteOffline,
   winnerTie,
 } from "./larryLines.js?v=ebabcf21";
-import { LOCATIONS } from "./locations.js?v=8bbcd50b";
+import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
   berlinWeekday,
@@ -64,14 +65,21 @@ import {
   saveNick,
   saveRoundCode,
   saveVoteOptIn,
+  setNowOverride,
+  clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=d0cc7678";
+} from "./vote.js?v=c72a8e83";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=8ab77fa9";
+} from "./voteClient.js?v=0957c3e1";
+import {
+  berlinAt,
+  demoVotes,
+  mountDevPreview,
+} from "./devPreview.js?v=02a01dd9";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -100,6 +108,10 @@ const voteLock = document.querySelector("#vote-lock");
 const heuteDabei = document.querySelector("#heute-dabei");
 const revealDialog = document.querySelector("#reveal-dialog");
 const revealName = document.querySelector("#reveal-name");
+const revealStrip = document.querySelector("#reveal-strip");
+const REVEAL_SPIN_MS = 2400;
+const REVEAL_SPIN_EASE = "cubic-bezier(0.12, 0.62, 0.08, 1)";
+let revealSpinTimer = 0;
 const nickDialog = document.querySelector("#nick-dialog");
 const nickHeading = nickDialog?.querySelector("h2");
 const nickForm = document.querySelector("#nick-form");
@@ -108,7 +120,10 @@ const roundInput = document.querySelector("#round-input");
 const roundRoll = document.querySelector("#round-roll");
 const nickCancel = document.querySelector("#nick-cancel");
 const welcomeDialog = document.querySelector("#welcome-dialog");
+const welcomeCode = document.querySelector("#welcome-code");
+const welcomeCopy = document.querySelector("#welcome-copy");
 const welcomeEdit = document.querySelector("#welcome-edit");
+let welcomeCopyTimer = 0;
 const weekendDialog = document.querySelector("#weekend-dialog");
 const mascot = document.querySelector(".masthead .mascot");
 
@@ -121,6 +136,8 @@ let voteState = {
   mine: null,
   uid: null,
 };
+/** Localhost ?dev=1 — freezes ballots so the 12:00 presentation can be replayed. */
+let previewVotes = null;
 let lastWinnerKey = "";
 let leisureMode = false;
 let justLikedKey = "";
@@ -270,6 +287,12 @@ function chromeOffset() {
   return 16;
 }
 
+function clearPenMarks(root = document) {
+  for (const el of root.querySelectorAll(".is-pointed")) {
+    el.classList.remove("is-pointed");
+  }
+}
+
 function scrollToFavorite(canteen, key) {
   if (!board || !key) return false;
   const slip = canteen ? board.querySelector(`.slip[data-canteen="${canteen}"]`) : board;
@@ -281,10 +304,10 @@ function scrollToFavorite(canteen, key) {
   dish.style.scrollMarginTop = `${offset}px`;
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   dish.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start", inline: "nearest" });
-  dish.classList.remove("is-pointed");
+  clearPenMarks(board);
   void dish.offsetWidth;
+  applyPenMark(dish);
   dish.classList.add("is-pointed");
-  window.setTimeout(() => dish.classList.remove("is-pointed"), 1200);
   return true;
 }
 
@@ -466,19 +489,24 @@ function replayCheck(el) {
   el.classList.add("is-drawn");
 }
 
+function activeVotes() {
+  return previewVotes ?? voteState;
+}
+
 function applyVoteUi() {
   const open = votingOpen();
   const show = showVoteMarks();
   const reveal = show && votePhase() === "reveal";
+  const votes = activeVotes();
   const names = Object.fromEntries(
     Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
   );
   names[MARKET_ID] = MARKET_NAME;
-  const result = winnerOf(voteState.counts, names);
+  const result = winnerOf(votes.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
-    const mine = show && voteState.mine === id;
-    const nickList = reveal ? nicksFor(voteState.records, id) : [];
+    const mine = show && votes.mine === id;
+    const nickList = reveal ? nicksFor(votes.records, id) : [];
     slip.classList.toggle("is-voted", mine);
     slip.classList.toggle(
       "is-leading",
@@ -507,8 +535,8 @@ function applyVoteUi() {
   if (marketVote) {
     marketVote.hidden = !showMarket;
     marketVote.disabled = !open;
-    const mine = showMarket && voteState.mine === MARKET_ID;
-    const nickList = showMarket && reveal ? nicksFor(voteState.records, MARKET_ID) : [];
+    const mine = showMarket && votes.mine === MARKET_ID;
+    const nickList = showMarket && reveal ? nicksFor(votes.records, MARKET_ID) : [];
     marketVote.setAttribute("aria-pressed", String(mine));
     const label = nickList.length
       ? nickList.join(" · ")
@@ -524,7 +552,7 @@ function applyVoteUi() {
       marketVote.classList.remove("is-drawn");
     }
   }
-  marketBanner?.classList.toggle("is-voted", showMarket && voteState.mine === MARKET_ID);
+  marketBanner?.classList.toggle("is-voted", showMarket && votes.mine === MARKET_ID);
   marketBanner?.classList.toggle(
     "is-leading",
     showMarket && reveal && result.status === "lead" && result.id === MARKET_ID,
@@ -534,13 +562,7 @@ function applyVoteUi() {
 }
 
 function voteTotal() {
-  return Object.values(voteState.counts).reduce((sum, n) => sum + (n || 0), 0);
-}
-
-function winnerStorageKey() {
-  const code = loadRoundCode();
-  if (!code) return "";
-  return `lunchtime-larry-winner-${lastVoteDate()}-${code}`;
+  return Object.values(activeVotes().counts).reduce((sum, n) => sum + (n || 0), 0);
 }
 
 function syncVoteChrome() {
@@ -555,7 +577,7 @@ function syncVoteChrome() {
     }
   }
   if (heuteDabei) {
-    const names = roundNicks(voteState.records);
+    const names = roundNicks(activeVotes().records);
     if (show && names.length) {
       heuteDabei.hidden = false;
       heuteDabei.textContent = `Heute dabei · ${names.join(" · ")}`;
@@ -566,30 +588,161 @@ function syncVoteChrome() {
   }
 }
 
+function winnerSessionKey(result) {
+  if (result.status === "lead") return `lead:${result.id}`;
+  if (result.status === "tie") return "tie";
+  return "";
+}
+
 function maybeAnnounceWinner(result, reveal) {
   if (!reveal || !loadVoteOptIn() || !loadRoundCode()) return;
   if (voteTotal() < 3) return;
   if (result.status !== "lead" && result.status !== "tie") return;
 
-  const storageKey = winnerStorageKey();
-  if (!storageKey) return;
-  const key = result.status === "lead" ? `lead:${result.id}` : "tie";
-  try {
-    if (localStorage.getItem(storageKey) === key) return;
-    localStorage.setItem(storageKey, key);
-  } catch {
-    if (lastWinnerKey === key) return;
-    lastWinnerKey = key;
-  }
+  /* Session-only: refresh after 12:00 shows the ticket again until the next vote day. */
+  const key = winnerSessionKey(result);
+  if (!key || lastWinnerKey === key) return;
+  lastWinnerKey = key;
 
   if (result.status === "tie") {
     sayLarry(winnerTie());
     return;
   }
-  if (revealName) revealName.textContent = result.name || "";
+  showRevealDialog(result.name || "");
+}
+
+function revealPool(winner) {
+  const names = Object.values(CANTEENS).map((meta) => meta.name);
+  if (!names.includes(MARKET_NAME)) names.push(MARKET_NAME);
+  const pool = names.filter(Boolean);
+  if (winner && !pool.includes(winner)) pool.push(winner);
+  return pool.length ? pool : [winner || "…"];
+}
+
+function buildRevealStrip(winner) {
+  if (!revealStrip) return;
+  const pool = revealPool(winner);
+  const labels = [];
+  for (let i = 0; i < 12; i += 1) labels.push(pool[i % pool.length]);
+  labels[labels.length - 1] = winner;
+  if (labels.length > 1 && labels[labels.length - 2] === winner) {
+    labels[labels.length - 2] = pool.find((label) => label !== winner) || winner;
+  }
+  revealStrip.innerHTML = labels
+    .map((label) => `<span class="reveal-item">${escapeHtml(label)}</span>`)
+    .join("");
+  revealStrip.style.transition = "none";
+  revealStrip.style.transform = "translateY(0)";
+}
+
+function settleReveal() {
+  window.clearTimeout(revealSpinTimer);
+  revealSpinTimer = 0;
+  revealDialog?.classList.add("is-settled");
+  const still = revealDialog?.classList.contains("is-still");
+  for (const scrap of revealDialog?.querySelectorAll(".confetti i") ?? []) {
+    scrap.style.animation = "none";
+    void scrap.offsetWidth;
+    if (still) {
+      scrap.style.animation = "";
+      continue;
+    }
+    const delay = getComputedStyle(scrap).getPropertyValue("--fall-delay").trim() || "0s";
+    scrap.style.animation = `scrap-fall 2.8s linear ${delay} both`;
+  }
+}
+
+function showRevealDialog(name) {
+  const winner = String(name || "").trim() || "…";
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  window.clearTimeout(revealSpinTimer);
+  revealDialog?.classList.remove("is-settled");
   revealDialog?.classList.toggle("is-still", Boolean(reduce));
+  if (revealDialog?.open) revealDialog.close();
+  for (const scrap of revealDialog?.querySelectorAll(".confetti i") ?? []) {
+    scrap.style.animation = "none";
+  }
+  buildRevealStrip(winner);
+  if (revealName) revealName.dataset.winner = winner;
   revealDialog?.showModal();
+  if (reduce || !revealStrip) {
+    settleReveal();
+    return;
+  }
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const items = revealStrip.querySelectorAll(".reveal-item");
+      const last = items[items.length - 1];
+      if (!last || !revealDialog?.open) {
+        settleReveal();
+        return;
+      }
+      const offset = last.offsetTop;
+      revealStrip.style.transition = `transform ${REVEAL_SPIN_MS}ms ${REVEAL_SPIN_EASE}`;
+      revealStrip.style.transform = `translateY(${-offset}px)`;
+      const onEnd = (event) => {
+        if (event.target !== revealStrip || event.propertyName !== "transform") return;
+        revealStrip.removeEventListener("transitionend", onEnd);
+        settleReveal();
+      };
+      revealStrip.addEventListener("transitionend", onEnd);
+      revealSpinTimer = window.setTimeout(() => {
+        revealStrip.removeEventListener("transitionend", onEnd);
+        settleReveal();
+      }, REVEAL_SPIN_MS + 80);
+    });
+  });
+}
+
+function clearWinnerSeen() {
+  lastWinnerKey = "";
+}
+
+revealDialog?.addEventListener("close", () => {
+  window.clearTimeout(revealSpinTimer);
+  revealSpinTimer = 0;
+});
+
+function ensurePreviewSession() {
+  if (!loadVoteOptIn()) saveVoteOptIn();
+  if (!loadNick()) saveNick("Sven");
+  if (!loadRoundCode()) saveRoundCode(generateRoundCode());
+  welcomePassed = true;
+  try {
+    localStorage.setItem(WELCOME_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+  syncNickButton();
+}
+
+function runDevPhase(phase, mode = "lead") {
+  if (revealDialog?.open) revealDialog.close();
+  if (phase == null) {
+    clearNowOverride();
+    previewVotes = null;
+    if (menuData) selectDay(menuData, todayKey(), { instantIndicator: true });
+    else applyVoteUi();
+    return;
+  }
+  ensurePreviewSession();
+  const clock =
+    phase === "open"
+      ? berlinAt(11, 0)
+      : phase === "locked"
+        ? berlinAt(11, 55)
+        : berlinAt(12, 0);
+  setNowOverride(clock);
+  previewVotes = demoVotes(mode === "tie" ? "tie" : "lead");
+  clearWinnerSeen();
+  if (menuData) selectDay(menuData, todayKey(), { instantIndicator: true });
+  else applyVoteUi();
+}
+
+function syncDevPhaseLabel() {
+  const override = votePhase();
+  if (!previewVotes) return `Phase · ${override} (live)`;
+  return `Phase · ${override} · Demo-Stimmen`;
 }
 
 function syncNickButton() {
@@ -666,6 +819,13 @@ function askNick({ migrate = false } = {}) {
 
 function showWelcome() {
   if (!welcomeDialog) return Promise.resolve("ok");
+  const code = loadRoundCode();
+  if (welcomeCode) welcomeCode.textContent = code || "—";
+  if (welcomeCopy) {
+    welcomeCopy.disabled = !code;
+    welcomeCopy.classList.remove("is-copied");
+    welcomeCopy.setAttribute("aria-label", "Code kopieren");
+  }
   welcomeDialog.showModal();
   welcomeDialog.focus({ preventScroll: true });
   return new Promise((resolve) => {
@@ -679,6 +839,23 @@ function showWelcome() {
       { once: true },
     );
   });
+}
+
+async function copyWelcomeCode() {
+  const code = welcomeCode?.textContent?.trim();
+  if (!code || code === "—" || !welcomeCopy) return;
+  try {
+    await navigator.clipboard.writeText(code);
+  } catch {
+    return;
+  }
+  window.clearTimeout(welcomeCopyTimer);
+  welcomeCopy.classList.add("is-copied");
+  welcomeCopy.setAttribute("aria-label", "Kopiert");
+  welcomeCopyTimer = window.setTimeout(() => {
+    welcomeCopy.classList.remove("is-copied");
+    welcomeCopy.setAttribute("aria-label", "Code kopieren");
+  }, 1600);
 }
 
 /** Marks and the listener wait until nick, slug, and the welcome ticket. */
@@ -772,7 +949,7 @@ function bindNickUi() {
     const raw = roundInput?.value || "";
     if (!normalizeRoundCode(raw)) {
       event.preventDefault();
-      roundInput?.setCustomValidity("Teamname oder Code, zwei bis 24 Zeichen.");
+      roundInput?.setCustomValidity("Teamname oder Code, zwei bis 8 Zeichen.");
       roundInput?.reportValidity();
       return;
     }
@@ -788,6 +965,9 @@ function bindNickUi() {
   });
   welcomeEdit?.addEventListener("click", () => {
     welcomeDialog?.close("edit");
+  });
+  welcomeCopy?.addEventListener("click", () => {
+    copyWelcomeCode();
   });
   nickEdit?.addEventListener("click", async () => {
     if (!loadVoteOptIn()) {
@@ -1071,10 +1251,16 @@ try {
     renderDay(data, currentDay);
   }, 15_000);
   watchBerlinMidnight(() => {
+    lastWinnerKey = "";
+    if (revealDialog?.open) revealDialog.close();
     const day = todayKey();
     if (currentDay !== day) selectDay(data, day, { instantIndicator: true });
     else applyVoteUi();
     startVotes({ force: true });
+  });
+  mountDevPreview({
+    run: runDevPhase,
+    phaseLabel: syncDevPhaseLabel,
   });
 } catch {
   empty.hidden = false;
