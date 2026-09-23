@@ -149,7 +149,7 @@ function renderLocationCard(spot, index = 0) {
     : `<span class="spot-closed">Heute zu</span>`;
   return `<a class="spot-card${open ? "" : " is-closed"}" data-spot="${escapeHtml(spot.name)}" href="${escapeHtml(spot.url)}" target="_blank" rel="noopener noreferrer" style="--i:${index}">
     <div class="spot-top">
-      <h3>${escapeHtml(spot.name)}</h3>
+      <h3><span class="dish-mark">${escapeHtml(spot.name)}<svg class="pen-underline" viewBox="0 0 120 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1.5 3.1 L 118.5 2.9" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" pathLength="1"/></svg></span></h3>
       <span class="spot-walk">${spot.walk} min</span>
     </div>
     <span class="spot-vibe">${escapeHtml(spot.vibe)}</span>

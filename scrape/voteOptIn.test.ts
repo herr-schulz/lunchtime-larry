@@ -10,13 +10,16 @@ describe("vote opt-in and first visit", () => {
     const items = [...document.querySelectorAll("#intro-dialog .intro-points li")].map(
       (li) => li.textContent?.replace(/\s+/g, " ").trim(),
     );
+    const intro = document.querySelector("#intro-dialog");
     const text = items.join(" ");
+    expect(intro?.querySelector("h2")?.textContent).toMatch(/Willkommen bei Lunchtime Larry/);
     expect(items).toHaveLength(4);
     expect(items[0]).toMatch(/StMUV/);
     expect(items[0]).toMatch(/Dave B/);
     expect(items[0]).toMatch(/Bella 23/);
     expect(items[0]).toMatch(/vorausgewählt/);
-    expect(items[1]).toMatch(/Herz/);
+    expect(items[1]).toMatch(/Tippe oder klicke/);
+    expect(items[1]).toMatch(/liken/);
     expect(items[1]).toMatch(/diesem Gerät/);
     expect(items[2]).toMatch(/Lass Larry entscheiden/);
     expect(items[2]).toMatch(/Was anderes/);
@@ -34,7 +37,10 @@ describe("vote opt-in and first visit", () => {
     expect(label?.textContent).toMatch(/Runde/);
     expect(label?.textContent).toMatch(/Teamname oder Code/);
     expect(label?.textContent).not.toMatch(/Hausrunde/);
-    expect(document.querySelector("#round-roll")?.textContent).toBe("Code würfeln");
+    expect(document.querySelector("#round-roll")?.getAttribute("aria-label")).toBe(
+      "Code würfeln",
+    );
+    expect(document.querySelector("#round-roll svg")).toBeTruthy();
     expect(document.querySelector("#round-input")?.hasAttribute("required")).toBe(true);
     const client = readFileSync("site/voteClient.js", "utf8");
     expect(client).toMatch(/votesPath\(day, loadRoundCode\(\)\)/);
@@ -70,11 +76,18 @@ describe("voting welcome", () => {
     const welcome = document.querySelector("#welcome-dialog");
     expect(welcome?.className).toMatch(/weekend-dialog/);
     const text = welcome?.textContent?.replace(/\s+/g, " ") ?? "";
-    expect(text).toMatch(/11:55/);
-    expect(text).toMatch(/geheim/);
+    expect(document.querySelector("#welcome-title")?.textContent).toBe("Rundencode:");
+    expect(document.querySelector("#welcome-code")).toBeTruthy();
+    expect(document.querySelector("#welcome-copy")?.getAttribute("aria-label")).toBe(
+      "Code kopieren",
+    );
+    expect(text).toMatch(/Schick den Code an deine Kolleg/);
+    expect(text).toMatch(/Food-Spot des Tages kann bis 11:55/);
     expect(text).toMatch(/12 Uhr/);
-    expect(text).toMatch(/sechs/);
-    expect(text).toMatch(/denselben Teamnamen oder Code/);
+    expect(text).toMatch(/Höchstens 6 Teilnehmer/);
+    expect(text).toMatch(/über den Zetteln/);
+    expect(app).toMatch(/copyWelcomeCode/);
+    expect(app).toMatch(/navigator\.clipboard\.writeText/);
     expect(document.querySelector("#welcome-dialog button[value='ok']")?.textContent).toBe(
       "Alles klar",
     );
@@ -97,10 +110,13 @@ describe("voting welcome", () => {
 describe("vote phases sit on a round", () => {
   const app = readFileSync("site/app.js", "utf8");
 
-  it("does not keep a house-day winner key", () => {
-    expect(app).toMatch(/if \(!code\) return "";/);
-    expect(app).toMatch(/lunchtime-larry-winner-\$\{lastVoteDate\(\)\}-\$\{code\}/);
+  it("shows the noon reveal on each visit until the next vote day", () => {
+    expect(app).toMatch(/Session-only: refresh after 12:00/);
+    expect(app).toMatch(/lastWinnerKey === key/);
+    expect(app).toMatch(/REVEAL_SPIN_MS/);
+    expect(app).toMatch(/is-settled/);
     expect(app).not.toMatch(/lunchtime-larry-winner-\$\{day\}/);
+    expect(app).not.toMatch(/localStorage\.getItem\(storageKey\)/);
     expect(app).toMatch(
       /if \(!reveal \|\| !loadVoteOptIn\(\) \|\| !loadRoundCode\(\)\) return/,
     );

@@ -9,11 +9,32 @@ export const MARKET_ID = "wochenmarkt";
 export const MARKET_NAME = "Wochenmarkt";
 export const MAX_VOTERS = 6;
 
+/** Localhost preview only — freezes Berlin clock for phase checks. */
+let nowOverride = null;
+
+export function setNowOverride(value) {
+  if (value == null) {
+    nowOverride = null;
+    return null;
+  }
+  const next = value instanceof Date ? value : new Date(value);
+  nowOverride = Number.isNaN(next.getTime()) ? null : next;
+  return nowOverride;
+}
+
+export function clearNowOverride() {
+  nowOverride = null;
+}
+
+export function getNow(fallback = new Date()) {
+  return nowOverride ?? fallback;
+}
+
 export function voteTargetIds(weekday) {
   return weekday === "thursday" ? [...CANTEEN_IDS, MARKET_ID] : [...CANTEEN_IDS];
 }
 
-export function berlinDate(now = new Date()) {
+export function berlinDate(now = getNow()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Berlin",
     year: "numeric",
@@ -22,7 +43,7 @@ export function berlinDate(now = new Date()) {
   }).format(now);
 }
 
-export function berlinWeekday(now = new Date()) {
+export function berlinWeekday(now = getNow()) {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     timeZone: "Europe/Berlin",
@@ -31,12 +52,12 @@ export function berlinWeekday(now = new Date()) {
     .toLowerCase();
 }
 
-export function isVoteDay(now = new Date()) {
+export function isVoteDay(now = getNow()) {
   const day = berlinWeekday(now);
   return day !== "saturday" && day !== "sunday";
 }
 
-export function lastVoteDate(now = new Date()) {
+export function lastVoteDate(now = getNow()) {
   const iso = berlinDate(now);
   const day = berlinWeekday(now);
   const back = day === "saturday" ? 1 : day === "sunday" ? 2 : 0;
@@ -46,7 +67,7 @@ export function lastVoteDate(now = new Date()) {
 }
 
 /** Ballot day in Europe/Berlin, or null when voting is closed (weekend). */
-export function ballotDate(now = new Date()) {
+export function ballotDate(now = getNow()) {
   return isVoteDay(now) ? berlinDate(now) : null;
 }
 
@@ -129,6 +150,7 @@ export function winnerOf(counts, names) {
 
 /** No 0/O/1/l — a generated code stays readable when someone types it back. */
 export const ROUND_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
+export const MAX_ROUND_CODE = 8;
 const DATE_SLUG_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -144,7 +166,7 @@ export function normalizeRoundCode(value) {
     .replace(/[^a-z0-9-]/g, "")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
-  if (slug.length < 2 || slug.length > 24) return "";
+  if (slug.length < 2 || slug.length > MAX_ROUND_CODE) return "";
   if (DATE_SLUG_RE.test(slug)) return "";
   return slug;
 }
@@ -253,7 +275,7 @@ export function saveIntroSeen() {
 }
 
 /** Berlin hour and minute. Rules stay timezone-blind; the lock is client-side. */
-export function berlinClock(now = new Date()) {
+export function berlinClock(now = getNow()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Berlin",
     hour: "2-digit",
@@ -268,7 +290,7 @@ export function berlinClock(now = new Date()) {
  * Weekday ballot phases in Europe/Berlin.
  * `open` before 11:55, `locked` until 12:00, `reveal` after, `closed` on the weekend.
  */
-export function votePhase(now = new Date()) {
+export function votePhase(now = getNow()) {
   if (!isVoteDay(now)) return "closed";
   const { hour, minute } = berlinClock(now);
   const mins = hour * 60 + minute;
@@ -278,7 +300,7 @@ export function votePhase(now = new Date()) {
 }
 
 /** Whole minutes from now until 12:00 Berlin. */
-export function minutesUntilReveal(now = new Date()) {
+export function minutesUntilReveal(now = getNow()) {
   const { hour, minute } = berlinClock(now);
   return Math.max(0, 12 * 60 - (hour * 60 + minute));
 }

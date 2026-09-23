@@ -1,7 +1,7 @@
 /** Pure HTML builders for the canteen board (no DOM writes). */
 
 import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, settingsIcon } from "./icons.js?v=56a779d4";
+import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=0e5f763d";
 import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=9db8d9ec";
 
 const DIET = {
@@ -28,7 +28,7 @@ export function ghostLine(seed) {
 export function formatDishName(name, canteenId) {
   const { title, sides } = phraseDish(name, { canteen: canteenId });
   const heart = heartIconFilled;
-  const titleRow = `<span class="dish-title">${escapeHtml(title)}${heart}</span>`;
+  const titleRow = `<span class="dish-title"><span class="dish-mark">${escapeHtml(title)}${penUnderlineSvg()}</span>${heart}</span>`;
   const withSides = joinDishSides(sides);
   if (!withSides) return titleRow;
   return `${titleRow}<span class="dish-sides">${escapeHtml(withSides)}</span>`;
