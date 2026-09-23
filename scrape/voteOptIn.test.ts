@@ -54,6 +54,19 @@ describe("vote opt-in and first visit", () => {
   });
 });
 
+describe("round migration", () => {
+  const app = readFileSync("site/app.js", "utf8");
+
+  it("blocks opt-in without a slug and does not copy the house round", () => {
+    expect(app).toMatch(/Deine Stimme braucht eine Runde/);
+    expect(app).toMatch(/roundMigrateLock/);
+    expect(app).toMatch(/if \(roundMigrateLock\) event\.preventDefault\(\)/);
+    const client = readFileSync("site/voteClient.js", "utf8");
+    expect(client).not.toMatch(/votes\/\$\{berlinDate/);
+    expect(client).not.toMatch(/copy/);
+  });
+});
+
 describe("listenVotes stays behind the opt-in flag", () => {
   it("does not start the ballot listener before Mitstimmen", () => {
     const app = readFileSync("site/app.js", "utf8");
