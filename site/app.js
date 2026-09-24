@@ -8,19 +8,19 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=3316bbab";
-import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
-import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
+} from "./calendar.js?v=c0a7fc3a";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=c641e16a";
+import { escapeHtml } from "./dom.js?v=55e28ecf";
+import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=dc1c632b";
 import {
   berlinWeekMonday,
   canteenEntries,
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=c78c2727";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=c2f238ba";
-import { applyPenMark } from "./icons.js?v=0e5f763d";
+} from "./diceReel.js?v=316b768d";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=7c60e450";
+import { applyPenMark } from "./icons.js?v=2133ca3c";
 import {
   alarmLabel,
   dishKey,
@@ -29,8 +29,8 @@ import {
   isLiked,
   listAllFavorites,
   toggleLikeSet,
-} from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=8ef9aa59";
+} from "./likes.js?v=16f9871b";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=8483702c";
 import {
   favoritePoint,
   favoriteToday,
@@ -43,9 +43,9 @@ import {
   voteOffline,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=a8fa1db7";
-import { LOCATIONS } from "./locations.js?v=d5c051d1";
-import { loadMenu } from "./menuFetch.js?v=99f0e614";
+} from "./larryLines.js?v=91b88637";
+import { LOCATIONS } from "./locations.js?v=a93ec85e";
+import { loadMenu } from "./menuFetch.js?v=64fd5683";
 import {
   berlinWeekday,
   isVoteDay,
@@ -71,17 +71,17 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=c72a8e83";
+} from "./vote.js?v=9f2d2a21";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=0957c3e1";
+} from "./voteClient.js?v=47bf4efd";
 import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=b32841dd";
+} from "./devPreview.js?v=02a01dd9";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -1058,6 +1058,13 @@ function startVotes({ force = false } = {}) {
   if (!welcomePassed) return;
   if (votesListening && !force) return;
   votesListening = true;
+  /* Drop seats from a previous round before the new listener returns. */
+  voteState = {
+    counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
+    records: {},
+    mine: null,
+    uid: voteState.uid,
+  };
   const onVotes = (next) => {
     voteState = next;
     applyVoteUi();

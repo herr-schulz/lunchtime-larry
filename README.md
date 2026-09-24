@@ -36,7 +36,7 @@ npm run dev
 
 Projekt `lunchtime-larry` (Spark). Die Web-Config in [`site/firebase.json`](site/firebase.json) ist öffentlich — Schutz sitzt in [`database.rules.json`](database.rules.json): **6 feste Plätze** (0–5) pro Tag, Schreiben nur mit Anonymous Auth und nur auf den eigenen Platz, Nick/Kantine/Zeit validiert. Wer schon sitzt, darf umziehen oder zurückziehen.
 
-Die URL ist öffentlich; Anonymous Auth ist kein Login. Die 6er-Kappe ist der Missbrauchsschutz für die kleine Runde — ein Troll kann den Tag vollsetzen. Später ggf. PIN. Spitznamen werden clientseitig normalisiert **und** in den Database Rules serverseitig geprüft (Buchstaben Pflicht, keine Ziffern, max. 20 Zeichen); Anzeige nur per `textContent`. Stimmen nur auf den aktiven `meta/voteDay`.
+Die URL ist öffentlich; Anonymous Auth ist kein Login. Die 12er-Kappe ist der Missbrauchsschutz pro Runde — ein Troll kann eine Runde vollsetzen. Später ggf. PIN. Spitznamen werden clientseitig normalisiert **und** in den Database Rules serverseitig geprüft (Buchstaben Pflicht, keine Ziffern, max. 20 Zeichen); Anzeige nur per `textContent`. Stimmen nur auf den aktiven `meta/voteDay`.
 
 Einmalig in der [Console](https://console.firebase.google.com/project/lunchtime-larry):
 

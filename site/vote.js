@@ -7,7 +7,7 @@ export const CANTEEN_IDS = ["stmuv", "sodexo", "bella23"];
 /** Thursday only in the client. Rules accept the slug on any day. */
 export const MARKET_ID = "wochenmarkt";
 export const MARKET_NAME = "Wochenmarkt";
-export const MAX_VOTERS = 6;
+export const MAX_VOTERS = 12;
 
 /** Localhost preview only — freezes Berlin clock for phase checks. */
 let nowOverride = null;
@@ -237,9 +237,13 @@ export function mySlot(records, uid) {
   return null;
 }
 
+export function ballotCount(records) {
+  return Object.values(records ?? {}).filter((rec) => rec?.uid).length;
+}
+
 export function canAcceptVote(records, uid) {
   if (mySlot(records, uid) != null) return true;
-  return Object.keys(records ?? {}).length < MAX_VOTERS;
+  return ballotCount(records) < MAX_VOTERS;
 }
 
 export function loadVoteOptIn() {

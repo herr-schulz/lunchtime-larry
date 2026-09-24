@@ -14,7 +14,7 @@ import {
   votePhase,
   voteTargetIds,
   votesPath,
-} from "./vote.js?v=c72a8e83";
+} from "./vote.js?v=9f2d2a21";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
@@ -179,29 +179,32 @@ export function listenVotes(onChange) {
   return () => unsub?.();
 }
 
-export async function setVote(canteen, records = {}) {
+export async function setVote(canteen, _records = {}) {
   assertBallotOpen();
   assertCanteen(canteen);
   const nick = normalizeNick(loadNick());
   if (!isValidNick(nick)) throw new Error("nick");
   const id = await ensureVoteUser();
   await purgeStaleVotes();
-  if (!canAcceptVote(records, id)) throw new Error("full");
-  const { db, ref, set } = await ensureApp();
+  const { db, get, ref, set } = await ensureApp();
+  const path = dayVotesPath();
+  /* Always re-read seats — voteState can still hold another round after a join. */
+  const fresh = (await get(ref(db, path))).val() || {};
+  if (!canAcceptVote(fresh, id)) throw new Error("full");
   /* Nick only in today’s ballot for display — never a permanent profile. */
   const ballot = { uid: id, nick, canteen, at: Date.now() };
-  const existing = mySlot(records, id);
+  const existing = mySlot(fresh, id);
   if (existing != null) {
-    await set(ref(db, `${dayVotesPath()}/${existing}`), ballot);
+    await set(ref(db, `${path}/${existing}`), ballot);
     return;
   }
   for (let slot = 0; slot < MAX_VOTERS; slot += 1) {
-    if (records[slot]) continue;
+    if (fresh[slot]) continue;
     try {
-      await set(ref(db, `${dayVotesPath()}/${slot}`), ballot);
+      await set(ref(db, `${path}/${slot}`), ballot);
       return;
     } catch {
-      /* seat taken between listen and write */
+      /* seat taken between get and write */
     }
   }
   throw new Error("full");
