@@ -84,7 +84,8 @@ describe("voting welcome", () => {
     expect(text).toMatch(/Schick den Code an deine Kolleg/);
     expect(text).toMatch(/Food-Spot des Tages kann bis 11:55/);
     expect(text).toMatch(/12 Uhr/);
-    expect(text).toMatch(/Höchstens 6 Teilnehmer/);
+    expect(text).toMatch(/Höchstens 12 Teilnehmer/);
+    expect(text).toMatch(/Gleicher Teamname oder Code/);
     expect(text).toMatch(/über den Zetteln/);
     expect(app).toMatch(/copyWelcomeCode/);
     expect(app).toMatch(/navigator\.clipboard\.writeText/);

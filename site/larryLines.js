@@ -88,7 +88,7 @@ export function winnerTie() {
 export function voteFull() {
   return {
     kicker: "Ohje",
-    line: "6 Kollegen haben bereits abgestimmt. Mehr geht heute nicht.",
+    line: "Die Runde ist voll — höchstens 12 Stimmen heute. Anderer Teamname oder Code?",
   };
 }
 

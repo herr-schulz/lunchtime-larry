@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  ballotCount,
   ballotDate,
   berlinDate,
   canAcceptVote,
@@ -235,7 +236,7 @@ describe("round rules", () => {
     const key = rules.votes.$key;
     expect(key.$child.$slot[".write"]).toMatch(/a-z0-9-/);
     expect(key.$child.$slot[".write"]).toMatch(/!\$key\.matches/);
-    expect(key.$child.$slot[".write"]).toMatch(/\[0-5\]/);
+    expect(key.$child.$slot[".write"]).toMatch(/\(\?:\[0-9\]\|1\[01\]\)/);
     expect(key.$child.$slot[".write"]).toMatch(/auth\.uid/);
     expect(key.$child[".write"]).not.toMatch(/\$key == root\.child\('meta\/voteDay'\)/);
     expect(key[".write"]).toMatch(/!newData\.exists\(\)/);
@@ -278,7 +279,7 @@ describe("canAcceptVote", () => {
     expect(canAcceptVote(six, "uid0")).toBe(true);
   });
 
-  it("blocks a seventh person", () => {
+  it("blocks when every seat is taken", () => {
     expect(canAcceptVote(six, "uid99")).toBe(false);
     expect(canAcceptVote(six, null)).toBe(false);
   });
@@ -286,6 +287,16 @@ describe("canAcceptVote", () => {
   it("accepts a new ballot while seats remain", () => {
     const five = Object.fromEntries(Object.entries(six).slice(0, 5));
     expect(canAcceptVote(five, "uid99")).toBe(true);
+  });
+
+  it("counts ballots with a uid, not raw object keys", () => {
+    const sparse = {
+      0: { uid: "a", nick: "Ada", canteen: "stmuv", at: 1 },
+      3: { uid: "b", nick: "Bo", canteen: "sodexo", at: 2 },
+      note: null,
+    };
+    expect(ballotCount(sparse)).toBe(2);
+    expect(canAcceptVote(sparse, "uid99")).toBe(true);
   });
 });
 

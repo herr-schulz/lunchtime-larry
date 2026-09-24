@@ -28,15 +28,15 @@ npm run dev
 
 - **Donnerstag:** dezenter Banner zum [Wochenmarkt Bogenhausen](https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/) (nur am Do sichtbar)
 - **Was anderes?!** — eigene Seite [`alternativen.html`](site/alternativen.html) mit Gehminuten & Tags (Pflege in `site/locations.js`)
-- **Heute hierhin:** Tipp auf den Haken am Kantinen-Zettel (nicht aufs Gericht). Auf dem Zettel: Haken plus die Namen, aber erst ab 12 Uhr. Spitznamen ohne Zahlen, max. 20 Zeichen — **dauerhaft nur in `localStorage`**. In Firebase steht der Nick nur im Ballot der Runde. Stimmen liegen unter `votes/{slug}/{tag}` (Europe/Berlin, am Wochenende Freitag). Ohne Slug gibt es keinen Pfad und kein Schreiben nach `votes/{tag}`. Beim App-Start setzt ein Client `meta/voteDay` fort und löscht ältere Tage nur in der eigenen Runde. Maximal **6 Stimmen** pro Runde.
+- **Heute hierhin:** Tipp auf den Haken am Kantinen-Zettel (nicht aufs Gericht). Auf dem Zettel: Haken plus die Namen, aber erst ab 12 Uhr. Spitznamen ohne Zahlen, max. 20 Zeichen — **dauerhaft nur in `localStorage`**. In Firebase steht der Nick nur im Ballot der Runde. Stimmen liegen unter `votes/{slug}/{tag}` (Europe/Berlin, am Wochenende Freitag). Ohne Slug gibt es keinen Pfad und kein Schreiben nach `votes/{tag}`. Beim App-Start setzt ein Client `meta/voteDay` fort und löscht ältere Tage nur in der eigenen Runde. Maximal **12 Stimmen** pro Runde.
 - **Larry-Corner:** kurzer Ansager unten links (Winner, Vote-Hinweise, Eggs). Favoriten-Alarm bleibt unter den Tages-Tabs.
 - **Herz merken:** kurzes Vibrieren auf Android (iOS Safari unterstützt `vibrate` nicht). Aus bei „Bewegung reduzieren“.
 
 ## Firebase
 
-Projekt `lunchtime-larry` (Spark). Die Web-Config in [`site/firebase.json`](site/firebase.json) ist öffentlich — Schutz sitzt in [`database.rules.json`](database.rules.json): **6 feste Plätze** (0–5) pro Tag, Schreiben nur mit Anonymous Auth und nur auf den eigenen Platz, Nick/Kantine/Zeit validiert. Wer schon sitzt, darf umziehen oder zurückziehen.
+Projekt `lunchtime-larry` (Spark). Die Web-Config in [`site/firebase.json`](site/firebase.json) ist öffentlich — Schutz sitzt in [`database.rules.json`](database.rules.json): **12 feste Plätze** (0–11) pro Runde und Tag, Schreiben nur mit Anonymous Auth und nur auf den eigenen Platz, Nick/Kantine/Zeit validiert. Wer schon sitzt, darf umziehen oder zurückziehen.
 
-Die URL ist öffentlich; Anonymous Auth ist kein Login. Die 6er-Kappe ist der Missbrauchsschutz für die kleine Runde — ein Troll kann den Tag vollsetzen. Später ggf. PIN. Spitznamen werden clientseitig normalisiert **und** in den Database Rules serverseitig geprüft (Buchstaben Pflicht, keine Ziffern, max. 20 Zeichen); Anzeige nur per `textContent`. Stimmen nur auf den aktiven `meta/voteDay`.
+Die URL ist öffentlich; Anonymous Auth ist kein Login. Die 12er-Kappe ist der Missbrauchsschutz pro Runde — ein Troll kann eine Runde vollsetzen. Später ggf. PIN. Spitznamen werden clientseitig normalisiert **und** in den Database Rules serverseitig geprüft (Buchstaben Pflicht, keine Ziffern, max. 20 Zeichen); Anzeige nur per `textContent`. Stimmen nur auf den aktiven `meta/voteDay`.
 
 Einmalig in der [Console](https://console.firebase.google.com/project/lunchtime-larry):
 
