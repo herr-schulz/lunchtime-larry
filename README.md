@@ -28,7 +28,7 @@ npm run dev
 
 - **Donnerstag:** dezenter Banner zum [Wochenmarkt Bogenhausen](https://maerkte-muenchen.de/service/info/wochenmarkt-bogenhausen/M00343491/) (nur am Do sichtbar)
 - **Was anderes?!** — eigene Seite [`alternativen.html`](site/alternativen.html) mit Gehminuten & Tags (Pflege in `site/locations.js`)
-- **Heute hierhin:** Tipp auf den Haken am Kantinen-Zettel (nicht aufs Gericht). Auf dem Zettel: Haken plus die Namen, aber erst ab 12 Uhr. Spitznamen ohne Zahlen, max. 20 Zeichen — **dauerhaft nur in `localStorage`**. In Firebase steht der Nick nur im Ballot der Runde. Stimmen liegen unter `votes/{slug}/{tag}` (Europe/Berlin, am Wochenende Freitag). Ohne Slug gibt es keinen Pfad und kein Schreiben nach `votes/{tag}`. Beim App-Start setzt ein Client `meta/voteDay` fort und löscht ältere Tage nur in der eigenen Runde. Maximal **6 Stimmen** pro Runde.
+- **Heute hierhin:** Tipp auf den Haken am Kantinen-Zettel (nicht aufs Gericht). Auf dem Zettel: Haken plus die Namen, aber erst ab 12 Uhr. Spitznamen ohne Zahlen, max. 20 Zeichen — **dauerhaft nur in `localStorage`**. In Firebase steht der Nick nur im Ballot der Runde. Stimmen liegen unter `votes/{slug}/{tag}` (Europe/Berlin, am Wochenende Freitag). Ohne Slug gibt es keinen Pfad und kein Schreiben nach `votes/{tag}`. Beim App-Start setzt ein Client `meta/voteDay` fort und löscht ältere Tage nur in der eigenen Runde. Maximal **12 Stimmen** pro Runde.
 - **Larry-Corner:** kurzer Ansager unten links (Winner, Vote-Hinweise, Eggs). Favoriten-Alarm bleibt unter den Tages-Tabs.
 - **Herz merken:** kurzes Vibrieren auf Android (iOS Safari unterstützt `vibrate` nicht). Aus bei „Bewegung reduzieren“.
 
