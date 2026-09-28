@@ -4,6 +4,11 @@ on:
   # No GitHub `schedule`. That queue delays/drops runs (Mon 2026-09-07 / 2026-09-14).
   # Clock is a Cursor automation that POSTs workflow_dispatch.
   workflow_dispatch:
+    inputs:
+      retry:
+        description: Once-only follow-up after empty canteen days
+        type: boolean
+        default: false
   repository_dispatch:
     types: [scrape]
   push:
@@ -12,6 +17,7 @@ on:
       - ".github/trigger-scrape"
 
 permissions:
+  actions: write
   contents: read
   pages: write
   id-token: write
@@ -25,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.ready.outputs.ready }}
+      holes: ${{ steps.scrape.outputs.holes }}
     env:
       TZ: Europe/Berlin
       PREV_MENU_URL: https://herr-schulz.github.io/lunchtime-larry/data/menu.json
@@ -108,6 +115,18 @@ jobs:
         if: always() && steps.ready.outputs.ready == 'true'
         with:
           path: site
+
+  refill:
+    needs: scrape
+    if: needs.scrape.outputs.holes == 'true' && github.event.inputs.retry != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the kitchen
+        run: sleep 480
+      - name: Kick one follow-up scrape
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run scrape.yml --ref "${GITHUB_REF_NAME}" -f retry=true
 
   deploy:
     needs: scrape

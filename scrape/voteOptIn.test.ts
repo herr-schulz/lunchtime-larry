@@ -54,6 +54,8 @@ describe("vote opt-in and first visit", () => {
     expect(document.querySelector("#optin-dialog button[value='ok']")?.textContent).toBe(
       "Abstimmen",
     );
+    expect(document.querySelector("#optin-dialog h2")?.textContent).toBe("Deine Runde");
+    expect(document.querySelector("#optin-dialog h2")?.textContent).not.toMatch(/6er/);
     expect(document.querySelector("#intro-again")?.textContent).toBe("Was ist das hier?");
     expect(document.querySelector("#intro-again")?.hasAttribute("hidden")).toBe(false);
   });
@@ -84,10 +86,10 @@ describe("voting welcome", () => {
     expect(text).toMatch(/Schick den Code an deine Kolleg/);
     expect(text).toMatch(/Food-Spot des Tages kann bis 11:55/);
     expect(text).toMatch(/12 Uhr/);
-    expect(text).toMatch(/Wer den Code kennt, ist in der Runde/);
-    expect(text).toMatch(/höchstens 24/);
-    expect(text).toMatch(/abstimmen/);
+    expect(text).toMatch(/Die Namen der Runde stehen über den Zetteln/);
     expect(text).not.toMatch(/Höchstens 6 Teilnehmer/);
+    expect(text).not.toMatch(/höchstens 24/);
+    expect(text).not.toMatch(/6er-Runde/);
     expect(text).toMatch(/über den Zetteln/);
     expect(app).toMatch(/copyWelcomeCode/);
     expect(app).toMatch(/navigator\.clipboard\.writeText/);

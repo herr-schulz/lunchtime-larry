@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import { launchBrowser, newScrapingPage, screenshot } from "./browser.ts";
 import { formatIsoDateTime, weekStartBerlin, weekdayDates } from "./lib.ts";
-import { assessSource } from "./sanity.ts";
+import { assessSource, menuHasHoles } from "./sanity.ts";
 import { scrapeBella23 } from "./sources/bella23.ts";
 import { scrapeSodexo } from "./sources/sodexo.ts";
 import { scrapeStmuv } from "./sources/stmuv.ts";
@@ -153,6 +153,11 @@ async function main() {
   await mkdir("site/data", { recursive: true });
   await writeFile(OUT_FILE, `${JSON.stringify(menu, null, 2)}\n`, "utf8");
   console.log(`wrote ${OUT_FILE} week ${weekStart}`);
+  const holes = menuHasHoles(menu);
+  if (holes) console.warn("menu has empty canteen days");
+  if (process.env.GITHUB_OUTPUT) {
+    await appendFile(process.env.GITHUB_OUTPUT, `holes=${holes ? "true" : "false"}\n`);
+  }
 
   if (!anyOk) {
     console.error("all sources failed — page will show error banners");
