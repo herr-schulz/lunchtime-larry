@@ -2,7 +2,8 @@ import { parseHTML } from "linkedom";
 import { cleanText, inferDiet, parseGermanPrice, stripDietLabels } from "../lib.ts";
 import { WEEKDAYS, type Diet, type Dish, type Weekday } from "../types.ts";
 
-const DAY_HEAD = /^(montag|dienstag|mittwoch|donnerstag|freitag)\b/i;
+/** Digit after the name is a missing space, e.g. "Donnerstag01.10". */
+const DAY_HEAD = /^(montag|dienstag|mittwoch|donnerstag|freitag)(?![a-zäöü])/i;
 /** Bella sets these as h6 headings, same as dish names. */
 const DIET_TOKEN =
   "vegan(?:e[rsn])?|veggie|vegetarisch|fleisch|fisch|geflügel|schwein|rind|huhn|pute|wild|krustentier";
