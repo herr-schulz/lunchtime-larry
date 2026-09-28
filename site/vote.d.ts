@@ -2,7 +2,7 @@ export const CANTEEN_IDS: readonly ["stmuv", "sodexo", "bella23"];
 export const MARKET_ID: "wochenmarkt";
 export const MARKET_NAME: string;
 export function voteTargetIds(weekday: string): string[];
-export const MAX_VOTERS: 6;
+export const MAX_VOTERS: 24;
 export const MAX_NICK: 20;
 export const MAX_NICK_WORD: 12;
 

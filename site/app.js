@@ -1058,6 +1058,13 @@ function startVotes({ force = false } = {}) {
   if (!welcomePassed) return;
   if (votesListening && !force) return;
   votesListening = true;
+  /* Drop seats from a previous round before the new listener returns. */
+  voteState = {
+    counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
+    records: {},
+    mine: null,
+    uid: voteState.uid,
+  };
   const onVotes = (next) => {
     voteState = next;
     applyVoteUi();

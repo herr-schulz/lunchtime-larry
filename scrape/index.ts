@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { launchBrowser, screenshot } from "./browser.ts";
+import { launchBrowser, newScrapingPage, screenshot } from "./browser.ts";
 import { formatIsoDateTime, weekStartBerlin, weekdayDates } from "./lib.ts";
 import { assessSource } from "./sanity.ts";
 import { scrapeBella23 } from "./sources/bella23.ts";
@@ -81,7 +81,7 @@ async function main() {
   ];
 
   for (const job of jobs) {
-    const page = await context.newPage();
+    const page = await newScrapingPage(context);
     try {
       const dishes = await job.run(page);
       const previousDishes = previous ? dishesFor(previous.days, job.id) : undefined;

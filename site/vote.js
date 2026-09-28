@@ -7,7 +7,8 @@ export const CANTEEN_IDS = ["stmuv", "sodexo", "bella23"];
 /** Thursday only in the client. Rules accept the slug on any day. */
 export const MARKET_ID = "wochenmarkt";
 export const MARKET_NAME = "Wochenmarkt";
-export const MAX_VOTERS = 6;
+/** Seats 0–23 per round per day. Must match database.rules.json `$slot`. */
+export const MAX_VOTERS = 24;
 
 /** Localhost preview only — freezes Berlin clock for phase checks. */
 let nowOverride = null;
