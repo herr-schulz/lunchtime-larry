@@ -2,7 +2,12 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { dietFromLabel, parseBella23Html, parseBellaColumns } from "./sources/bella23Parse.ts";
+import {
+  dietFromLabel,
+  parseBella23Html,
+  parseBellaColumns,
+  weekdayFromHeading,
+} from "./sources/bella23Parse.ts";
 import {
   dishSignature,
   mapSodexoDishes,
@@ -107,6 +112,34 @@ describe("parseBella23Html", () => {
     ]);
     expect(live.tuesday[1]).toMatchObject({ price: "11,40 €", diet: "meat" });
     expect(live.tuesday.some((d) => /^wild$/i.test(d.name))).toBe(false);
+  });
+
+  it("reads Donnerstag without a space before the date", () => {
+    expect(weekdayFromHeading("Donnerstag01.10")).toBe("thursday");
+    const live = parseBellaColumns([
+      [
+        { tag: "h3", text: "Donnerstag01.10" },
+        { tag: "h6", text: "Schwäbische Austernpilze Kuttle Semmelknödel" },
+        { tag: "h6", text: "Veggie" },
+        { tag: "p", text: "7,35€" },
+        { tag: "h6", text: "Wies´n Schnitzel Pommes frites" },
+        { tag: "h6", text: "Schwein" },
+        { tag: "p", text: "10,50€" },
+        { tag: "h6", text: "Chili Leberkäse Spiegelei Kartoffelslalat" },
+        { tag: "p", text: "Preis siehe Aushang" },
+      ],
+    ]);
+    expect(live.thursday.map((d) => d.name)).toEqual([
+      "Schwäbische Austernpilze Kuttle Semmelknödel",
+      "Wies´n Schnitzel Pommes frites",
+      "Chili Leberkäse Spiegelei Kartoffelslalat",
+    ]);
+    expect(live.thursday[0]).toMatchObject({ price: "7,35 €", diet: "veggie" });
+    expect(live.thursday[1]).toMatchObject({ price: "10,50 €", diet: "meat" });
+    expect(live.thursday[2]).toMatchObject({
+      price: "siehe Aushang",
+      diet: "meat",
+    });
   });
 });
 
