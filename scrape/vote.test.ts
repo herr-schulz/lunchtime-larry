@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { voteFull } from "../site/larryLines.js";
 import {
   ballotDate,
   berlinDate,
@@ -221,7 +222,7 @@ describe("thursday market", () => {
     expect(mark?.closest("a")).toBeNull();
     expect(mark?.closest("#market-row")).toBeTruthy();
     const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
-    expect(rules.votes.$round.$day.$slot[".validate"]).toMatch(/wochenmarkt/);
+    expect(rules.votes.$key.$child.$slot[".validate"]).toMatch(/wochenmarkt/);
     const client = readFileSync("site/voteClient.js", "utf8");
     expect(client).toMatch(/voteTargetIds\(berlinWeekday\(\)\)/);
   });
@@ -230,16 +231,16 @@ describe("thursday market", () => {
 describe("round rules", () => {
   const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
 
-  it("writes ballots only under a slug day, without a parent write that denies the tree", () => {
+  it("writes ballots only under a slug, never on a bare date", () => {
     expect(rules.votes[".read"]).toBeUndefined();
-    const round = rules.votes.$round;
-    expect(round[".write"]).toBeUndefined();
-    expect(round.$day.$slot[".write"]).toMatch(/a-z0-9-/);
-    expect(round.$day.$slot[".write"]).toMatch(/!\$round\.matches/);
-    expect(round.$day.$slot[".write"]).toMatch(/\[0-5\]/);
-    expect(round.$day.$slot[".write"]).toMatch(/auth\.uid/);
-    expect(round.$day[".write"]).toMatch(/!newData\.exists\(\)/);
-    expect(round.$day[".write"]).toMatch(/\$day < root\.child\('meta\/voteDay'\)/);
+    const key = rules.votes.$key;
+    expect(key.$child.$slot[".write"]).toMatch(/a-z0-9-/);
+    expect(key.$child.$slot[".write"]).toMatch(/!\$key\.matches/);
+    expect(key.$child.$slot[".write"]).toMatch(/2\[0-3\]/);
+    expect(key.$child.$slot[".write"]).toMatch(/auth\.uid/);
+    expect(key.$child[".write"]).not.toMatch(/\$key == root\.child\('meta\/voteDay'\)/);
+    expect(key[".write"]).toMatch(/!newData\.exists\(\)/);
+    expect(key.$child[".write"]).toMatch(/\$child < root\.child\('meta\/voteDay'\)/);
   });
 });
 
@@ -267,7 +268,7 @@ describe("staleVoteDays", () => {
 });
 
 describe("canAcceptVote", () => {
-  const six = Object.fromEntries(
+  const full = Object.fromEntries(
     Array.from({ length: MAX_VOTERS }, (_, i) => [
       String(i),
       { uid: `uid${i}`, nick: `n${i}`, canteen: "sodexo", at: 1 },
@@ -275,17 +276,22 @@ describe("canAcceptVote", () => {
   );
 
   it("lets an existing voter change or withdraw", () => {
-    expect(canAcceptVote(six, "uid0")).toBe(true);
+    expect(canAcceptVote(full, "uid0")).toBe(true);
   });
 
-  it("blocks a seventh person", () => {
-    expect(canAcceptVote(six, "uid99")).toBe(false);
-    expect(canAcceptVote(six, null)).toBe(false);
+  it("blocks a new person when all seats are taken", () => {
+    expect(canAcceptVote(full, "uid99")).toBe(false);
+    expect(canAcceptVote(full, null)).toBe(false);
   });
 
   it("accepts a new ballot while seats remain", () => {
-    const five = Object.fromEntries(Object.entries(six).slice(0, 5));
-    expect(canAcceptVote(five, "uid99")).toBe(true);
+    const open = Object.fromEntries(Object.entries(full).slice(0, MAX_VOTERS - 1));
+    expect(canAcceptVote(open, "uid99")).toBe(true);
+  });
+
+  it("keeps Larry's full line on the seat cap", () => {
+    expect(MAX_VOTERS).toBe(24);
+    expect(voteFull().line).toContain("24");
   });
 });
 
