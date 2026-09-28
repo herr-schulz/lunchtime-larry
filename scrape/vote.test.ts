@@ -221,7 +221,7 @@ describe("thursday market", () => {
     expect(mark?.closest("a")).toBeNull();
     expect(mark?.closest("#market-row")).toBeTruthy();
     const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
-    expect(rules.votes.$key.$child.$slot[".validate"]).toMatch(/wochenmarkt/);
+    expect(rules.votes.$round.$day.$slot[".validate"]).toMatch(/wochenmarkt/);
     const client = readFileSync("site/voteClient.js", "utf8");
     expect(client).toMatch(/voteTargetIds\(berlinWeekday\(\)\)/);
   });
@@ -230,16 +230,16 @@ describe("thursday market", () => {
 describe("round rules", () => {
   const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
 
-  it("writes ballots only under a slug, never on a bare date", () => {
+  it("writes ballots only under a slug day, without a parent write that denies the tree", () => {
     expect(rules.votes[".read"]).toBeUndefined();
-    const key = rules.votes.$key;
-    expect(key.$child.$slot[".write"]).toMatch(/a-z0-9-/);
-    expect(key.$child.$slot[".write"]).toMatch(/!\$key\.matches/);
-    expect(key.$child.$slot[".write"]).toMatch(/\[0-5\]/);
-    expect(key.$child.$slot[".write"]).toMatch(/auth\.uid/);
-    expect(key.$child[".write"]).not.toMatch(/\$key == root\.child\('meta\/voteDay'\)/);
-    expect(key[".write"]).toMatch(/!newData\.exists\(\)/);
-    expect(key.$child[".write"]).toMatch(/\$child < root\.child\('meta\/voteDay'\)/);
+    const round = rules.votes.$round;
+    expect(round[".write"]).toBeUndefined();
+    expect(round.$day.$slot[".write"]).toMatch(/a-z0-9-/);
+    expect(round.$day.$slot[".write"]).toMatch(/!\$round\.matches/);
+    expect(round.$day.$slot[".write"]).toMatch(/\[0-5\]/);
+    expect(round.$day.$slot[".write"]).toMatch(/auth\.uid/);
+    expect(round.$day[".write"]).toMatch(/!newData\.exists\(\)/);
+    expect(round.$day[".write"]).toMatch(/\$day < root\.child\('meta\/voteDay'\)/);
   });
 });
 
