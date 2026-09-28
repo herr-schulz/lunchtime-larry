@@ -1900,9 +1900,14 @@ button.escape-link {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--stamp) 18%, transparent);
 }
 
-.slip-list.is-empty .pizza-miss {
-  margin-top: 0;
-  margin-bottom: 0;
+.slip-list.is-empty .empty-menu {
+  margin: 4.4rem 0 0;
+  text-align: center;
+}
+
+.slip-menu-link {
+  color: inherit;
+  text-underline-offset: 0.18em;
 }
 
 .slip.is-voted,

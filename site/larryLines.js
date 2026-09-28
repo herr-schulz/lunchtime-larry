@@ -88,7 +88,7 @@ export function winnerTie() {
 export function voteFull() {
   return {
     kicker: "Ohje",
-    line: "24 Kollegen haben bereits abgestimmt. Mehr geht heute nicht.",
+    line: "Die Runde ist heute voll. Mehr Stimmen gehen nicht.",
   };
 }
 

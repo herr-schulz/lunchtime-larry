@@ -11,20 +11,6 @@ const DIET = {
   fish: "Fisch",
 };
 
-const GHOST_LINES = [
-  "Küche schweigt.",
-  "Stempel trocken.",
-  "Heute nichts auf dem Zettel.",
-  "Herd aus. Pause.",
-];
-
-export function ghostLine(seed) {
-  const index =
-    Math.abs([...String(seed)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)) %
-    GHOST_LINES.length;
-  return GHOST_LINES[index];
-}
-
 export function formatDishName(name, canteenId) {
   const { title, sides } = phraseDish(name, { canteen: canteenId });
   const heart = heartIconFilled;
@@ -81,17 +67,15 @@ export function boardHtml({
       if (source?.status === "stale") {
         note = `<p class="note">Alter Plan — Larry kam nicht durch. Stand kann veraltet sein.</p>`;
       }
-      const missing = source?.status === "error" && !canteen.dishes?.length;
+      const empty = !canteen.dishes?.length;
       const body = canteen.dishes?.length
         ? canteen.dishes.map((dish, index) => dishRow(dish, index, likes, canteen.id)).join("")
-        : missing
-          ? ""
-          : `<p class="ghost">${escapeHtml(ghostLine(canteen.id))}</p>`;
+        : `<p class="note empty-menu"><a class="slip-menu-link" href="${escapeHtml(meta.url)}" target="_blank" rel="noopener noreferrer">Zur Speisekarte</a> — heute nichts auf dem Zettel.</p>`;
       const pizza =
-        canteen.id === "sodexo" && !missing
+        canteen.id === "sodexo" && !empty
           ? `<button type="button" class="pizza" data-pizza>Pizza täglich</button>`
           : "";
-      const missStamp = missing
+      const missStamp = empty
         ? `<p class="pizza pizza-miss" role="status" aria-label="Speiseplan nicht verfügbar">Heute nix da</p>`
         : "";
       const weekStamp = weekStale
@@ -113,7 +97,7 @@ export function boardHtml({
           </div>
         </div>
         ${note}
-        <div class="slip-list${missing ? " is-empty" : ""}">
+        <div class="slip-list${empty ? " is-empty" : ""}">
           ${body}
           ${missStamp}
           ${weekStamp}

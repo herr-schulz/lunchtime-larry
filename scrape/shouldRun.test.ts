@@ -144,4 +144,56 @@ describe("shouldScrape", () => {
       reason: "already scraped today",
     });
   });
+
+  it("runs again the same day when a canteen is missing a weekday", () => {
+    const previous: PreviousMenu = {
+      ...thisWeek,
+      days: {
+        monday: {
+          date: "2026-09-07",
+          canteens: [
+            { id: "stmuv", dishes: [{ name: "Suppe", diet: "unknown" }] },
+            { id: "sodexo", dishes: [{ name: "Schnitzel", diet: "meat" }] },
+            { id: "bella23", dishes: [{ name: "Pasta", diet: "veggie" }] },
+          ],
+        },
+        tuesday: {
+          date: "2026-09-08",
+          canteens: [
+            { id: "stmuv", dishes: [{ name: "Suppe", diet: "unknown" }] },
+            { id: "sodexo", dishes: [{ name: "Schnitzel", diet: "meat" }] },
+            { id: "bella23", dishes: [{ name: "Pasta", diet: "veggie" }] },
+          ],
+        },
+        wednesday: {
+          date: "2026-09-09",
+          canteens: [
+            { id: "stmuv", dishes: [{ name: "Suppe", diet: "unknown" }] },
+            { id: "sodexo", dishes: [{ name: "Schnitzel", diet: "meat" }] },
+            { id: "bella23", dishes: [{ name: "Pasta", diet: "veggie" }] },
+          ],
+        },
+        thursday: {
+          date: "2026-09-10",
+          canteens: [
+            { id: "stmuv", dishes: [{ name: "Suppe", diet: "unknown" }] },
+            { id: "sodexo", dishes: [{ name: "Schnitzel", diet: "meat" }] },
+            { id: "bella23", dishes: [] },
+          ],
+        },
+        friday: {
+          date: "2026-09-11",
+          canteens: [
+            { id: "stmuv", dishes: [{ name: "Suppe", diet: "unknown" }] },
+            { id: "sodexo", dishes: [{ name: "Schnitzel", diet: "meat" }] },
+            { id: "bella23", dishes: [{ name: "Pizza", diet: "meat" }] },
+          ],
+        },
+      },
+    };
+    expect(shouldScrape(new Date("2026-09-07T11:10:00+02:00"), previous)).toEqual({
+      needed: true,
+      reason: "a canteen day is empty",
+    });
+  });
 });

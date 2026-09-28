@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { assessSource, countMains } from "./sanity.ts";
-import { WEEKDAYS, type Dish, type Weekday } from "./types.ts";
+import { assessSource, countMains, menuHasHoles } from "./sanity.ts";
+import { WEEKDAYS, type Dish, type MenuData, type Weekday } from "./types.ts";
 
 function days(fill: (day: Weekday) => Dish[]): Record<Weekday, Dish[]> {
   return Object.fromEntries(WEEKDAYS.map((day) => [day, fill(day)])) as Record<
@@ -38,6 +38,29 @@ describe("assessSource", () => {
   it("allows a single empty weekday (holiday)", () => {
     const dishes = days((day) => (day === "friday" ? [] : schnitzel(2, `${day}-`)));
     expect(assessSource(dishes)).toEqual({ ok: true });
+  });
+
+  it("flags a menu that has food on some days and none on others", () => {
+    const menu = {
+      days: Object.fromEntries(
+        WEEKDAYS.map((day) => [
+          day,
+          {
+            date: "2026-09-07",
+            canteens: [
+              {
+                id: "bella23",
+                dishes: day === "thursday" ? [] : [{ name: "Pasta", diet: "veggie" as const }],
+              },
+              { id: "stmuv", dishes: [{ name: "Suppe", diet: "unknown" as const }] },
+              { id: "sodexo", dishes: [{ name: "Schnitzel", diet: "meat" as const }] },
+            ],
+          },
+        ]),
+      ),
+    } as MenuData;
+    expect(menuHasHoles(menu)).toBe(true);
+    expect(menuHasHoles(undefined)).toBe(false);
   });
 
   it("rejects two empty weekdays", () => {

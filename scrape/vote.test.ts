@@ -289,9 +289,10 @@ describe("canAcceptVote", () => {
     expect(canAcceptVote(open, "uid99")).toBe(true);
   });
 
-  it("keeps Larry's full line on the seat cap", () => {
+  it("keeps Larry's full line without advertising a seat count", () => {
     expect(MAX_VOTERS).toBe(24);
-    expect(voteFull().line).toContain("24");
+    expect(voteFull().line).toMatch(/voll/);
+    expect(voteFull().line).not.toMatch(/\d/);
   });
 });
 
