@@ -36,6 +36,23 @@ describe("boardHtml week-stale", () => {
     expect(html).not.toContain("ghost");
   });
 
+  it("points an empty slip at the canteen page", () => {
+    const html = boardHtml({
+      block: {
+        canteens: [{ id: "bella23", dishes: [] }],
+      },
+      canteens,
+      sources: { bella23: { status: "ok" } },
+      likes: new Set(),
+      votingOpen: false,
+    });
+    expect(html).toContain("Zur Speisekarte");
+    expect(html).toContain("https://example.test/bella");
+    expect(html).toContain("Heute nix da");
+    expect(html).toContain("heute nichts auf dem Zettel");
+    expect(html).not.toContain("Stempel trocken");
+  });
+
   it("keeps the in-window source-stale slip note next to the week stamp", () => {
     const html = boardHtml({
       block: {

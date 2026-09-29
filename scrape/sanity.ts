@@ -1,4 +1,4 @@
-import { WEEKDAYS, type Dish, type Weekday } from "./types.ts";
+import { CANTEENS, WEEKDAYS, type CanteenId, type Dish, type MenuData, type Weekday } from "./types.ts";
 
 const DESSERT = /^dessert$/i;
 const THIN_RATIO = 0.4;
@@ -17,6 +17,21 @@ export function countMains(dishes: Record<Weekday, Dish[]>): number {
 
 export function emptyWeekdays(dishes: Record<Weekday, Dish[]>): Weekday[] {
   return WEEKDAYS.filter((day) => dishes[day].length === 0);
+}
+
+/** True when a canteen has food on some weekdays and none on others. */
+export function menuHasHoles(menu: { days?: MenuData["days"] } | undefined): boolean {
+  const days = menu?.days;
+  if (!days) return false;
+  for (const id of Object.keys(CANTEENS) as CanteenId[]) {
+    const counts = WEEKDAYS.map(
+      (day) => days[day]?.canteens.find((canteen) => canteen.id === id)?.dishes?.length ?? 0,
+    );
+    const empty = counts.filter((n) => n === 0).length;
+    const filled = counts.filter((n) => n > 0).length;
+    if (empty >= 1 && filled >= 1) return true;
+  }
+  return false;
 }
 
 function mainNames(dishes: Dish[]): string[] {

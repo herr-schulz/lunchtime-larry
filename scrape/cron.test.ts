@@ -15,4 +15,9 @@ describe("scrape triggers", () => {
     expect(onBlock).toMatch(/repository_dispatch:\r?\n\s+types: \[scrape\]/);
     expect(yaml).toMatch("github.event_name == 'repository_dispatch'");
   });
+
+  it("kicks one follow-up scrape when a canteen day stayed empty", () => {
+    expect(yaml).toMatch(/needs\.scrape\.outputs\.holes == 'true'/);
+    expect(yaml).toMatch(/-f retry=true/);
+  });
 });

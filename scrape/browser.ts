@@ -31,7 +31,7 @@ export async function screenshot(page: Page, name: string): Promise<void> {
 
 /** Auto-click consent banners whenever they appear (Everyday, OneTrust, …). */
 export async function armCookieDismiss(page: Page): Promise<void> {
-  await page.addLocatorHandler(page.locator(COOKIE_OVERLAY_LOCATOR), async () => {
+  await page.addLocatorHandler(page.locator(COOKIE_OVERLAY_LOCATOR).first(), async () => {
     await dismissCookies(page);
   });
 }

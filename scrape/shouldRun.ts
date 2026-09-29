@@ -1,5 +1,6 @@
 import { appendFile } from "node:fs/promises";
 import { formatIsoDate, weekStartBerlin } from "./lib.ts";
+import { menuHasHoles } from "./sanity.ts";
 import {
   CANTEENS,
   USER_AGENT,
@@ -11,10 +12,8 @@ const PREV_MENU_URL =
   process.env.PREV_MENU_URL ??
   "https://herr-schulz.github.io/lunchtime-larry/data/menu.json";
 
-export type PreviousMenu = Pick<
-  MenuData,
-  "weekStart" | "lastSuccessAt" | "sources"
->;
+export type PreviousMenu = Pick<MenuData, "weekStart" | "lastSuccessAt" | "sources"> &
+  Partial<Pick<MenuData, "days">>;
 
 export type ScrapeDecision = {
   needed: boolean;
@@ -54,6 +53,9 @@ export function shouldScrape(
   }
   if (!sourcesOk(previous.sources)) {
     return { needed: true, reason: "a source is error or stale" };
+  }
+  if (menuHasHoles(previous)) {
+    return { needed: true, reason: "a canteen day is empty" };
   }
 
   const today = formatIsoDate(now);

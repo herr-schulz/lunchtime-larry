@@ -1,4 +1,3 @@
-export function ghostLine(seed: string): string;
 export function formatDishName(name: string, canteenId?: string): string;
 export function dishRow(
   dish: { name: string; diet?: string; category?: string; price?: string },

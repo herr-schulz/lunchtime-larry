@@ -83,6 +83,24 @@ export function parseGermanPrice(text: string): string | undefined {
   return match ? `${match[1].replace(".", ",")} €` : undefined;
 }
 
+/** StMUV list prices are intern; guests pay 15% more. */
+export const STMUV_GUEST_MARKUP = 1.15;
+
+export function markupGuestPrice(
+  price: string | undefined,
+  factor = STMUV_GUEST_MARKUP,
+): string | undefined {
+  if (!price) return undefined;
+  if (/aushang/i.test(price)) return price;
+  const parsed = parseGermanPrice(price);
+  if (!parsed) return price;
+  const match = parsed.match(/(\d+),(\d{2})/);
+  if (!match) return price;
+  const cents = Number(match[1]) * 100 + Number(match[2]);
+  const marked = Math.round((cents * Math.round(factor * 100)) / 100);
+  return `${Math.floor(marked / 100)},${String(marked % 100).padStart(2, "0")} €`;
+}
+
 export function cleanText(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }

@@ -32,11 +32,12 @@ describe("parseStmuvHtml", () => {
       name: "Blumenkohl",
       diet: "vegan",
       category: "Suppe",
-      price: "1,30 €",
+      price: "1,50 €",
     });
     expect(menu.monday.some((d) => d.name.startsWith("Kötbullar"))).toBe(true);
     expect(menu.monday.find((d) => d.name.startsWith("Kötbullar"))?.diet).toBe("meat");
     expect(menu.monday.find((d) => d.name.startsWith("Schaschlik"))?.diet).toBe("meat");
+    expect(menu.monday.find((d) => d.name.startsWith("Kötbullar"))?.price).toBe("7,94 €");
   });
 
   it("clones weekly desserts onto every weekday and leaves them unlabeled", () => {

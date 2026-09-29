@@ -1,5 +1,5 @@
 import { parseHTML } from "linkedom";
-import { inferDiet, parseGermanPrice, stripDietLabels } from "../lib.ts";
+import { inferDiet, markupGuestPrice, parseGermanPrice, stripDietLabels } from "../lib.ts";
 import { WEEKDAYS, type Dish, type Weekday } from "../types.ts";
 
 const WEEKDAY_KEYS = WEEKDAYS;
@@ -67,7 +67,7 @@ export function parseStmuvHtml(html: string): Record<Weekday, Dish[]> {
         if (raw.veganIcon) diet = "vegan";
         return {
           name: stripDietLabels(raw.name.replace(/\d+[.,]\d{2}\s*€/g, "")),
-          price,
+          price: markupGuestPrice(price),
           diet,
           category: raw.category,
         } satisfies Dish;
@@ -77,7 +77,7 @@ export function parseStmuvHtml(html: string): Record<Weekday, Dish[]> {
 
   const dessertDishes: Dish[] = desserts.map((line) => ({
     name: stripDietLabels(line.replace(/\d+[.,]\d{2}\s*€/g, "")),
-    price: parseGermanPrice(line),
+    price: markupGuestPrice(parseGermanPrice(line)),
     diet: inferDiet(line, { category: "Dessert" }),
     category: "Dessert",
   }));
