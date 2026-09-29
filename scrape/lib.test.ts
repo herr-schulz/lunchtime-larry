@@ -6,6 +6,7 @@ import {
   formatIsoDateTime,
   inferDiet,
   isoWeek,
+  markupGuestPrice,
   parseGermanPrice,
   stripDietLabels,
   weekStartBerlin,
@@ -65,6 +66,15 @@ describe("parseGermanPrice", () => {
   it("normalizes a euro price", () => {
     expect(parseGermanPrice("6,90 €")).toBe("6,90 €");
     expect(parseGermanPrice("ab 7.50€")).toBe("7,50 €");
+  });
+});
+
+describe("markupGuestPrice", () => {
+  it("adds 15 percent for StMUV guest prices", () => {
+    expect(markupGuestPrice("1,30 €")).toBe("1,50 €");
+    expect(markupGuestPrice("6,90 €")).toBe("7,94 €");
+    expect(markupGuestPrice("8,00 €")).toBe("9,20 €");
+    expect(markupGuestPrice("siehe Aushang")).toBe("siehe Aushang");
   });
 });
 

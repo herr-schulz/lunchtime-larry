@@ -19,7 +19,8 @@ export const COOKIE_ACCEPT_ALL_RE =
 export const COOKIE_ACCEPT_RE =
   /^(akzeptieren|accept|agree|einverstanden|zustimmen|ok|okay|verstanden|got it)$/i;
 
-/** Overlay / button locator for Playwright addLocatorHandler. */
+/** Overlay locator for Playwright addLocatorHandler — always use `.first()`.
+ * OneTrust paints banner + SDK + both buttons at once; strict mode then throws. */
 export const COOKIE_OVERLAY_LOCATOR = [
   "#onetrust-banner-sdk",
   "#onetrust-consent-sdk",
