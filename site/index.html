@@ -34,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=84594527" />
+    <link rel="stylesheet" href="./styles.css?v=c9e49304" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -115,7 +115,15 @@
       </button>
     </nav>
       <div id="notices" class="notices" hidden>
-        <div id="banner" class="toast toast-warn" hidden></div>
+        <div id="banner" class="toast toast-warn update-banner" hidden>
+          <div class="toast-head">
+            <p class="toast-kicker"><span>Alter Zettel</span></p>
+          </div>
+          <p class="toast-stale-copy">
+            Dein Larry ist noch der vom letzten Stand. Einmal neu laden, dann passt’s.
+          </p>
+          <button type="button" class="update-reload" id="update-reload">Neu laden</button>
+        </div>
         <div id="hits" class="toast toast-hit" hidden></div>
       </div>
     </div>
@@ -492,6 +500,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=2845f04a" type="module"></script>
+    <script src="./app.js?v=a7891439" type="module"></script>
   </body>
 </html>

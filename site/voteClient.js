@@ -14,7 +14,7 @@ import {
   votePhase,
   voteTargetIds,
   votesPath,
-} from "./vote.js?v=c72a8e83";
+} from "./vote.js?v=dbd83b51";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;

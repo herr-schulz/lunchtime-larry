@@ -4,6 +4,30 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const site = join(dirname(fileURLToPath(import.meta.url)), "..", "site");
+const version = JSON.parse(await readFile(join(site, "version.json"), "utf8"));
+const shellBuild = String(version.build ?? "");
+
+const updateShellPath = join(site, "updateShell.js");
+const updateShellBefore = await readFile(updateShellPath, "utf8");
+const updateShellAfter = updateShellBefore.replace(
+  /export const SHELL_BUILD = "[^"]*"/,
+  `export const SHELL_BUILD = "${shellBuild}"`,
+);
+if (updateShellAfter !== updateShellBefore) {
+  await writeFile(updateShellPath, updateShellAfter);
+  console.log("stamped updateShell.js build");
+}
+
+const swPath = join(site, "sw.js");
+const swBefore = await readFile(swPath, "utf8");
+const swAfter = swBefore.replace(
+  /const CACHE = "larry-shell-v[^"]*"/,
+  `const CACHE = "larry-shell-v${shellBuild}"`,
+);
+if (swAfter !== swBefore) {
+  await writeFile(swPath, swAfter);
+  console.log("stamped sw.js cache");
+}
 
 async function hashFile(name) {
   const buf = await readFile(join(site, name));
@@ -94,9 +118,12 @@ if (spotDiceAfter !== spotDiceBefore) {
   console.log("stamped spotDice.js imports");
 }
 
+const updateShellHash = await hashFile("updateShell.js");
+
 const appPath = join(site, "app.js");
 const appBefore = await readFile(appPath, "utf8");
 const appAfter = appBefore
+  .replace(/(\.\/updateShell\.js)(?:\?v=[^"']*)?/g, `./updateShell.js?v=${updateShellHash}`)
   .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
   .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
   .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
