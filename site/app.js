@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=e7aac229";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=bd8dc50d";
 import {
   favoritePoint,
   favoriteToday,
@@ -43,9 +43,10 @@ import {
   voteOffline,
   votePicksFull,
   voteStuffed,
+  egalButtonLabel,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=a790ddcd";
+} from "./larryLines.js?v=79f41c0e";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -641,9 +642,14 @@ function applyVoteUi() {
     }
   }
   if (egalVote) {
+    const pressed = Boolean(votes.mine?.egal);
     egalVote.hidden = !show;
     egalVote.disabled = !open;
-    egalVote.setAttribute("aria-pressed", String(Boolean(votes.mine?.egal)));
+    egalVote.classList.toggle("is-on", pressed);
+    egalVote.setAttribute("aria-pressed", String(pressed));
+    const label = egalButtonLabel(pressed, berlinDate());
+    egalVote.textContent = label;
+    egalVote.setAttribute("aria-label", pressed ? `${label} — mit der Runde` : label);
   }
   marketBanner?.classList.toggle("is-voted", showMarket && mineHasPick(votes.mine, MARKET_ID));
   marketBanner?.classList.toggle(
@@ -684,14 +690,15 @@ function rememberStuffed(uid) {
 }
 
 function maybeAnnounceStuffed(records) {
-  if (previewVotes) return;
+  if (previewVotes || votePhase() !== "reveal") return;
   loadStuffedSaid();
-  for (const row of stuffedBallots(records)) {
-    if (stuffedSaid.has(row.uid)) continue;
-    rememberStuffed(row.uid);
-    const nick = isValidNick(row.nick) ? row.nick : "";
-    sayLarry(voteStuffed(nick));
-  }
+  const rows = stuffedBallots(records).filter((row) => !stuffedSaid.has(row.uid));
+  if (!rows.length) return;
+  for (const row of rows) rememberStuffed(row.uid);
+  const names = rows
+    .map((row) => (isValidNick(row.nick) ? row.nick : ""))
+    .filter(Boolean);
+  sayLarry(voteStuffed(names));
 }
 
 function syncVoteChrome() {

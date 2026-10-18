@@ -175,6 +175,14 @@ describe("two picks and egal", () => {
       mineFromRecord({ canteen: "stmuv", second: "bella23" }).picks,
     ).toEqual(["stmuv", "bella23"]);
     expect(mineHasPick(mineFromRecord({ canteen: EGAL_ID }), "stmuv")).toBe(false);
+    expect(mineFromRecord({ canteen: EGAL_ID, second: "sodexo" })).toEqual({
+      picks: [],
+      egal: true,
+    });
+    expect(nextMineForPick({ picks: [], egal: true }, "stmuv")).toEqual({
+      picks: ["stmuv"],
+      egal: false,
+    });
   });
 
   it("keeps the picks-full line without a seat count", () => {

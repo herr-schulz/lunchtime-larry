@@ -99,12 +99,29 @@ export function votePicksFull() {
   };
 }
 
-export function voteStuffed(nick) {
-  const who = nick ? `${nick} hat` : "Jemand hat";
+export function voteStuffed(nickOrNicks) {
+  const names = (Array.isArray(nickOrNicks) ? nickOrNicks : [nickOrNicks])
+    .map((n) => String(n || "").trim())
+    .filter(Boolean);
+  const who = !names.length
+    ? "Jemand hat"
+    : names.length === 1
+      ? `${names[0]} hat`
+      : `${names.slice(0, -1).join(", ")} und ${names.at(-1)} haben`;
   return {
     kicker: "Halt",
     line: `${who} mehr abgestimmt, als zwei Haken hergeben. Das zähl ich nur einmal.`,
   };
+}
+
+const EGAL_IDLE = ["Egal", "Mir egal", "Passt alles", "Wie ihr wollt"];
+const EGAL_ON = ["Ich geh mit", "Mit der Runde", "Alles recht"];
+
+export function egalButtonLabel(pressed, day = "") {
+  const list = pressed ? EGAL_ON : EGAL_IDLE;
+  let n = 0;
+  for (const ch of String(day)) n += ch.charCodeAt(0);
+  return list[n % list.length] || list[0];
 }
 
 export function voteOffline() {

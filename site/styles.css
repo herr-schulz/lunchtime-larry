@@ -713,10 +713,15 @@ h1 {
   -webkit-tap-highlight-color: transparent;
 }
 
+.egal-vote.is-on,
 .egal-vote[aria-pressed="true"] {
-  color: var(--stamp);
+  color: var(--ticket);
+  background: var(--stamp);
   border-style: solid;
-  border-color: color-mix(in srgb, var(--stamp) 42%, transparent);
+  border-color: var(--stamp);
+  font-style: normal;
+  font-weight: 600;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--stamp) 65%, #3a120c);
 }
 
 .egal-vote:focus-visible {

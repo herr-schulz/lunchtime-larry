@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  egalButtonLabel,
   favoritePoint,
   IDLE_TIP,
   idleTip,
@@ -108,5 +109,16 @@ describe("favoritePoint", () => {
     expect(note.kicker).toBe("Da lang:");
     expect(note.line).toContain("Penne Tomate");
     expect(note.line).toContain("StMUV");
+  });
+});
+
+describe("egalButtonLabel", () => {
+  it("switches copy when the button is on, stable for a day", () => {
+    const idle = egalButtonLabel(false, "2026-10-19");
+    const on = egalButtonLabel(true, "2026-10-19");
+    expect(idle).toMatch(/egal|Passt|wollt/i);
+    expect(on).not.toBe(idle);
+    expect(on).toMatch(/geh mit|Runde|recht/i);
+    expect(egalButtonLabel(false, "2026-10-19")).toBe(idle);
   });
 });
