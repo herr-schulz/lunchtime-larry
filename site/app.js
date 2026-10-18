@@ -8,7 +8,7 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=15acea53";
+} from "./calendar.js?v=35f417ce";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
@@ -18,7 +18,7 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=6136f414";
+} from "./diceReel.js?v=3966b664";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=e90adbf0";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=e7aac229";
 import {
   favoritePoint,
   favoriteToday,
@@ -42,9 +42,10 @@ import {
   voteFull,
   voteOffline,
   votePicksFull,
+  voteStuffed,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=453d084e";
+} from "./larryLines.js?v=a790ddcd";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -58,9 +59,12 @@ import {
   loadVoteOptIn,
   lockLine,
   minutesUntilReveal,
+  berlinDate,
   emptyMine,
+  isValidNick,
   mineHasPick,
   nicksFor,
+  stuffedBallots,
   MARKET_ID,
   MARKET_NAME,
   normalizeNick,
@@ -74,13 +78,13 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=5d2facb4";
+} from "./vote.js?v=cda9bcf0";
 import {
   ensureVoteUser,
   listenVotes,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=89d40f71";
+} from "./voteClient.js?v=f01a21d6";
 import {
   isStaleShell,
   reloadFresh,
@@ -92,7 +96,7 @@ import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=2e116ffd";
+} from "./devPreview.js?v=dc1f260e";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -206,7 +210,6 @@ function showVoteMarks() {
     loadVoteOptIn() &&
     welcomePassed &&
     Boolean(loadRoundCode()) &&
-    isVoteDay() &&
     currentDay === todayKey()
   );
 }
@@ -649,10 +652,46 @@ function applyVoteUi() {
   );
   syncVoteChrome();
   maybeAnnounceWinner(result, reveal);
+  maybeAnnounceStuffed(votes.records);
 }
 
 function voteTotal() {
   return Object.keys(activeVotes().records ?? {}).length;
+}
+
+const stuffedSaid = new Set();
+
+function stuffedStorageKey() {
+  return `lunchtime-larry-stuffed-${berlinDate()}`;
+}
+
+function loadStuffedSaid() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(stuffedStorageKey()) || "[]");
+    if (Array.isArray(raw)) raw.forEach((uid) => stuffedSaid.add(uid));
+  } catch {
+    /* private mode */
+  }
+}
+
+function rememberStuffed(uid) {
+  stuffedSaid.add(uid);
+  try {
+    localStorage.setItem(stuffedStorageKey(), JSON.stringify([...stuffedSaid]));
+  } catch {
+    /* private mode */
+  }
+}
+
+function maybeAnnounceStuffed(records) {
+  if (previewVotes) return;
+  loadStuffedSaid();
+  for (const row of stuffedBallots(records)) {
+    if (stuffedSaid.has(row.uid)) continue;
+    rememberStuffed(row.uid);
+    const nick = isValidNick(row.nick) ? row.nick : "";
+    sayLarry(voteStuffed(nick));
+  }
 }
 
 function syncVoteChrome() {
@@ -816,12 +855,15 @@ function runDevPhase(phase, mode = "lead") {
     return;
   }
   ensurePreviewSession();
+  const clockBase = isVoteDay(new Date())
+    ? new Date()
+    : new Date(`${lastVoteDate(new Date())}T12:00:00+02:00`);
   const clock =
     phase === "open"
-      ? berlinAt(11, 0)
+      ? berlinAt(11, 0, clockBase)
       : phase === "locked"
-        ? berlinAt(11, 55)
-        : berlinAt(12, 0);
+        ? berlinAt(11, 55, clockBase)
+        : berlinAt(12, 0, clockBase);
   setNowOverride(clock);
   previewVotes = demoVotes(mode === "tie" ? "tie" : "lead");
   clearWinnerSeen();

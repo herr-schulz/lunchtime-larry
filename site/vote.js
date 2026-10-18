@@ -163,9 +163,42 @@ export function ballotPayload(uid, nick, mine, at) {
   return ballot;
 }
 
+/** One ballot per uid — extra slots from a stuffed session are ignored. */
+export function firstRecordsByUid(records) {
+  const seen = new Set();
+  const out = [];
+  for (const rec of Object.values(records ?? {})) {
+    const uid = rec?.uid;
+    if (uid) {
+      if (seen.has(uid)) continue;
+      seen.add(uid);
+    }
+    out.push(rec);
+  }
+  return out;
+}
+
+export function stuffedBallots(records) {
+  const byUid = new Map();
+  for (const rec of Object.values(records ?? {})) {
+    const uid = rec?.uid;
+    if (!uid) continue;
+    const cur = byUid.get(uid) || { picks: 0, nick: rec.nick };
+    cur.picks += mineFromRecord(rec).picks.length;
+    if (rec.nick) cur.nick = rec.nick;
+    byUid.set(uid, cur);
+  }
+  const stuffed = [];
+  for (const [uid, cur] of byUid) {
+    if (cur.picks <= MAX_PICKS) continue;
+    stuffed.push({ uid, nick: normalizeNick(cur.nick), picks: cur.picks });
+  }
+  return stuffed;
+}
+
 export function countVotes(records) {
   const counts = { stmuv: 0, sodexo: 0, bella23: 0, [MARKET_ID]: 0 };
-  for (const rec of Object.values(records ?? {})) {
+  for (const rec of firstRecordsByUid(records)) {
     for (const id of mineFromRecord(rec).picks) {
       if (Object.hasOwn(counts, id)) counts[id] += 1;
     }
@@ -174,7 +207,7 @@ export function countVotes(records) {
 }
 
 export function nicksFor(records, canteen) {
-  return Object.values(records ?? {})
+  return firstRecordsByUid(records)
     .filter((rec) => mineHasPick(mineFromRecord(rec), canteen))
     .map((rec) => normalizeNick(rec.nick))
     .filter((nick) => isValidNick(nick));

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { voteFull, votePicksFull } from "../site/larryLines.js";
+import { voteFull, votePicksFull, voteStuffed } from "../site/larryLines.js";
 import {
   ballotDate,
   ballotPayload,
@@ -19,6 +19,7 @@ import {
   normalizeNick,
   generateRoundCode,
   nicksFor,
+  stuffedBallots,
   normalizeRoundCode,
   ROUND_ALPHABET,
   staleVoteDays,
@@ -84,6 +85,16 @@ describe("countVotes", () => {
         c: { canteen: "bella23" },
       }),
     ).toEqual({ stmuv: 1, sodexo: 1, bella23: 1, wochenmarkt: 0 });
+  });
+
+  it("keeps only the first ballot per uid so stuffed slots do not swing the tally", () => {
+    expect(
+      countVotes({
+        0: { uid: "x", nick: "Alex", canteen: "stmuv" },
+        1: { uid: "x", nick: "Alex", canteen: "sodexo" },
+        2: { uid: "x", nick: "Alex", canteen: "bella23" },
+      }),
+    ).toEqual({ stmuv: 1, sodexo: 0, bella23: 0, wochenmarkt: 0 });
   });
 });
 
@@ -169,6 +180,22 @@ describe("two picks and egal", () => {
   it("keeps the picks-full line without a seat count", () => {
     expect(votePicksFull().line).toMatch(/Haken/);
     expect(votePicksFull().line).not.toMatch(/\d/);
+  });
+
+  it("names a uid that stuffed more than two ticks", () => {
+    expect(
+      stuffedBallots({
+        0: { uid: "x", nick: "Alex", canteen: "stmuv", second: "sodexo" },
+        1: { uid: "x", nick: "Alex", canteen: "bella23" },
+      }),
+    ).toEqual([{ uid: "x", nick: "Alex", picks: 3 }]);
+    expect(
+      stuffedBallots({
+        0: { uid: "x", nick: "Alex", canteen: "stmuv", second: "sodexo" },
+      }),
+    ).toEqual([]);
+    expect(voteStuffed("Alex").line).toMatch(/^Alex hat/);
+    expect(voteStuffed("Alex").line).not.toMatch(/\d/);
   });
 });
 

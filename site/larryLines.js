@@ -99,6 +99,14 @@ export function votePicksFull() {
   };
 }
 
+export function voteStuffed(nick) {
+  const who = nick ? `${nick} hat` : "Jemand hat";
+  return {
+    kicker: "Halt",
+    line: `${who} mehr abgestimmt, als zwei Haken hergeben. Das zähl ich nur einmal.`,
+  };
+}
+
 export function voteOffline() {
   return {
     kicker: "Ohje",

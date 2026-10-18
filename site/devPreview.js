@@ -128,6 +128,11 @@ export function mountDevPreview(api) {
       api.run("locked");
       sync();
     });
+  } else if (boot === "1" || boot === "open") {
+    queueMicrotask(() => {
+      api.run("open");
+      sync();
+    });
   }
 
   return root;

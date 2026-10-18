@@ -48,6 +48,12 @@ export function ballotPayload(
   mine: VoteMine | null | undefined,
   at: number,
 ): { uid: string; nick: string; canteen: string; second?: string; at: number } | null;
+export function firstRecordsByUid(
+  records: VoteRecords | null | undefined,
+): VoteRecord[];
+export function stuffedBallots(
+  records: VoteRecords | null | undefined,
+): { uid: string; nick: string; picks: number }[];
 export function countVotes(
   records: VoteRecords | null | undefined,
 ): Record<VoteTargetId, number>;
