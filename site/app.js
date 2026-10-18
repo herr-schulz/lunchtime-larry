@@ -8,7 +8,7 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=3316bbab";
+} from "./calendar.js?v=7eeefca7";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
@@ -18,8 +18,8 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=c78c2727";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=c2f238ba";
+} from "./diceReel.js?v=fd7d170f";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
   alarmLabel,
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=8ef9aa59";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=4ac9bf8c";
 import {
   favoritePoint,
   favoriteToday,
@@ -43,7 +43,7 @@ import {
   voteOffline,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=a8fa1db7";
+} from "./larryLines.js?v=f1c20612";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -71,12 +71,19 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=c72a8e83";
+} from "./vote.js?v=dbd83b51";
 import {
   ensureVoteUser,
   listenVotes,
   toggleVote,
-} from "./voteClient.js?v=0957c3e1";
+} from "./voteClient.js?v=e9ab2586";
+import {
+  isStaleShell,
+  reloadFresh,
+  remoteBuildFrom,
+  SHELL_BUILD,
+  staleShellCopy,
+} from "./updateShell.js?v=965b86a3";
 import {
   berlinAt,
   demoVotes,
@@ -233,7 +240,44 @@ function larryMenuNote(data) {
 
 function syncNotices() {
   if (!notices) return;
-  notices.hidden = !(hits && !hits.hidden);
+  notices.hidden = !((hits && !hits.hidden) || (banner && !banner.hidden));
+}
+
+function showUpdateBanner() {
+  if (!banner) return;
+  const copy = staleShellCopy();
+  const kicker = banner.querySelector(".toast-kicker span");
+  const line = banner.querySelector(".toast-stale-copy");
+  const action = banner.querySelector("#update-reload");
+  if (kicker) kicker.textContent = copy.kicker;
+  if (line) line.textContent = copy.line;
+  if (action) action.textContent = copy.action;
+  banner.hidden = false;
+  syncNotices();
+  popToast(banner);
+}
+
+async function checkRemoteBuild() {
+  try {
+    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const remote = remoteBuildFrom(await res.json());
+    if (isStaleShell(SHELL_BUILD, remote)) showUpdateBanner();
+  } catch {
+    /* offline */
+  }
+}
+
+function bindUpdateBanner() {
+  document.querySelector("#update-reload")?.addEventListener("click", () => {
+    reloadFresh();
+  });
+  if (
+    location.hostname === "localhost" &&
+    new URLSearchParams(location.search).has("update")
+  ) {
+    showUpdateBanner();
+  }
 }
 
 function popToast(toast) {
@@ -1184,14 +1228,29 @@ function bindMascotEgg() {
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  navigator.serviceWorker.register("./sw.js").catch(() => {
-    /* file:// or blocked */
-  });
+  navigator.serviceWorker
+    .register("./sw.js")
+    .then((reg) => {
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner();
+      reg.addEventListener("updatefound", () => {
+        const installing = reg.installing;
+        installing?.addEventListener("statechange", () => {
+          if (installing.state === "installed" && navigator.serviceWorker.controller) {
+            showUpdateBanner();
+          }
+        });
+      });
+      return reg.update();
+    })
+    .catch(() => {
+      /* file:// or blocked */
+    });
 }
 
 try {
   bindLarryCorner();
   bindHits();
+  bindUpdateBanner();
   registerServiceWorker();
   const data = await loadMenu();
   menuData = data;
@@ -1202,8 +1261,8 @@ try {
   }
   const note = larryMenuNote(data);
   if (note) sayLarry(note);
-  if (banner) banner.hidden = true;
   syncNotices();
+  checkRemoteBuild();
   board.hidden = false;
   escapeWrap.hidden = false;
   const start = todayKey();
@@ -1313,6 +1372,7 @@ try {
   syncTabs(DAY_KEYS.includes(fallback) ? fallback : "monday");
   bindLarryCorner();
   bindHits();
+  bindUpdateBanner();
   bindMascotEgg();
   syncNickButton();
   const miss = menuFreshNote({
