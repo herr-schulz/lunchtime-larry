@@ -7,6 +7,10 @@ export const CANTEEN_IDS = ["stmuv", "sodexo", "bella23"];
 /** Thursday only in the client. Rules accept the slug on any day. */
 export const MARKET_ID = "wochenmarkt";
 export const MARKET_NAME = "Wochenmarkt";
+/** Fine with every spot — presence only, no tally. */
+export const EGAL_ID = "egal";
+/** Approval ticks per ballot. Must match the optional `second` field in rules. */
+export const MAX_PICKS = 2;
 /** Seats 0–23 per round per day. Must match database.rules.json `$slot`. */
 export const MAX_VOTERS = 24;
 
@@ -122,17 +126,56 @@ export function saveNick(nick) {
   return next;
 }
 
+export function emptyMine() {
+  return { picks: [], egal: false };
+}
+
+export function mineFromRecord(rec) {
+  if (!rec) return emptyMine();
+  if (rec.canteen === EGAL_ID) return { picks: [], egal: true };
+  const picks = [];
+  for (const id of [rec.canteen, rec.second]) {
+    if (id && id !== EGAL_ID && !picks.includes(id)) picks.push(id);
+  }
+  return { picks, egal: false };
+}
+
+export function mineHasPick(mine, canteen) {
+  return Boolean(mine?.picks?.includes(canteen));
+}
+
+export function nextMineForPick(mine, canteen) {
+  const current = mine?.egal || !mine?.picks?.length ? emptyMine() : mine;
+  if (current.picks.includes(canteen)) {
+    return { picks: current.picks.filter((id) => id !== canteen), egal: false };
+  }
+  if (current.picks.length >= MAX_PICKS) {
+    return { picks: current.picks, egal: false, blocked: true };
+  }
+  return { picks: [...current.picks, canteen], egal: false };
+}
+
+export function ballotPayload(uid, nick, mine, at) {
+  if (mine?.egal) return { uid, nick, canteen: EGAL_ID, at };
+  if (!mine?.picks?.length) return null;
+  const ballot = { uid, nick, canteen: mine.picks[0], at };
+  if (mine.picks[1]) ballot.second = mine.picks[1];
+  return ballot;
+}
+
 export function countVotes(records) {
   const counts = { stmuv: 0, sodexo: 0, bella23: 0, [MARKET_ID]: 0 };
   for (const rec of Object.values(records ?? {})) {
-    if (rec?.canteen && Object.hasOwn(counts, rec.canteen)) counts[rec.canteen] += 1;
+    for (const id of mineFromRecord(rec).picks) {
+      if (Object.hasOwn(counts, id)) counts[id] += 1;
+    }
   }
   return counts;
 }
 
 export function nicksFor(records, canteen) {
   return Object.values(records ?? {})
-    .filter((rec) => rec?.canteen === canteen)
+    .filter((rec) => mineHasPick(mineFromRecord(rec), canteen))
     .map((rec) => normalizeNick(rec.nick))
     .filter((nick) => isValidNick(nick));
 }

@@ -2,6 +2,8 @@ export const CANTEEN_IDS: readonly ["stmuv", "sodexo", "bella23"];
 export const MARKET_ID: "wochenmarkt";
 export const MARKET_NAME: string;
 export function voteTargetIds(weekday: string): string[];
+export const EGAL_ID: "egal";
+export const MAX_PICKS: 2;
 export const MAX_VOTERS: 24;
 export const MAX_NICK: 20;
 export const MAX_NICK_WORD: 12;
@@ -13,8 +15,11 @@ export type VoteRecord = {
   uid?: string;
   nick?: string;
   canteen?: CanteenId | string;
+  second?: CanteenId | string;
   at?: number;
 };
+
+export type VoteMine = { picks: string[]; egal: boolean; blocked?: boolean };
 
 export type VoteRecords = Record<string, VoteRecord | undefined | null>;
 
@@ -27,6 +32,22 @@ export function normalizeNick(value: unknown): string;
 export function isValidNick(value: unknown): boolean;
 export function loadNick(): string;
 export function saveNick(nick: string): string;
+export function emptyMine(): VoteMine;
+export function mineFromRecord(rec: VoteRecord | null | undefined): VoteMine;
+export function mineHasPick(
+  mine: VoteMine | null | undefined,
+  canteen: string,
+): boolean;
+export function nextMineForPick(
+  mine: VoteMine | null | undefined,
+  canteen: string,
+): VoteMine;
+export function ballotPayload(
+  uid: string,
+  nick: string,
+  mine: VoteMine | null | undefined,
+  at: number,
+): { uid: string; nick: string; canteen: string; second?: string; at: number } | null;
 export function countVotes(
   records: VoteRecords | null | undefined,
 ): Record<VoteTargetId, number>;

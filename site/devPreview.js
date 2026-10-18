@@ -54,7 +54,7 @@ export function demoVotes(mode = "lead") {
         c: { nick: "Kim", canteen: "sodexo", at: 3 },
         d: { nick: "Leo", canteen: "sodexo", at: 4 },
       },
-      mine: "stmuv",
+      mine: { picks: ["stmuv"], egal: false },
     };
   }
   return {
@@ -65,7 +65,7 @@ export function demoVotes(mode = "lead") {
       c: { nick: "Kim", canteen: "stmuv", at: 3 },
       d: { nick: "Leo", canteen: "sodexo", at: 4 },
     },
-    mine: "stmuv",
+    mine: { picks: ["stmuv"], egal: false },
   };
 }
 

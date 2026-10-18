@@ -1,14 +1,21 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { voteFull } from "../site/larryLines.js";
+import { voteFull, votePicksFull } from "../site/larryLines.js";
 import {
   ballotDate,
+  ballotPayload,
   berlinDate,
   canAcceptVote,
   countVotes,
+  EGAL_ID,
+  emptyMine,
   isValidNick,
   lastVoteDate,
+  MAX_PICKS,
   MAX_VOTERS,
+  mineFromRecord,
+  mineHasPick,
+  nextMineForPick,
   normalizeNick,
   generateRoundCode,
   nicksFor,
@@ -68,6 +75,16 @@ describe("countVotes", () => {
       }),
     ).toEqual({ stmuv: 1, sodexo: 2, bella23: 0, wochenmarkt: 0 });
   });
+
+  it("counts a second pick and skips egal", () => {
+    expect(
+      countVotes({
+        a: { canteen: "stmuv", second: "sodexo" },
+        b: { canteen: EGAL_ID },
+        c: { canteen: "bella23" },
+      }),
+    ).toEqual({ stmuv: 1, sodexo: 1, bella23: 1, wochenmarkt: 0 });
+  });
 });
 
 describe("winnerOf", () => {
@@ -106,6 +123,52 @@ describe("nicksFor", () => {
         "stmuv",
       ),
     ).toEqual(["Sven", "Mira"]);
+  });
+
+  it("lists a nick on both picked slips, not on egal", () => {
+    expect(
+      nicksFor(
+        {
+          0: { uid: "a", nick: "Sven", canteen: "stmuv", second: "sodexo" },
+          1: { uid: "b", nick: "Alex", canteen: EGAL_ID },
+        },
+        "sodexo",
+      ),
+    ).toEqual(["Sven"]);
+    expect(
+      nicksFor(
+        { 1: { uid: "b", nick: "Alex", canteen: EGAL_ID } },
+        "stmuv",
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("two picks and egal", () => {
+  it("adds a second tick then blocks a third", () => {
+    const one = nextMineForPick(emptyMine(), "stmuv");
+    const two = nextMineForPick(one, "sodexo");
+    expect(two.picks).toEqual(["stmuv", "sodexo"]);
+    expect(nextMineForPick(two, "bella23").blocked).toBe(true);
+    expect(MAX_PICKS).toBe(2);
+  });
+
+  it("writes egal without a second pick", () => {
+    expect(ballotPayload("u", "Sven", { picks: [], egal: true }, 1)).toEqual({
+      uid: "u",
+      nick: "Sven",
+      canteen: EGAL_ID,
+      at: 1,
+    });
+    expect(
+      mineFromRecord({ canteen: "stmuv", second: "bella23" }).picks,
+    ).toEqual(["stmuv", "bella23"]);
+    expect(mineHasPick(mineFromRecord({ canteen: EGAL_ID }), "stmuv")).toBe(false);
+  });
+
+  it("keeps the picks-full line without a seat count", () => {
+    expect(votePicksFull().line).toMatch(/Haken/);
+    expect(votePicksFull().line).not.toMatch(/\d/);
   });
 });
 

@@ -8,7 +8,7 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=7eeefca7";
+} from "./calendar.js?v=15acea53";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
@@ -18,7 +18,7 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=fd7d170f";
+} from "./diceReel.js?v=6136f414";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=4ac9bf8c";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=e90adbf0";
 import {
   favoritePoint,
   favoriteToday,
@@ -41,9 +41,10 @@ import {
   unlikeAck,
   voteFull,
   voteOffline,
+  votePicksFull,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=f1c20612";
+} from "./larryLines.js?v=453d084e";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -57,6 +58,8 @@ import {
   loadVoteOptIn,
   lockLine,
   minutesUntilReveal,
+  emptyMine,
+  mineHasPick,
   nicksFor,
   MARKET_ID,
   MARKET_NAME,
@@ -71,24 +74,25 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=dbd83b51";
+} from "./vote.js?v=5d2facb4";
 import {
   ensureVoteUser,
   listenVotes,
+  toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=e9ab2586";
+} from "./voteClient.js?v=89d40f71";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=965b86a3";
+} from "./updateShell.js?v=630ac9b2";
 import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=b32841dd";
+} from "./devPreview.js?v=2e116ffd";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -115,6 +119,7 @@ const optinDialog = document.querySelector("#optin-dialog");
 const optinCancel = document.querySelector("#optin-cancel");
 const voteLock = document.querySelector("#vote-lock");
 const heuteDabei = document.querySelector("#heute-dabei");
+const egalVote = document.querySelector("#egal-vote");
 const revealDialog = document.querySelector("#reveal-dialog");
 const revealName = document.querySelector("#reveal-name");
 const revealStrip = document.querySelector("#reveal-strip");
@@ -142,7 +147,7 @@ let likes = loadLikes();
 let voteState = {
   counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
   records: {},
-  mine: null,
+  mine: emptyMine(),
   uid: null,
 };
 /** Localhost ?dev=1 — freezes ballots so the 12:00 presentation can be replayed. */
@@ -585,7 +590,7 @@ function applyVoteUi() {
   const result = winnerOf(votes.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
-    const mine = show && votes.mine === id;
+    const mine = show && mineHasPick(votes.mine, id);
     const nickList = reveal ? nicksFor(votes.records, id) : [];
     slip.classList.toggle("is-voted", mine);
     slip.classList.toggle(
@@ -615,7 +620,7 @@ function applyVoteUi() {
   if (marketVote) {
     marketVote.hidden = !showMarket;
     marketVote.disabled = !open;
-    const mine = showMarket && votes.mine === MARKET_ID;
+    const mine = showMarket && mineHasPick(votes.mine, MARKET_ID);
     const nickList = showMarket && reveal ? nicksFor(votes.records, MARKET_ID) : [];
     marketVote.setAttribute("aria-pressed", String(mine));
     const label = nickList.length
@@ -632,7 +637,12 @@ function applyVoteUi() {
       marketVote.classList.remove("is-drawn");
     }
   }
-  marketBanner?.classList.toggle("is-voted", showMarket && votes.mine === MARKET_ID);
+  if (egalVote) {
+    egalVote.hidden = !show;
+    egalVote.disabled = !open;
+    egalVote.setAttribute("aria-pressed", String(Boolean(votes.mine?.egal)));
+  }
+  marketBanner?.classList.toggle("is-voted", showMarket && mineHasPick(votes.mine, MARKET_ID));
   marketBanner?.classList.toggle(
     "is-leading",
     showMarket && reveal && result.status === "lead" && result.id === MARKET_ID,
@@ -642,7 +652,7 @@ function applyVoteUi() {
 }
 
 function voteTotal() {
-  return Object.values(activeVotes().counts).reduce((sum, n) => sum + (n || 0), 0);
+  return Object.keys(activeVotes().records ?? {}).length;
 }
 
 function syncVoteChrome() {
@@ -963,6 +973,10 @@ marketVote?.addEventListener("click", () => {
   if (!votingOpen()) return;
   handleVote(MARKET_ID);
 });
+egalVote?.addEventListener("click", () => {
+  if (!votingOpen()) return;
+  handleEgal();
+});
 
 async function handleVote(canteen) {
   if (!votingOpen()) return;
@@ -977,6 +991,31 @@ async function handleVote(canteen) {
       voteState.mine,
       voteState.records,
     );
+    applyVoteUi();
+  } catch (err) {
+    console.warn(err);
+    const msg = String(err?.message || err);
+    if (msg.includes("locked")) return;
+    if (msg.includes("picks")) {
+      sayLarry(votePicksFull());
+    } else if (msg.includes("full")) {
+      sayLarry(voteFull());
+    } else {
+      sayLarry(voteOffline());
+    }
+  }
+}
+
+async function handleEgal() {
+  if (!votingOpen()) return;
+  if (!loadNick() || !loadRoundCode()) {
+    const nick = await askNick();
+    if (!nick || !loadRoundCode()) return;
+    await settleRound();
+  }
+  try {
+    voteState.mine = await toggleEgal(voteState.records);
+    applyVoteUi();
   } catch (err) {
     console.warn(err);
     const msg = String(err?.message || err);
@@ -1106,7 +1145,7 @@ function startVotes({ force = false } = {}) {
   voteState = {
     counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
     records: {},
-    mine: null,
+    mine: emptyMine(),
     uid: voteState.uid,
   };
   const onVotes = (next) => {

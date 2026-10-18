@@ -34,7 +34,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=c9e49304" />
+    <link rel="stylesheet" href="./styles.css?v=f2b8436c" />
   </head>
   <body>
     <div class="status-bleed" aria-hidden="true"></div>
@@ -128,7 +128,12 @@
       </div>
     </div>
     <div class="day-band">
-      <p class="day-date" id="day-date"></p>
+      <div class="day-band-row">
+        <p class="day-date" id="day-date"></p>
+        <button type="button" id="egal-vote" class="egal-vote" hidden aria-pressed="false">
+          Egal
+        </button>
+      </div>
       <p id="vote-lock" class="vote-lock" hidden></p>
       <p id="heute-dabei" class="heute-dabei" hidden></p>
     </div>
@@ -431,8 +436,8 @@
         <ol class="intro-points">
           <li>Schick den Code an deine Kolleg:innen — sie geben denselben ein.</li>
           <li>
-            Dein Vote für den Food-Spot des Tages kann bis 11:55 jederzeit frei
-            gewählt werden.
+            Bis zu zwei Haken, oder Egal wenn dir jeder Spot recht ist — bis 11:55
+            frei wechseln.
           </li>
           <li>Ab 11:55 ist zu. Um 12 Uhr präsentiert Larry das Ziel.</li>
           <li>Die Namen der Runde stehen über den Zetteln.</li>
@@ -500,6 +505,6 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=a7891439" type="module"></script>
+    <script src="./app.js?v=1de42a02" type="module"></script>
   </body>
 </html>

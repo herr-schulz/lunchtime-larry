@@ -92,6 +92,13 @@ export function voteFull() {
   };
 }
 
+export function votePicksFull() {
+  return {
+    kicker: "Zwei reichen",
+    line: "Zwei Haken sitzen schon. Mach einen wieder auf, dann den neuen.",
+  };
+}
+
 export function voteOffline() {
   return {
     kicker: "Ohje",
