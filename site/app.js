@@ -8,7 +8,7 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=35f417ce";
+} from "./calendar.js?v=9dac3651";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
@@ -18,7 +18,7 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=3966b664";
+} from "./diceReel.js?v=d1c826bc";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=bd8dc50d";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=2e9477f2";
 import {
   favoritePoint,
   favoriteToday,
@@ -41,7 +41,6 @@ import {
   unlikeAck,
   voteFull,
   voteOffline,
-  votePicksFull,
   voteStuffed,
   egalButtonLabel,
   weekStaleHitsNote,
@@ -79,20 +78,20 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=cda9bcf0";
+} from "./vote.js?v=9c3d4b08";
 import {
   ensureVoteUser,
   listenVotes,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=f01a21d6";
+} from "./voteClient.js?v=27098236";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=630ac9b2";
+} from "./updateShell.js?v=11e7fe36";
 import {
   berlinAt,
   demoVotes,
@@ -713,7 +712,7 @@ function syncVoteChrome() {
     }
   }
   if (heuteDabei) {
-    const names = roundNicks(activeVotes().records);
+    const names = roundNicks(voteState.records);
     if (show && names.length) {
       heuteDabei.hidden = false;
       heuteDabei.textContent = `Heute dabei · ${names.join(" · ")}`;
@@ -1034,6 +1033,7 @@ async function handleVote(canteen) {
     if (!nick || !loadRoundCode()) return;
     await settleRound();
   }
+  previewVotes = null;
   try {
     voteState.mine = await toggleVote(
       canteen,
@@ -1045,9 +1045,7 @@ async function handleVote(canteen) {
     console.warn(err);
     const msg = String(err?.message || err);
     if (msg.includes("locked")) return;
-    if (msg.includes("picks")) {
-      sayLarry(votePicksFull());
-    } else if (msg.includes("full")) {
+    if (msg.includes("full")) {
       sayLarry(voteFull());
     } else {
       sayLarry(voteOffline());
@@ -1062,18 +1060,13 @@ async function handleEgal() {
     if (!nick || !loadRoundCode()) return;
     await settleRound();
   }
+  previewVotes = null;
   try {
     voteState.mine = await toggleEgal(voteState.records);
     applyVoteUi();
   } catch (err) {
     console.warn(err);
-    const msg = String(err?.message || err);
-    if (msg.includes("locked")) return;
-    if (msg.includes("full")) {
-      sayLarry(voteFull());
-    } else {
-      sayLarry(voteOffline());
-    }
+    /* Egal is presence, not a seat fight — stay quiet on write/rules blips. */
   }
 }
 
@@ -1190,13 +1183,6 @@ function startVotes({ force = false } = {}) {
   if (!welcomePassed) return;
   if (votesListening && !force) return;
   votesListening = true;
-  /* Drop seats from a previous round before the new listener returns. */
-  voteState = {
-    counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
-    records: {},
-    mine: emptyMine(),
-    uid: voteState.uid,
-  };
   const onVotes = (next) => {
     voteState = next;
     applyVoteUi();

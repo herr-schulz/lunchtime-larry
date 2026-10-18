@@ -97,7 +97,7 @@ describe("voting welcome", () => {
     expect(text).toMatch(/über den Zetteln/);
     expect(app).toMatch(/copyWelcomeCode/);
     expect(app).toMatch(/navigator\.clipboard\.writeText/);
-    expect(app).toMatch(/Drop seats from a previous round/);
+    expect(app).toMatch(/roundNicks\(voteState\.records\)/);
     expect(document.querySelector("#welcome-dialog button[value='ok']")?.textContent).toBe(
       "Alles klar",
     );

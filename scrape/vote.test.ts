@@ -156,12 +156,27 @@ describe("nicksFor", () => {
 });
 
 describe("two picks and egal", () => {
-  it("adds a second tick then blocks a third", () => {
+  it("adds a second tick then replaces the oldest on a third", () => {
     const one = nextMineForPick(emptyMine(), "stmuv");
     const two = nextMineForPick(one, "sodexo");
     expect(two.picks).toEqual(["stmuv", "sodexo"]);
-    expect(nextMineForPick(two, "bella23").blocked).toBe(true);
+    expect(nextMineForPick(two, "bella23")).toEqual({
+      picks: ["sodexo", "bella23"],
+      egal: false,
+    });
     expect(MAX_PICKS).toBe(2);
+  });
+
+  it("drops a leftover market pick when the market is not on the board", () => {
+    setNowOverride(new Date("2026-10-19T10:00:00+02:00"));
+    const leftover = mineFromRecord({ canteen: "stmuv", second: "wochenmarkt" });
+    expect(leftover.picks).toEqual(["stmuv"]);
+    expect(nextMineForPick(leftover, "sodexo").picks).toEqual(["stmuv", "sodexo"]);
+    expect(mineFromRecord({ canteen: "stmuv", egal: true })).toEqual({
+      picks: [],
+      egal: true,
+    });
+    clearNowOverride();
   });
 
   it("writes egal without a second pick", () => {
@@ -385,6 +400,12 @@ describe("canAcceptVote", () => {
   it("accepts a new ballot while seats remain", () => {
     const open = Object.fromEntries(Object.entries(full).slice(0, MAX_VOTERS - 1));
     expect(canAcceptVote(open, "uid99")).toBe(true);
+  });
+
+  it("ignores empty firebase array holes so a sparse 24-slot node is not full", () => {
+    const holes = Array.from({ length: MAX_VOTERS }, () => null);
+    holes[0] = { uid: "a", nick: "Sven", canteen: "stmuv", at: 1 };
+    expect(canAcceptVote(holes, "uid99")).toBe(true);
   });
 
   it("keeps Larry's full line without advertising a seat count", () => {

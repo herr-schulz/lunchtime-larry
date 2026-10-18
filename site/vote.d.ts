@@ -16,10 +16,11 @@ export type VoteRecord = {
   nick?: string;
   canteen?: CanteenId | string;
   second?: CanteenId | string;
+  egal?: boolean;
   at?: number;
 };
 
-export type VoteMine = { picks: string[]; egal: boolean; blocked?: boolean };
+export type VoteMine = { picks: string[]; egal: boolean };
 
 export type VoteRecords = Record<string, VoteRecord | undefined | null>;
 
@@ -33,7 +34,18 @@ export function isValidNick(value: unknown): boolean;
 export function loadNick(): string;
 export function saveNick(nick: string): string;
 export function emptyMine(): VoteMine;
-export function mineFromRecord(rec: VoteRecord | null | undefined): VoteMine;
+export function voteRecords(
+  val: VoteRecords | VoteRecord[] | null | undefined,
+): VoteRecords;
+export function isEgalRecord(rec: VoteRecord | null | undefined): boolean;
+export function picksFromRecord(
+  rec: VoteRecord | null | undefined,
+  allowed?: readonly string[] | null,
+): string[];
+export function mineFromRecord(
+  rec: VoteRecord | null | undefined,
+  weekday?: string,
+): VoteMine;
 export function mineHasPick(
   mine: VoteMine | null | undefined,
   canteen: string,
@@ -81,8 +93,11 @@ export function mySlot(
   records: VoteRecords | null | undefined,
   uid: string | null | undefined,
 ): string | null;
+export function occupiedSeatCount(
+  records: VoteRecords | VoteRecord[] | null | undefined,
+): number;
 export function canAcceptVote(
-  records: VoteRecords | null | undefined,
+  records: VoteRecords | VoteRecord[] | null | undefined,
   uid: string | null | undefined,
 ): boolean;
 

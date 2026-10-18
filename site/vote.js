@@ -130,14 +130,36 @@ export function emptyMine() {
   return { picks: [], egal: false };
 }
 
-export function mineFromRecord(rec) {
-  if (!rec) return emptyMine();
-  if (rec.canteen === EGAL_ID) return { picks: [], egal: true };
+/** Drop empty Firebase array holes so Object.keys never looks like a full round. */
+export function voteRecords(val) {
+  if (!val || typeof val !== "object") return {};
+  const out = {};
+  for (const [slot, rec] of Object.entries(val)) {
+    if (rec && typeof rec === "object" && rec.uid) out[slot] = rec;
+  }
+  return out;
+}
+
+export function isEgalRecord(rec) {
+  return Boolean(rec) && (rec.canteen === EGAL_ID || rec.egal === true);
+}
+
+export function picksFromRecord(rec, allowed) {
+  if (!rec || isEgalRecord(rec)) return [];
+  const allow = allowed ? new Set(allowed) : null;
   const picks = [];
   for (const id of [rec.canteen, rec.second]) {
-    if (id && id !== EGAL_ID && !picks.includes(id)) picks.push(id);
+    if (!id || id === EGAL_ID) continue;
+    if (allow && !allow.has(id)) continue;
+    if (!picks.includes(id)) picks.push(id);
   }
-  return { picks, egal: false };
+  return picks;
+}
+
+export function mineFromRecord(rec, weekday = berlinWeekday()) {
+  if (!rec) return emptyMine();
+  if (isEgalRecord(rec)) return { picks: [], egal: true };
+  return { picks: picksFromRecord(rec, voteTargetIds(weekday)), egal: false };
 }
 
 export function mineHasPick(mine, canteen) {
@@ -150,7 +172,7 @@ export function nextMineForPick(mine, canteen) {
     return { picks: current.picks.filter((id) => id !== canteen), egal: false };
   }
   if (current.picks.length >= MAX_PICKS) {
-    return { picks: current.picks, egal: false, blocked: true };
+    return { picks: [...current.picks.slice(1), canteen], egal: false };
   }
   return { picks: [...current.picks, canteen], egal: false };
 }
@@ -168,7 +190,8 @@ export function firstRecordsByUid(records) {
   const seen = new Set();
   const out = [];
   for (const rec of Object.values(records ?? {})) {
-    const uid = rec?.uid;
+    if (!rec || typeof rec !== "object") continue;
+    const uid = rec.uid;
     if (uid) {
       if (seen.has(uid)) continue;
       seen.add(uid);
@@ -184,7 +207,7 @@ export function stuffedBallots(records) {
     const uid = rec?.uid;
     if (!uid) continue;
     const cur = byUid.get(uid) || { picks: 0, nick: rec.nick };
-    cur.picks += mineFromRecord(rec).picks.length;
+    cur.picks += picksFromRecord(rec).length;
     if (rec.nick) cur.nick = rec.nick;
     byUid.set(uid, cur);
   }
@@ -199,7 +222,7 @@ export function stuffedBallots(records) {
 export function countVotes(records) {
   const counts = { stmuv: 0, sodexo: 0, bella23: 0, [MARKET_ID]: 0 };
   for (const rec of firstRecordsByUid(records)) {
-    for (const id of mineFromRecord(rec).picks) {
+    for (const id of picksFromRecord(rec)) {
       if (Object.hasOwn(counts, id)) counts[id] += 1;
     }
   }
@@ -314,9 +337,13 @@ export function mySlot(records, uid) {
   return null;
 }
 
+export function occupiedSeatCount(records) {
+  return Object.keys(voteRecords(records)).length;
+}
+
 export function canAcceptVote(records, uid) {
   if (mySlot(records, uid) != null) return true;
-  return Object.keys(records ?? {}).length < MAX_VOTERS;
+  return occupiedSeatCount(records) < MAX_VOTERS;
 }
 
 export function loadVoteOptIn() {
