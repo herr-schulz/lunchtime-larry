@@ -14,6 +14,7 @@ export type ReelEntry = {
   hint: string;
   key: string;
   canteenId?: string;
+  pickable?: boolean;
 };
 
 export function berlinWeekMonday(now?: Date): string;

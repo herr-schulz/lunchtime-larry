@@ -696,39 +696,6 @@ h1 {
   gap: 0.75rem;
 }
 
-.egal-vote {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 0.22rem 0.75rem;
-  font: inherit;
-  font-size: 0.86rem;
-  font-style: italic;
-  color: var(--ink-soft);
-  background: transparent;
-  border: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent);
-  border-radius: 999px;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.egal-vote.is-on,
-.egal-vote[aria-pressed="true"] {
-  color: var(--ticket);
-  background: var(--stamp);
-  border-style: solid;
-  border-color: var(--stamp);
-  font-style: normal;
-  font-weight: 600;
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--stamp) 65%, #3a120c);
-}
-
-.egal-vote:focus-visible {
-  outline: 2px solid var(--stamp);
-  outline-offset: 2px;
-}
-
 .day-switch:has(#notices:not([hidden])) + .day-band {
   margin-top: 0.85rem;
 }
@@ -903,6 +870,23 @@ h1 {
   text-decoration: none;
   color: inherit;
   text-align: left;
+}
+
+button.escape-link {
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.egal-vote.is-on .escape-label,
+.egal-vote[aria-pressed="true"] .escape-label {
+  color: var(--stamp);
+  font-style: normal;
+  font-weight: 700;
+  background-size: 100% 1.5px;
 }
 
 .escape-wrap:not([hidden]) .escape-link {

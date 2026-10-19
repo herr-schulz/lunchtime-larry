@@ -11,14 +11,14 @@ import {
 } from "./calendar.js?v=9dac3651";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
+import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
 import {
   berlinWeekMonday,
   canteenEntries,
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=d1c826bc";
+} from "./diceReel.js?v=7c6058c6";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=2e9477f2";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=0999fa96";
 import {
   favoritePoint,
   favoriteToday,
@@ -45,7 +45,7 @@ import {
   egalButtonLabel,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=79f41c0e";
+} from "./larryLines.js?v=556a6576";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -91,7 +91,7 @@ import {
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=11e7fe36";
+} from "./updateShell.js?v=63eeac25";
 import {
   berlinAt,
   demoVotes,
@@ -647,7 +647,9 @@ function applyVoteUi() {
     egalVote.classList.toggle("is-on", pressed);
     egalVote.setAttribute("aria-pressed", String(pressed));
     const label = egalButtonLabel(pressed, berlinDate());
-    egalVote.textContent = label;
+    const labelEl = egalVote.querySelector(".escape-label");
+    if (labelEl) labelEl.textContent = label;
+    else egalVote.textContent = label;
     egalVote.setAttribute("aria-label", pressed ? `${label} — mit der Runde` : label);
   }
   marketBanner?.classList.toggle("is-voted", showMarket && mineHasPick(votes.mine, MARKET_ID));
@@ -1362,12 +1364,16 @@ try {
         if (!picked) return null;
         return { index: entries.indexOf(picked), entry: picked };
       }
+      const entries = dishEntries(block, CANTEENS);
       const picked = pickMainDish(block);
       if (!picked) return null;
-      const index = listMainDishes(block).findIndex(
-        (item) => item.canteenId === picked.canteenId && item.dish === picked.dish,
+      const index = entries.findIndex(
+        (entry) =>
+          entry.pickable !== false &&
+          entry.canteenId === picked.canteenId &&
+          entry.key === dishKey(picked.dish.name),
       );
-      const entry = dishEntries(block, CANTEENS)[index];
+      const entry = entries[index];
       if (!entry || index < 0) return null;
       return { index, entry };
     },

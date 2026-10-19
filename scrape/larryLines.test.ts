@@ -116,9 +116,9 @@ describe("egalButtonLabel", () => {
   it("switches copy when the button is on, stable for a day", () => {
     const idle = egalButtonLabel(false, "2026-10-19");
     const on = egalButtonLabel(true, "2026-10-19");
-    expect(idle).toMatch(/egal|Passt|wollt/i);
-    expect(on).not.toBe(idle);
-    expect(on).toMatch(/geh mit|Runde|recht/i);
+    expect(idle).toMatch(/dabei|Zähl mich/i);
+    expect(idle).not.toMatch(/wollt|egal/i);
+    expect(on).toMatch(/dabei|Runde/i);
     expect(egalButtonLabel(false, "2026-10-19")).toBe(idle);
   });
 });

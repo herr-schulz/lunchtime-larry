@@ -18,9 +18,14 @@ export type PickedMain = {
   dish: DiceDish;
 };
 
+export function isDessertDish(dish: unknown): boolean;
+export function isSoupDish(dish: unknown): boolean;
 export function isMainDish(dish: unknown): boolean;
 
+export type ReelDish = PickedMain & { pickable: boolean };
+
 export function listMainDishes(block: DayBlock): PickedMain[];
+export function listReelDishes(block: DayBlock): ReelDish[];
 
 export function pickMainDish(block: DayBlock, rng?: () => number): PickedMain | null;
 

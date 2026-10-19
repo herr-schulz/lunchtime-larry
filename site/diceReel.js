@@ -1,4 +1,4 @@
-import { listMainDishes } from "./dice.js?v=b5a71252";
+import { listReelDishes } from "./dice.js?v=ca08ab4d";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { dishKey, phraseDish } from "./likes.js?v=9db8d9ec";
 import { berlinDate } from "./vote.js?v=9c3d4b08";
@@ -47,13 +47,15 @@ export function shakeDelta(previous, acceleration) {
 }
 
 /**
- * Today's mains, phrased. Desserts never appear.
- * @param {Parameters<typeof listMainDishes>[0]} block
+ * Today's reel rows: mains plus desserts for filler. Soups stay off.
+ * Desserts have `pickable: false` so the spin never lands on them.
+ * @param {Parameters<typeof listReelDishes>[0]} block
  * @param {Record<string, { name?: string }>} canteens
  */
 export function dishEntries(block, canteens) {
-  return listMainDishes(block).map(({ canteenId, dish }) => ({
+  return listReelDishes(block).map(({ canteenId, dish, pickable }) => ({
     kind: "dish",
+    pickable,
     label: phraseDish(dish.name, { canteen: canteenId }).title,
     hint: canteens?.[canteenId]?.name || "",
     canteenId,
@@ -65,7 +67,8 @@ export function dishEntries(block, canteens) {
 export function canteenEntries(block, canteens) {
   /** @type {string[]} */
   const ids = [];
-  for (const { canteenId } of listMainDishes(block)) {
+  for (const { canteenId, pickable } of listReelDishes(block)) {
+    if (pickable === false) continue;
     if (!canteenId || ids.includes(canteenId)) continue;
     ids.push(canteenId);
   }
