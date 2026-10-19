@@ -22,7 +22,10 @@ export type VoteRecord = {
 
 export type VoteMine = { picks: string[]; egal: boolean };
 
-export type VoteRecords = Record<string, VoteRecord | undefined | null>;
+export type VoteSeat = VoteRecord | undefined | null;
+export type VoteRecords = Record<string, VoteSeat>;
+/** Firebase may send a 24-slot array with empty holes. */
+export type VoteSnapshot = VoteRecords | VoteSeat[];
 
 export function berlinDate(now?: Date): string;
 export function berlinWeekday(now?: Date): string;
@@ -34,9 +37,7 @@ export function isValidNick(value: unknown): boolean;
 export function loadNick(): string;
 export function saveNick(nick: string): string;
 export function emptyMine(): VoteMine;
-export function voteRecords(
-  val: VoteRecords | VoteRecord[] | null | undefined,
-): VoteRecords;
+export function voteRecords(val: VoteSnapshot | null | undefined): VoteRecords;
 export function isEgalRecord(rec: VoteRecord | null | undefined): boolean;
 export function picksFromRecord(
   rec: VoteRecord | null | undefined,
@@ -94,10 +95,10 @@ export function mySlot(
   uid: string | null | undefined,
 ): string | null;
 export function occupiedSeatCount(
-  records: VoteRecords | VoteRecord[] | null | undefined,
+  records: VoteSnapshot | null | undefined,
 ): number;
 export function canAcceptVote(
-  records: VoteRecords | VoteRecord[] | null | undefined,
+  records: VoteSnapshot | null | undefined,
   uid: string | null | undefined,
 ): boolean;
 

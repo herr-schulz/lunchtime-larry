@@ -21,6 +21,7 @@ import {
   nicksFor,
   stuffedBallots,
   normalizeRoundCode,
+  type VoteRecord,
   ROUND_ALPHABET,
   staleVoteDays,
   lockLine,
@@ -403,7 +404,10 @@ describe("canAcceptVote", () => {
   });
 
   it("ignores empty firebase array holes so a sparse 24-slot node is not full", () => {
-    const holes = Array.from({ length: MAX_VOTERS }, () => null);
+    const holes: Array<VoteRecord | null> = Array.from(
+      { length: MAX_VOTERS },
+      () => null,
+    );
     holes[0] = { uid: "a", nick: "Sven", canteen: "stmuv", at: 1 };
     expect(canAcceptVote(holes, "uid99")).toBe(true);
   });
