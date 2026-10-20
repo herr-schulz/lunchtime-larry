@@ -49,7 +49,7 @@ function countText(count) {
 
 /** Reads one public total. A missing path still returns "0" when GoatCounter says so. */
 export async function readCountAt(url, fetchImpl = fetch) {
-  const response = await fetchImpl(url, { cache: "no-store", credentials: "omit" });
+  const response = await fetchImpl(url, { credentials: "omit" });
   let data = null;
   try {
     data = await response.json();

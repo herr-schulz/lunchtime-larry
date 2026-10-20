@@ -1,5 +1,5 @@
 /* Lunchtime Larry — shell + menu cache for installed PWA */
-const CACHE = "larry-shell-v51";
+const CACHE = "larry-shell-v52";
 const SHELL = [
   "./",
   "./index.html",
@@ -83,7 +83,10 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  if (url.hostname.endsWith("goatcounter.com")) return;
+  if (url.hostname.endsWith("goatcounter.com")) {
+    event.respondWith(fetch(request));
+    return;
+  }
   if (url.origin !== self.location.origin) return;
 
   const live = shouldBypassCache(url.pathname);

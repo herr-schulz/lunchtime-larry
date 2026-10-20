@@ -1,5 +1,5 @@
 import { berlinDate, loadRoundCode } from "./vote.js?v=857e7e26";
-import { countDigits, counterUrl, readCountAt } from "./visits.js?v=5f2c6ad5";
+import { countDigits, counterUrl, readCountAt } from "./visits.js?v=53182d3c";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 import {
   BAR_FIELDS,

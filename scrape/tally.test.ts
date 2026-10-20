@@ -167,7 +167,7 @@ describe("visit pixel", () => {
     expect(list).not.toContain("/count");
     expect(list).not.toContain("count.js");
     expect(list).toContain("Was gespeichert wird");
-    expect(list).toContain("Quittung Quirin");
+    expect(list).toContain("Headcount Harry");
     expect(list).toContain("leisure-larry.svg");
     expect(list).toContain("Deshalb brauchen wir auch keinen Cookie-Banner! Toll oder?");
     expect(list).not.toContain("Tritt einer Runde bei");
