@@ -115,7 +115,7 @@ export function voteStuffed(nickOrNicks) {
 }
 
 const EGAL_IDLE = ["Ich bin dabei", "Bin dabei", "Zähl mich dazu"];
-const EGAL_ON = ["Ich bin dabei", "Bin dabei", "Mit der Runde"];
+const EGAL_ON = ["Ich bin dabei", "Bin dabei", "Mit in der Runde"];
 
 export function egalButtonLabel(pressed, day = "") {
   const list = pressed ? EGAL_ON : EGAL_IDLE;

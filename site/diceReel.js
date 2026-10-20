@@ -1,7 +1,7 @@
 import { listReelDishes } from "./dice.js?v=ca08ab4d";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { dishKey, phraseDish } from "./likes.js?v=9db8d9ec";
-import { berlinDate } from "./vote.js?v=9c3d4b08";
+import { berlinDate } from "./vote.js?v=857e7e26";
 
 export const REEL_COPIES = 3;
 export const OVERSHOOT_PX = 2;
@@ -218,9 +218,8 @@ export function mountDice({
   function showResult(entry) {
     last = entry;
     if (hint) {
-      const place = entry.kind === "dish" ? entry.hint || "" : "";
-      hint.hidden = !place;
-      hint.textContent = place;
+      hint.hidden = true;
+      hint.textContent = "";
     }
     if (live) {
       live.textContent = entry.hint ? `${entry.label}. ${entry.hint}.` : entry.label;

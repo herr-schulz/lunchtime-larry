@@ -248,6 +248,25 @@ export function winnerOf(counts, names) {
   return { status: "lead", id, name: names[id] ?? id };
 }
 
+/**
+ * Line under the weekday. After 12:00 the destination stays put;
+ * before that it's just who is in.
+ * @param {{ status?: string, name?: string } | null | undefined} result
+ * @param {string[]} names
+ * @param {boolean} reveal
+ */
+export function heuteDabeiLine(result, names, reveal) {
+  const people = (names ?? []).filter(Boolean);
+  const who = people.length ? people.join(" · ") : "";
+  if (reveal && result?.status === "lead" && result.name) {
+    return who ? `Heute ${result.name} · ${who}` : `Heute ${result.name}`;
+  }
+  if (reveal && result?.status === "tie") {
+    return who ? `Heute unentschieden · ${who}` : "Heute unentschieden";
+  }
+  return who ? `Heute dabei · ${who}` : "";
+}
+
 /** No 0/O/1/l — a generated code stays readable when someone types it back. */
 export const ROUND_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
 export const MAX_ROUND_CODE = 8;

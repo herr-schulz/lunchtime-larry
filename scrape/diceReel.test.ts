@@ -135,7 +135,12 @@ describe("dice markup", () => {
     const wrap = document.querySelector("#escape-wrap");
     const kids = [...(wrap?.children ?? [])].map((node) => node.id);
     expect(kids).toEqual(["egal-vote", "dice-open", "escape-link"]);
+    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Mit in der Runde\?/);
     expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Ich bin dabei/);
+    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Kantine egal/);
+    expect(document.querySelector("#egal-vote")?.textContent).not.toMatch(/Ohne Haken/);
+    expect(document.querySelector("#egal-vote .escape-row .egal-check")).toBeTruthy();
+    expect(document.querySelector("[data-dice='show']")?.textContent).toBe("Zeig mir wo");
     const open = document.querySelector("#dice-open");
     expect(open?.textContent).toMatch(/Unentschlossen\?/);
     expect(open?.textContent).toMatch(/Lass Larry entscheiden/);
@@ -155,5 +160,6 @@ describe("dice markup", () => {
     );
     expect(document.querySelector("#dice-dialog .reel-strip")).toBeTruthy();
     expect(document.querySelector("[data-dice-mode]")).toBeNull();
+    expect(document.querySelector("[data-dice='show']")?.textContent).toBe("Zeig mir wo");
   });
 });

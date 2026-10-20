@@ -31,6 +31,7 @@ import {
   voteTargetIds,
   votesPath,
   winnerOf,
+  heuteDabeiLine,
   setNowOverride,
   clearNowOverride,
 } from "../site/vote.js";
@@ -120,6 +121,23 @@ describe("winnerOf", () => {
     expect(winnerOf({ stmuv: 0, sodexo: 0, bella23: 0 }, names)).toEqual({
       status: "empty",
     });
+  });
+});
+
+describe("heuteDabeiLine", () => {
+  it("keeps the round names before noon and the destination after", () => {
+    const nicks = ["Sven", "Ada"];
+    expect(heuteDabeiLine({ status: "lead", id: "sodexo", name: "Dave B" }, nicks, false)).toBe(
+      "Heute dabei · Sven · Ada",
+    );
+    expect(heuteDabeiLine({ status: "lead", id: "sodexo", name: "Dave B" }, nicks, true)).toBe(
+      "Heute Dave B · Sven · Ada",
+    );
+    expect(heuteDabeiLine({ status: "tie" }, nicks, true)).toBe("Heute unentschieden · Sven · Ada");
+    expect(heuteDabeiLine({ status: "empty" }, nicks, true)).toBe("Heute dabei · Sven · Ada");
+    expect(heuteDabeiLine({ status: "lead", id: "sodexo", name: "Dave B" }, [], true)).toBe(
+      "Heute Dave B",
+    );
   });
 });
 

@@ -34,9 +34,10 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=3e107ec9" />
+    <link rel="stylesheet" href="./styles.css?v=40b82502" />
   </head>
   <body>
+    <div class="page-shell">
     <div class="status-bleed" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
     <header class="masthead">
@@ -132,7 +133,7 @@
         <p class="day-date" id="day-date"></p>
       </div>
       <p id="vote-lock" class="vote-lock" hidden></p>
-      <p id="heute-dabei" class="heute-dabei" hidden></p>
+      <button type="button" id="heute-dabei" class="heute-dabei" hidden></button>
     </div>
 
     <div id="market-row" class="market-row" hidden>
@@ -203,11 +204,27 @@
 
     <div class="escape-wrap" id="escape-wrap" hidden>
       <button type="button" class="escape-link egal-vote" id="egal-vote" hidden aria-pressed="false">
-        <span class="escape-kicker">Mit der Runde?</span>
+        <span class="escape-kicker">Mit in der Runde?</span>
         <span class="escape-row">
+          <svg
+            class="vote-check egal-check"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1" />
+            <path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1" />
+          </svg>
           <span class="escape-label">Ich bin dabei</span>
         </span>
-        <span class="escape-sub">Ohne Haken. Einfach da.</span>
+        <span class="escape-sub">Kantine egal. Du bist dabei.</span>
       </button>
       <button type="button" class="escape-link dice-open" id="dice-open">
         <span class="escape-kicker">Unentschlossen?</span>
@@ -448,7 +465,8 @@
         </ol>
         <menu>
           <button type="submit" value="ok">Alles klar</button>
-          <button type="button" id="welcome-edit">Spitzname ändern</button>
+          <button type="button" id="welcome-edit">Name/Runde ändern</button>
+          <button type="button" id="welcome-leave">Runde verlassen</button>
         </menu>
       </form>
     </dialog>
@@ -481,7 +499,7 @@
         <menu>
           <button type="button" data-dice="go" value="ok">Los</button>
           <button type="button" data-dice="again" value="ok" hidden>Nochmal</button>
-          <button type="button" data-dice="show" value="show" hidden>Zeig her</button>
+          <button type="button" data-dice="show" value="show" hidden>Zeig mir wo</button>
           <button type="submit" value="cancel">Später</button>
         </menu>
       </form>
@@ -509,6 +527,14 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=583ea7fb" type="module"></script>
+    <script src="./app.js?v=cde29b02" type="module"></script>
+    </div>
+    <a class="aufruf-stamp" href="./strichliste.html" data-aufruf="/">
+      <span class="aufruf-ink">
+        <span class="aufruf-count" data-aufruf-count></span>
+        <span class="aufruf-label">Aufrufe</span>
+      </span>
+    </a>
+    <script src="./visits.js?v=5f2c6ad5" type="module"></script>
   </body>
 </html>

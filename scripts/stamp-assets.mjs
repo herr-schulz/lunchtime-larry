@@ -82,15 +82,41 @@ const boardRenderHash = await hashFile("boardRender.js");
 const boardGesturesHash = await hashFile("boardGestures.js");
 
 const voteClientPath = join(site, "voteClient.js");
+const tallyPath = join(site, "tally.js");
+const tallyBefore = await readFile(tallyPath, "utf8");
+const tallyAfter = tallyBefore.replace(
+  /(\.\/vote\.js)(?:\?v=[^"']*)?/g,
+  `./vote.js?v=${voteHash}`,
+);
+if (tallyAfter !== tallyBefore) {
+  await writeFile(tallyPath, tallyAfter);
+  console.log("stamped tally.js imports");
+}
+const tallyHash = await hashFile("tally.js");
+
 const voteClientBefore = await readFile(voteClientPath, "utf8");
 const voteClientAfter = voteClientBefore
   .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/tally\.js)(?:\?v=[^"']*)?/g, `./tally.js?v=${tallyHash}`)
   .replace(/(\.\/firebase\.json)(?:\?v=[^"']*)?/g, `./firebase.json?v=${firebaseHash}`);
 if (voteClientAfter !== voteClientBefore) {
   await writeFile(voteClientPath, voteClientAfter);
   console.log("stamped voteClient.js imports");
 }
 const voteClientHashFinal = await hashFile("voteClient.js");
+
+const visitsHash = await hashFile("visits.js");
+const strichPath = join(site, "strichliste.js");
+const strichBefore = await readFile(strichPath, "utf8");
+const strichAfter = strichBefore
+  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/tally\.js)(?:\?v=[^"']*)?/g, `./tally.js?v=${tallyHash}`)
+  .replace(/(\.\/visits\.js)(?:\?v=[^"']*)?/g, `./visits.js?v=${visitsHash}`)
+  .replace(/(\.\/firebase\.json)(?:\?v=[^"']*)?/g, `./firebase.json?v=${firebaseHash}`);
+if (strichAfter !== strichBefore) {
+  await writeFile(strichPath, strichAfter);
+  console.log("stamped strichliste.js imports");
+}
 
 const diceReelPath = join(site, "diceReel.js");
 const diceReelBefore = await readFile(diceReelPath, "utf8");
@@ -154,6 +180,8 @@ const assets = [
   "lazy-larry.svg",
   "canteens.json",
   "spotDice.js",
+  "visits.js",
+  "strichliste.js",
 ];
 const hashes = Object.fromEntries(
   await Promise.all(assets.map(async (name) => [name, await hashFile(name)])),
@@ -164,7 +192,7 @@ const pattern = new RegExp(
   "g",
 );
 
-for (const page of ["index.html", "alternativen.html"]) {
+for (const page of ["index.html", "alternativen.html", "strichliste.html"]) {
   const path = join(site, page);
   const before = await readFile(path, "utf8");
   const after = before.replace(pattern, (_, file) => `./${file}?v=${hashes[file]}`);

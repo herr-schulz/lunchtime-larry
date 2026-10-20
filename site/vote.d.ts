@@ -81,6 +81,16 @@ export function winnerOf(
   | { status: "empty" }
   | { status: "tie" }
   | { status: "lead"; id: VoteTargetId; name: string };
+export function heuteDabeiLine(
+  result:
+    | { status: "empty" }
+    | { status: "tie" }
+    | { status: "lead"; id: VoteTargetId; name: string }
+    | null
+    | undefined,
+  names: readonly string[],
+  reveal: boolean,
+): string;
 export const ROUND_ALPHABET: string;
 export const MAX_ROUND_CODE: 8;
 export function normalizeRoundCode(value: unknown): string;

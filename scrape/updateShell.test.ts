@@ -24,6 +24,7 @@ describe("stale shell", () => {
     expect(shouldBypassCache("/lunchtime-larry/version.json")).toBe(true);
     expect(shouldBypassCache("/sw.js")).toBe(true);
     expect(shouldBypassCache("/index.html")).toBe(true);
+    expect(shouldBypassCache("/strichliste.html")).toBe(true);
     expect(shouldBypassCache("/lunchtime-larry/")).toBe(true);
     expect(shouldBypassCache("/vote.js")).toBe(false);
   });
