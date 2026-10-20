@@ -63,6 +63,13 @@ export async function readTotalCount(fetchImpl = fetch) {
   return readCountAt(totalCountUrl(), fetchImpl);
 }
 
+/** Same-origin copy, so a blocked GoatCounter request still has a number. */
+export async function readLocalAufrufe(fetchImpl = fetch) {
+  const response = await fetchImpl("./data/aufrufe.json", { cache: "no-store" });
+  const data = await response.json();
+  return data && typeof data === "object" ? data : {};
+}
+
 export function mountVisits(root = document) {
   const stamp = root.querySelector("[data-aufruf]");
   if (!stamp) return;
@@ -80,15 +87,22 @@ export function mountVisits(root = document) {
   stamp.append(pixel);
   const out = stamp.querySelector("[data-aufruf-count]");
   if (!out) return;
+  const label = stamp.querySelector(".aufruf-label");
   readTotalCount()
-    .then((count) => {
-        if (!count) return;
-      out.textContent = count;
-      const label = stamp.querySelector(".aufruf-label");
-      if (label) label.textContent = aufrufWord(count);
+    .catch(() => "")
+    .then(async (count) => {
+      if (count) return count;
+      try {
+        const local = await readLocalAufrufe();
+        return countText(local.total);
+      } catch {
+        return out.textContent.trim();
+      }
     })
-    .catch(() => {
-      /* Stem stays blank. The board does not depend on the counter. */
+    .then((count) => {
+      if (!count) return;
+      out.textContent = count;
+      if (label) label.textContent = aufrufWord(count);
     });
 }
 

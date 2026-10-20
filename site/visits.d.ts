@@ -12,6 +12,9 @@ export function readCountAt(
     init?: RequestInit,
   ) => Promise<{ ok: boolean; json: () => Promise<{ count?: unknown }> }>,
 ): Promise<string>;
+export function readLocalAufrufe(
+  fetchImpl?: (input: string, init?: RequestInit) => Promise<{ json: () => Promise<Record<string, unknown>> }>,
+): Promise<Record<string, unknown>>;
 export function readTotalCount(
   fetchImpl?: (
     input: string,

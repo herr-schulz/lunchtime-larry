@@ -168,6 +168,9 @@ describe("visit pixel", () => {
     expect(list).not.toContain("count.js");
     expect(list).toContain("Was gespeichert wird");
     expect(list).toContain("Headcount Harry");
+    expect(readFileSync("site/visits.js", "utf8")).toContain("./data/aufrufe.json");
+    const saved = JSON.parse(readFileSync("site/data/aufrufe.json", "utf8")) as { total?: string };
+    expect(saved.total).toMatch(/^[\d.,]+$/);
     expect(list).toContain("leisure-larry.svg");
     expect(list).toContain("Deshalb brauchen wir auch keinen Cookie-Banner! Toll oder?");
     expect(list).not.toContain("Tritt einer Runde bei");

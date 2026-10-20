@@ -86,14 +86,14 @@ import {
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=517e4605";
+} from "./voteClient.js?v=8598aae9";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=f2f798f0";
+} from "./updateShell.js?v=4b1698b7";
 import {
   berlinAt,
   demoVotes,

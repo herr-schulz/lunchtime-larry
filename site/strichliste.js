@@ -1,5 +1,5 @@
 import { berlinDate, loadRoundCode } from "./vote.js?v=857e7e26";
-import { countDigits, counterUrl, readCountAt } from "./visits.js?v=53182d3c";
+import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=f843f58e";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 import {
   BAR_FIELDS,
@@ -14,7 +14,7 @@ import {
   sumTallies,
   thursdayMarket,
   winsLine,
-} from "./tally.js?v=87fac9f0";
+} from "./tally.js?v=f9ee7536";
 
 const RANGES = [
   ["days", "Tage"],
@@ -154,7 +154,14 @@ function paintVisits(root, counts) {
 async function loadVisits() {
   const slots = [...VISIT_FIGURES, ...VISIT_PAGES];
   const values = await Promise.all(slots.map(([, , url]) => readCountAt(url).catch(() => "")));
-  return Object.fromEntries(slots.map(([id], index) => [id, values[index]]));
+  const counts = Object.fromEntries(slots.map(([id], index) => [id, values[index]]));
+  if (Object.values(counts).some(Boolean)) return counts;
+  try {
+    const local = await readLocalAufrufe();
+    return Object.fromEntries(slots.map(([id]) => [id, String(local?.[id] ?? "").trim()]));
+  } catch {
+    return counts;
+  }
 }
 
 function paint(root, archive) {

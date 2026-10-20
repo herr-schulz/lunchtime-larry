@@ -100,6 +100,9 @@ jobs:
       - run: npm run stamp
         if: always() && steps.ready.outputs.ready == 'true'
 
+      - run: node scripts/fetch-aufrufe.mjs
+        if: always() && steps.ready.outputs.ready == 'true'
+
       - name: Deploy Firebase Hosting
         if: always() && steps.ready.outputs.ready == 'true'
         env:

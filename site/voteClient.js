@@ -21,7 +21,7 @@ import {
   voteTargetIds,
   votesPath,
 } from "./vote.js?v=857e7e26";
-import { foldDay, foldNicks, mergeNickTotals } from "./tally.js?v=87fac9f0";
+import { foldDay, foldNicks, mergeNickTotals } from "./tally.js?v=f9ee7536";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
