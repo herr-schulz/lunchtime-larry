@@ -4,6 +4,30 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const site = join(dirname(fileURLToPath(import.meta.url)), "..", "site");
+const version = JSON.parse(await readFile(join(site, "version.json"), "utf8"));
+const shellBuild = String(version.build ?? "");
+
+const updateShellPath = join(site, "updateShell.js");
+const updateShellBefore = await readFile(updateShellPath, "utf8");
+const updateShellAfter = updateShellBefore.replace(
+  /export const SHELL_BUILD = "[^"]*"/,
+  `export const SHELL_BUILD = "${shellBuild}"`,
+);
+if (updateShellAfter !== updateShellBefore) {
+  await writeFile(updateShellPath, updateShellAfter);
+  console.log("stamped updateShell.js build");
+}
+
+const swPath = join(site, "sw.js");
+const swBefore = await readFile(swPath, "utf8");
+const swAfter = swBefore.replace(
+  /const CACHE = "larry-shell-v[^"]*"/,
+  `const CACHE = "larry-shell-v${shellBuild}"`,
+);
+if (swAfter !== swBefore) {
+  await writeFile(swPath, swAfter);
+  console.log("stamped sw.js cache");
+}
 
 async function hashFile(name) {
   const buf = await readFile(join(site, name));
@@ -58,15 +82,41 @@ const boardRenderHash = await hashFile("boardRender.js");
 const boardGesturesHash = await hashFile("boardGestures.js");
 
 const voteClientPath = join(site, "voteClient.js");
+const tallyPath = join(site, "tally.js");
+const tallyBefore = await readFile(tallyPath, "utf8");
+const tallyAfter = tallyBefore.replace(
+  /(\.\/vote\.js)(?:\?v=[^"']*)?/g,
+  `./vote.js?v=${voteHash}`,
+);
+if (tallyAfter !== tallyBefore) {
+  await writeFile(tallyPath, tallyAfter);
+  console.log("stamped tally.js imports");
+}
+const tallyHash = await hashFile("tally.js");
+
 const voteClientBefore = await readFile(voteClientPath, "utf8");
 const voteClientAfter = voteClientBefore
   .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/tally\.js)(?:\?v=[^"']*)?/g, `./tally.js?v=${tallyHash}`)
   .replace(/(\.\/firebase\.json)(?:\?v=[^"']*)?/g, `./firebase.json?v=${firebaseHash}`);
 if (voteClientAfter !== voteClientBefore) {
   await writeFile(voteClientPath, voteClientAfter);
   console.log("stamped voteClient.js imports");
 }
 const voteClientHashFinal = await hashFile("voteClient.js");
+
+const visitsHash = await hashFile("visits.js");
+const strichPath = join(site, "strichliste.js");
+const strichBefore = await readFile(strichPath, "utf8");
+const strichAfter = strichBefore
+  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/tally\.js)(?:\?v=[^"']*)?/g, `./tally.js?v=${tallyHash}`)
+  .replace(/(\.\/visits\.js)(?:\?v=[^"']*)?/g, `./visits.js?v=${visitsHash}`)
+  .replace(/(\.\/firebase\.json)(?:\?v=[^"']*)?/g, `./firebase.json?v=${firebaseHash}`);
+if (strichAfter !== strichBefore) {
+  await writeFile(strichPath, strichAfter);
+  console.log("stamped strichliste.js imports");
+}
 
 const diceReelPath = join(site, "diceReel.js");
 const diceReelBefore = await readFile(diceReelPath, "utf8");
@@ -94,9 +144,12 @@ if (spotDiceAfter !== spotDiceBefore) {
   console.log("stamped spotDice.js imports");
 }
 
+const updateShellHash = await hashFile("updateShell.js");
+
 const appPath = join(site, "app.js");
 const appBefore = await readFile(appPath, "utf8");
 const appAfter = appBefore
+  .replace(/(\.\/updateShell\.js)(?:\?v=[^"']*)?/g, `./updateShell.js?v=${updateShellHash}`)
   .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
   .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
   .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
@@ -127,6 +180,8 @@ const assets = [
   "lazy-larry.svg",
   "canteens.json",
   "spotDice.js",
+  "visits.js",
+  "strichliste.js",
 ];
 const hashes = Object.fromEntries(
   await Promise.all(assets.map(async (name) => [name, await hashFile(name)])),
@@ -137,7 +192,7 @@ const pattern = new RegExp(
   "g",
 );
 
-for (const page of ["index.html", "alternativen.html"]) {
+for (const page of ["index.html", "alternativen.html", "strichliste.html"]) {
   const path = join(site, page);
   const before = await readFile(path, "utf8");
   const after = before.replace(pattern, (_, file) => `./${file}?v=${hashes[file]}`);

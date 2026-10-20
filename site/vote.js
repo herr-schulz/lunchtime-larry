@@ -7,6 +7,10 @@ export const CANTEEN_IDS = ["stmuv", "sodexo", "bella23"];
 /** Thursday only in the client. Rules accept the slug on any day. */
 export const MARKET_ID = "wochenmarkt";
 export const MARKET_NAME = "Wochenmarkt";
+/** Fine with every spot — presence only, no tally. */
+export const EGAL_ID = "egal";
+/** Approval ticks per ballot. Must match the optional `second` field in rules. */
+export const MAX_PICKS = 2;
 /** Seats 0–23 per round per day. Must match database.rules.json `$slot`. */
 export const MAX_VOTERS = 24;
 
@@ -122,17 +126,112 @@ export function saveNick(nick) {
   return next;
 }
 
+export function emptyMine() {
+  return { picks: [], egal: false };
+}
+
+/** Drop empty Firebase array holes so Object.keys never looks like a full round. */
+export function voteRecords(val) {
+  if (!val || typeof val !== "object") return {};
+  const out = {};
+  for (const [slot, rec] of Object.entries(val)) {
+    if (rec && typeof rec === "object" && rec.uid) out[slot] = rec;
+  }
+  return out;
+}
+
+export function isEgalRecord(rec) {
+  return Boolean(rec) && (rec.canteen === EGAL_ID || rec.egal === true);
+}
+
+export function picksFromRecord(rec, allowed) {
+  if (!rec || isEgalRecord(rec)) return [];
+  const allow = allowed ? new Set(allowed) : null;
+  const picks = [];
+  for (const id of [rec.canteen, rec.second]) {
+    if (!id || id === EGAL_ID) continue;
+    if (allow && !allow.has(id)) continue;
+    if (!picks.includes(id)) picks.push(id);
+  }
+  return picks;
+}
+
+export function mineFromRecord(rec, weekday = berlinWeekday()) {
+  if (!rec) return emptyMine();
+  if (isEgalRecord(rec)) return { picks: [], egal: true };
+  return { picks: picksFromRecord(rec, voteTargetIds(weekday)), egal: false };
+}
+
+export function mineHasPick(mine, canteen) {
+  return Boolean(mine?.picks?.includes(canteen));
+}
+
+export function nextMineForPick(mine, canteen) {
+  const current = mine?.egal || !mine?.picks?.length ? emptyMine() : mine;
+  if (current.picks.includes(canteen)) {
+    return { picks: current.picks.filter((id) => id !== canteen), egal: false };
+  }
+  if (current.picks.length >= MAX_PICKS) {
+    return { picks: [...current.picks.slice(1), canteen], egal: false };
+  }
+  return { picks: [...current.picks, canteen], egal: false };
+}
+
+export function ballotPayload(uid, nick, mine, at) {
+  if (mine?.egal) return { uid, nick, canteen: EGAL_ID, at };
+  if (!mine?.picks?.length) return null;
+  const ballot = { uid, nick, canteen: mine.picks[0], at };
+  if (mine.picks[1]) ballot.second = mine.picks[1];
+  return ballot;
+}
+
+/** One ballot per uid — extra slots from a stuffed session are ignored. */
+export function firstRecordsByUid(records) {
+  const seen = new Set();
+  const out = [];
+  for (const rec of Object.values(records ?? {})) {
+    if (!rec || typeof rec !== "object") continue;
+    const uid = rec.uid;
+    if (uid) {
+      if (seen.has(uid)) continue;
+      seen.add(uid);
+    }
+    out.push(rec);
+  }
+  return out;
+}
+
+export function stuffedBallots(records) {
+  const byUid = new Map();
+  for (const rec of Object.values(records ?? {})) {
+    const uid = rec?.uid;
+    if (!uid) continue;
+    const cur = byUid.get(uid) || { picks: 0, nick: rec.nick };
+    cur.picks += picksFromRecord(rec).length;
+    if (rec.nick) cur.nick = rec.nick;
+    byUid.set(uid, cur);
+  }
+  const stuffed = [];
+  for (const [uid, cur] of byUid) {
+    if (cur.picks <= MAX_PICKS) continue;
+    stuffed.push({ uid, nick: normalizeNick(cur.nick), picks: cur.picks });
+  }
+  return stuffed;
+}
+
 export function countVotes(records) {
   const counts = { stmuv: 0, sodexo: 0, bella23: 0, [MARKET_ID]: 0 };
-  for (const rec of Object.values(records ?? {})) {
-    if (rec?.canteen && Object.hasOwn(counts, rec.canteen)) counts[rec.canteen] += 1;
+  for (const rec of firstRecordsByUid(records)) {
+    for (const id of picksFromRecord(rec)) {
+      if (Object.hasOwn(counts, id)) counts[id] += 1;
+    }
   }
   return counts;
 }
 
 export function nicksFor(records, canteen) {
-  return Object.values(records ?? {})
-    .filter((rec) => rec?.canteen === canteen)
+  return firstRecordsByUid(records)
+    .filter((rec) => mineHasPick(mineFromRecord(rec), canteen))
     .map((rec) => normalizeNick(rec.nick))
     .filter((nick) => isValidNick(nick));
 }
@@ -147,6 +246,25 @@ export function winnerOf(counts, names) {
   if (leaders.length > 1) return { status: "tie" };
   const id = leaders[0];
   return { status: "lead", id, name: names[id] ?? id };
+}
+
+/**
+ * Line under the weekday. After 12:00 the destination stays put;
+ * before that it's just who is in.
+ * @param {{ status?: string, name?: string } | null | undefined} result
+ * @param {string[]} names
+ * @param {boolean} reveal
+ */
+export function heuteDabeiLine(result, names, reveal) {
+  const people = (names ?? []).filter(Boolean);
+  const who = people.length ? people.join(" · ") : "";
+  if (reveal && result?.status === "lead" && result.name) {
+    return who ? `Heute ${result.name} · ${who}` : `Heute ${result.name}`;
+  }
+  if (reveal && result?.status === "tie") {
+    return who ? `Heute unentschieden · ${who}` : "Heute unentschieden";
+  }
+  return who ? `Heute dabei · ${who}` : "";
 }
 
 /** No 0/O/1/l — a generated code stays readable when someone types it back. */
@@ -238,9 +356,13 @@ export function mySlot(records, uid) {
   return null;
 }
 
+export function occupiedSeatCount(records) {
+  return Object.keys(voteRecords(records)).length;
+}
+
 export function canAcceptVote(records, uid) {
   if (mySlot(records, uid) != null) return true;
-  return Object.keys(records ?? {}).length < MAX_VOTERS;
+  return occupiedSeatCount(records) < MAX_VOTERS;
 }
 
 export function loadVoteOptIn() {

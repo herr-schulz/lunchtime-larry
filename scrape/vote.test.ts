@@ -1,18 +1,27 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { voteFull } from "../site/larryLines.js";
+import { voteFull, votePicksFull, voteStuffed } from "../site/larryLines.js";
 import {
   ballotDate,
+  ballotPayload,
   berlinDate,
   canAcceptVote,
   countVotes,
+  EGAL_ID,
+  emptyMine,
   isValidNick,
   lastVoteDate,
+  MAX_PICKS,
   MAX_VOTERS,
+  mineFromRecord,
+  mineHasPick,
+  nextMineForPick,
   normalizeNick,
   generateRoundCode,
   nicksFor,
+  stuffedBallots,
   normalizeRoundCode,
+  type VoteRecord,
   ROUND_ALPHABET,
   staleVoteDays,
   lockLine,
@@ -22,6 +31,7 @@ import {
   voteTargetIds,
   votesPath,
   winnerOf,
+  heuteDabeiLine,
   setNowOverride,
   clearNowOverride,
 } from "../site/vote.js";
@@ -68,6 +78,26 @@ describe("countVotes", () => {
       }),
     ).toEqual({ stmuv: 1, sodexo: 2, bella23: 0, wochenmarkt: 0 });
   });
+
+  it("counts a second pick and skips egal", () => {
+    expect(
+      countVotes({
+        a: { canteen: "stmuv", second: "sodexo" },
+        b: { canteen: EGAL_ID },
+        c: { canteen: "bella23" },
+      }),
+    ).toEqual({ stmuv: 1, sodexo: 1, bella23: 1, wochenmarkt: 0 });
+  });
+
+  it("keeps only the first ballot per uid so stuffed slots do not swing the tally", () => {
+    expect(
+      countVotes({
+        0: { uid: "x", nick: "Alex", canteen: "stmuv" },
+        1: { uid: "x", nick: "Alex", canteen: "sodexo" },
+        2: { uid: "x", nick: "Alex", canteen: "bella23" },
+      }),
+    ).toEqual({ stmuv: 1, sodexo: 0, bella23: 0, wochenmarkt: 0 });
+  });
 });
 
 describe("winnerOf", () => {
@@ -94,6 +124,23 @@ describe("winnerOf", () => {
   });
 });
 
+describe("heuteDabeiLine", () => {
+  it("keeps the round names before noon and the destination after", () => {
+    const nicks = ["Sven", "Ada"];
+    expect(heuteDabeiLine({ status: "lead", id: "sodexo", name: "Dave B" }, nicks, false)).toBe(
+      "Heute dabei · Sven · Ada",
+    );
+    expect(heuteDabeiLine({ status: "lead", id: "sodexo", name: "Dave B" }, nicks, true)).toBe(
+      "Heute Dave B · Sven · Ada",
+    );
+    expect(heuteDabeiLine({ status: "tie" }, nicks, true)).toBe("Heute unentschieden · Sven · Ada");
+    expect(heuteDabeiLine({ status: "empty" }, nicks, true)).toBe("Heute dabei · Sven · Ada");
+    expect(heuteDabeiLine({ status: "lead", id: "sodexo", name: "Dave B" }, [], true)).toBe(
+      "Heute Dave B",
+    );
+  });
+});
+
 describe("nicksFor", () => {
   it("lists names for one canteen", () => {
     expect(
@@ -106,6 +153,91 @@ describe("nicksFor", () => {
         "stmuv",
       ),
     ).toEqual(["Sven", "Mira"]);
+  });
+
+  it("lists a nick on both picked slips, not on egal", () => {
+    expect(
+      nicksFor(
+        {
+          0: { uid: "a", nick: "Sven", canteen: "stmuv", second: "sodexo" },
+          1: { uid: "b", nick: "Alex", canteen: EGAL_ID },
+        },
+        "sodexo",
+      ),
+    ).toEqual(["Sven"]);
+    expect(
+      nicksFor(
+        { 1: { uid: "b", nick: "Alex", canteen: EGAL_ID } },
+        "stmuv",
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("two picks and egal", () => {
+  it("adds a second tick then replaces the oldest on a third", () => {
+    const one = nextMineForPick(emptyMine(), "stmuv");
+    const two = nextMineForPick(one, "sodexo");
+    expect(two.picks).toEqual(["stmuv", "sodexo"]);
+    expect(nextMineForPick(two, "bella23")).toEqual({
+      picks: ["sodexo", "bella23"],
+      egal: false,
+    });
+    expect(MAX_PICKS).toBe(2);
+  });
+
+  it("drops a leftover market pick when the market is not on the board", () => {
+    setNowOverride(new Date("2026-10-19T10:00:00+02:00"));
+    const leftover = mineFromRecord({ canteen: "stmuv", second: "wochenmarkt" });
+    expect(leftover.picks).toEqual(["stmuv"]);
+    expect(nextMineForPick(leftover, "sodexo").picks).toEqual(["stmuv", "sodexo"]);
+    expect(mineFromRecord({ canteen: "stmuv", egal: true })).toEqual({
+      picks: [],
+      egal: true,
+    });
+    clearNowOverride();
+  });
+
+  it("writes egal without a second pick", () => {
+    expect(ballotPayload("u", "Sven", { picks: [], egal: true }, 1)).toEqual({
+      uid: "u",
+      nick: "Sven",
+      canteen: EGAL_ID,
+      at: 1,
+    });
+    expect(
+      mineFromRecord({ canteen: "stmuv", second: "bella23" }).picks,
+    ).toEqual(["stmuv", "bella23"]);
+    expect(mineHasPick(mineFromRecord({ canteen: EGAL_ID }), "stmuv")).toBe(false);
+    expect(mineFromRecord({ canteen: EGAL_ID, second: "sodexo" })).toEqual({
+      picks: [],
+      egal: true,
+    });
+    expect(nextMineForPick({ picks: [], egal: true }, "stmuv")).toEqual({
+      picks: ["stmuv"],
+      egal: false,
+    });
+  });
+
+  it("keeps the picks-full line without a seat count", () => {
+    expect(votePicksFull().line).toMatch(/Haken/);
+    expect(votePicksFull().line).not.toMatch(/\d/);
+  });
+
+  it("names a uid that stuffed more than two ticks", () => {
+    expect(
+      stuffedBallots({
+        0: { uid: "x", nick: "Alex", canteen: "stmuv", second: "sodexo" },
+        1: { uid: "x", nick: "Alex", canteen: "bella23" },
+      }),
+    ).toEqual([{ uid: "x", nick: "Alex", picks: 3 }]);
+    expect(
+      stuffedBallots({
+        0: { uid: "x", nick: "Alex", canteen: "stmuv", second: "sodexo" },
+      }),
+    ).toEqual([]);
+    expect(voteStuffed("Alex").line).toMatch(/^Alex hat/);
+    expect(voteStuffed("Alex").line).not.toMatch(/\d/);
   });
 });
 
@@ -287,6 +419,15 @@ describe("canAcceptVote", () => {
   it("accepts a new ballot while seats remain", () => {
     const open = Object.fromEntries(Object.entries(full).slice(0, MAX_VOTERS - 1));
     expect(canAcceptVote(open, "uid99")).toBe(true);
+  });
+
+  it("ignores empty firebase array holes so a sparse 24-slot node is not full", () => {
+    const holes: Array<VoteRecord | null> = Array.from(
+      { length: MAX_VOTERS },
+      () => null,
+    );
+    holes[0] = { uid: "a", nick: "Sven", canteen: "stmuv", at: 1 };
+    expect(canAcceptVote(holes, "uid99")).toBe(true);
   });
 
   it("keeps Larry's full line without advertising a seat count", () => {

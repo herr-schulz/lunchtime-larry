@@ -8,18 +8,18 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=3316bbab";
-import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
+} from "./calendar.js?v=2b03e76d";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=d6d5734e";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
+import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
 import {
   berlinWeekMonday,
   canteenEntries,
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=c78c2727";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=c2f238ba";
+} from "./diceReel.js?v=ef7db429";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
   alarmLabel,
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=8ef9aa59";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=3249edcb";
 import {
   favoritePoint,
   favoriteToday,
@@ -41,9 +41,11 @@ import {
   unlikeAck,
   voteFull,
   voteOffline,
+  voteStuffed,
+  egalButtonLabel,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=a8fa1db7";
+} from "./larryLines.js?v=89fb248d";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -57,7 +59,12 @@ import {
   loadVoteOptIn,
   lockLine,
   minutesUntilReveal,
+  berlinDate,
+  emptyMine,
+  isValidNick,
+  mineHasPick,
   nicksFor,
+  stuffedBallots,
   MARKET_ID,
   MARKET_NAME,
   normalizeNick,
@@ -71,17 +78,27 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=c72a8e83";
+  heuteDabeiLine,
+} from "./vote.js?v=857e7e26";
 import {
   ensureVoteUser,
   listenVotes,
+  stopListening,
+  toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=0957c3e1";
+} from "./voteClient.js?v=517e4605";
+import {
+  isStaleShell,
+  reloadFresh,
+  remoteBuildFrom,
+  SHELL_BUILD,
+  staleShellCopy,
+} from "./updateShell.js?v=059ecf0b";
 import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=b32841dd";
+} from "./devPreview.js?v=dc1f260e";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -108,6 +125,7 @@ const optinDialog = document.querySelector("#optin-dialog");
 const optinCancel = document.querySelector("#optin-cancel");
 const voteLock = document.querySelector("#vote-lock");
 const heuteDabei = document.querySelector("#heute-dabei");
+const egalVote = document.querySelector("#egal-vote");
 const revealDialog = document.querySelector("#reveal-dialog");
 const revealName = document.querySelector("#reveal-name");
 const revealStrip = document.querySelector("#reveal-strip");
@@ -125,6 +143,7 @@ const welcomeDialog = document.querySelector("#welcome-dialog");
 const welcomeCode = document.querySelector("#welcome-code");
 const welcomeCopy = document.querySelector("#welcome-copy");
 const welcomeEdit = document.querySelector("#welcome-edit");
+const welcomeLeave = document.querySelector("#welcome-leave");
 let welcomeCopyTimer = 0;
 const weekendDialog = document.querySelector("#weekend-dialog");
 const mascot = document.querySelector(".masthead .mascot");
@@ -135,7 +154,7 @@ let likes = loadLikes();
 let voteState = {
   counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
   records: {},
-  mine: null,
+  mine: emptyMine(),
   uid: null,
 };
 /** Localhost ?dev=1 — freezes ballots so the 12:00 presentation can be replayed. */
@@ -194,7 +213,6 @@ function showVoteMarks() {
     loadVoteOptIn() &&
     welcomePassed &&
     Boolean(loadRoundCode()) &&
-    isVoteDay() &&
     currentDay === todayKey()
   );
 }
@@ -233,7 +251,44 @@ function larryMenuNote(data) {
 
 function syncNotices() {
   if (!notices) return;
-  notices.hidden = !(hits && !hits.hidden);
+  notices.hidden = !((hits && !hits.hidden) || (banner && !banner.hidden));
+}
+
+function showUpdateBanner() {
+  if (!banner) return;
+  const copy = staleShellCopy();
+  const kicker = banner.querySelector(".toast-kicker span");
+  const line = banner.querySelector(".toast-stale-copy");
+  const action = banner.querySelector("#update-reload");
+  if (kicker) kicker.textContent = copy.kicker;
+  if (line) line.textContent = copy.line;
+  if (action) action.textContent = copy.action;
+  banner.hidden = false;
+  syncNotices();
+  popToast(banner);
+}
+
+async function checkRemoteBuild() {
+  try {
+    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const remote = remoteBuildFrom(await res.json());
+    if (isStaleShell(SHELL_BUILD, remote)) showUpdateBanner();
+  } catch {
+    /* offline */
+  }
+}
+
+function bindUpdateBanner() {
+  document.querySelector("#update-reload")?.addEventListener("click", () => {
+    reloadFresh();
+  });
+  if (
+    location.hostname === "localhost" &&
+    new URLSearchParams(location.search).has("update")
+  ) {
+    showUpdateBanner();
+  }
 }
 
 function popToast(toast) {
@@ -529,19 +584,24 @@ function activeVotes() {
   return previewVotes ?? voteState;
 }
 
+function votePlaceNames() {
+  const names = Object.fromEntries(
+    Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
+  );
+  names[MARKET_ID] = MARKET_NAME;
+  return names;
+}
+
 function applyVoteUi() {
   const open = votingOpen();
   const show = showVoteMarks();
   const reveal = show && votePhase() === "reveal";
   const votes = activeVotes();
-  const names = Object.fromEntries(
-    Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
-  );
-  names[MARKET_ID] = MARKET_NAME;
+  const names = votePlaceNames();
   const result = winnerOf(votes.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
-    const mine = show && votes.mine === id;
+    const mine = show && mineHasPick(votes.mine, id);
     const nickList = reveal ? nicksFor(votes.records, id) : [];
     slip.classList.toggle("is-voted", mine);
     slip.classList.toggle(
@@ -571,7 +631,7 @@ function applyVoteUi() {
   if (marketVote) {
     marketVote.hidden = !showMarket;
     marketVote.disabled = !open;
-    const mine = showMarket && votes.mine === MARKET_ID;
+    const mine = showMarket && mineHasPick(votes.mine, MARKET_ID);
     const nickList = showMarket && reveal ? nicksFor(votes.records, MARKET_ID) : [];
     marketVote.setAttribute("aria-pressed", String(mine));
     const label = nickList.length
@@ -588,22 +648,78 @@ function applyVoteUi() {
       marketVote.classList.remove("is-drawn");
     }
   }
-  marketBanner?.classList.toggle("is-voted", showMarket && votes.mine === MARKET_ID);
+  if (egalVote) {
+    const pressed = Boolean(votes.mine?.egal);
+    egalVote.hidden = !show;
+    egalVote.disabled = !open;
+    egalVote.classList.toggle("is-on", pressed);
+    egalVote.setAttribute("aria-pressed", String(pressed));
+    const label = egalButtonLabel(pressed, berlinDate());
+    const labelEl = egalVote.querySelector(".escape-label");
+    if (labelEl) labelEl.textContent = label;
+    else egalVote.textContent = label;
+    egalVote.setAttribute("aria-label", pressed ? `${label} — mit in der Runde` : label);
+    if (pressed) {
+      if (!egalVote.classList.contains("is-drawn")) replayCheck(egalVote);
+    } else {
+      egalVote.classList.remove("is-drawn");
+    }
+  }
+  marketBanner?.classList.toggle("is-voted", showMarket && mineHasPick(votes.mine, MARKET_ID));
   marketBanner?.classList.toggle(
     "is-leading",
     showMarket && reveal && result.status === "lead" && result.id === MARKET_ID,
   );
   syncVoteChrome();
   maybeAnnounceWinner(result, reveal);
+  maybeAnnounceStuffed(votes.records);
 }
 
 function voteTotal() {
-  return Object.values(activeVotes().counts).reduce((sum, n) => sum + (n || 0), 0);
+  return Object.keys(activeVotes().records ?? {}).length;
+}
+
+const stuffedSaid = new Set();
+
+function stuffedStorageKey() {
+  return `lunchtime-larry-stuffed-${berlinDate()}`;
+}
+
+function loadStuffedSaid() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(stuffedStorageKey()) || "[]");
+    if (Array.isArray(raw)) raw.forEach((uid) => stuffedSaid.add(uid));
+  } catch {
+    /* private mode */
+  }
+}
+
+function rememberStuffed(uid) {
+  stuffedSaid.add(uid);
+  try {
+    localStorage.setItem(stuffedStorageKey(), JSON.stringify([...stuffedSaid]));
+  } catch {
+    /* private mode */
+  }
+}
+
+function maybeAnnounceStuffed(records) {
+  if (previewVotes || votePhase() !== "reveal") return;
+  loadStuffedSaid();
+  const rows = stuffedBallots(records).filter((row) => !stuffedSaid.has(row.uid));
+  if (!rows.length) return;
+  for (const row of rows) rememberStuffed(row.uid);
+  const names = rows
+    .map((row) => (isValidNick(row.nick) ? row.nick : ""))
+    .filter(Boolean);
+  sayLarry(voteStuffed(names));
 }
 
 function syncVoteChrome() {
   const show = showVoteMarks();
   const phase = votePhase();
+  const votes = activeVotes();
+  const result = winnerOf(votes.counts, votePlaceNames());
   if (voteLock) {
     if (show && phase === "locked") {
       voteLock.hidden = false;
@@ -613,14 +729,13 @@ function syncVoteChrome() {
     }
   }
   if (heuteDabei) {
-    const names = roundNicks(activeVotes().records);
-    if (show && names.length) {
-      heuteDabei.hidden = false;
-      heuteDabei.textContent = `Heute dabei · ${names.join(" · ")}`;
-    } else {
-      heuteDabei.hidden = true;
-      heuteDabei.textContent = "";
-    }
+    const names = roundNicks(votes.records);
+    const reveal = show && phase === "reveal";
+    const text = show ? heuteDabeiLine(result, names, reveal) : "";
+    heuteDabei.hidden = !text;
+    heuteDabei.textContent = text;
+    heuteDabei.classList.toggle("is-result", Boolean(reveal && result.status === "lead"));
+    heuteDabei.classList.toggle("is-replay", Boolean(reveal && result.status === "lead"));
   }
 }
 
@@ -762,12 +877,15 @@ function runDevPhase(phase, mode = "lead") {
     return;
   }
   ensurePreviewSession();
+  const clockBase = isVoteDay(new Date())
+    ? new Date()
+    : new Date(`${lastVoteDate(new Date())}T12:00:00+02:00`);
   const clock =
     phase === "open"
-      ? berlinAt(11, 0)
+      ? berlinAt(11, 0, clockBase)
       : phase === "locked"
-        ? berlinAt(11, 55)
-        : berlinAt(12, 0);
+        ? berlinAt(11, 55, clockBase)
+        : berlinAt(12, 0, clockBase);
   setNowOverride(clock);
   previewVotes = demoVotes(mode === "tie" ? "tie" : "lead");
   clearWinnerSeen();
@@ -900,6 +1018,7 @@ async function settleRound() {
   if (!loadNick() || !loadRoundCode()) return;
   if (!welcomePassed) {
     const action = await showWelcome();
+    if (action === "leave") return;
     if (action === "edit") {
       const nick = await askNick();
       if (nick && loadRoundCode()) syncNickButton();
@@ -919,6 +1038,15 @@ marketVote?.addEventListener("click", () => {
   if (!votingOpen()) return;
   handleVote(MARKET_ID);
 });
+egalVote?.addEventListener("click", () => {
+  if (!votingOpen()) return;
+  handleEgal();
+});
+heuteDabei?.addEventListener("click", () => {
+  if (!showVoteMarks() || votePhase() !== "reveal") return;
+  const result = winnerOf(activeVotes().counts, votePlaceNames());
+  if (result.status === "lead" && result.name) showRevealDialog(result.name);
+});
 
 async function handleVote(canteen) {
   if (!votingOpen()) return;
@@ -927,12 +1055,14 @@ async function handleVote(canteen) {
     if (!nick || !loadRoundCode()) return;
     await settleRound();
   }
+  previewVotes = null;
   try {
     voteState.mine = await toggleVote(
       canteen,
       voteState.mine,
       voteState.records,
     );
+    applyVoteUi();
   } catch (err) {
     console.warn(err);
     const msg = String(err?.message || err);
@@ -942,6 +1072,23 @@ async function handleVote(canteen) {
     } else {
       sayLarry(voteOffline());
     }
+  }
+}
+
+async function handleEgal() {
+  if (!votingOpen()) return;
+  if (!loadNick() || !loadRoundCode()) {
+    const nick = await askNick();
+    if (!nick || !loadRoundCode()) return;
+    await settleRound();
+  }
+  previewVotes = null;
+  try {
+    voteState.mine = await toggleEgal(voteState.records);
+    applyVoteUi();
+  } catch (err) {
+    console.warn(err);
+    /* Egal is presence, not a seat fight — stay quiet on write/rules blips. */
   }
 }
 
@@ -966,6 +1113,21 @@ function maybeWeekendNote() {
     },
     { once: true },
   );
+}
+
+function leaveRound() {
+  saveRoundCode("");
+  stopListening();
+  votesListening = false;
+  voteState = {
+    counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
+    records: {},
+    mine: emptyMine(),
+    uid: null,
+  };
+  syncNickButton();
+  if (menuData) renderDay(menuData, currentDay);
+  else applyVoteUi();
 }
 
 function bindNickUi() {
@@ -1002,6 +1164,10 @@ function bindNickUi() {
   welcomeEdit?.addEventListener("click", () => {
     welcomeDialog?.close("edit");
   });
+  welcomeLeave?.addEventListener("click", () => {
+    leaveRound();
+    welcomeDialog?.close("leave");
+  });
   welcomeCopy?.addEventListener("click", () => {
     copyWelcomeCode();
   });
@@ -1022,7 +1188,7 @@ function bindNickUi() {
       return;
     }
     const action = await showWelcome();
-    if (action !== "edit") return;
+    if (action === "leave" || action !== "edit") return;
     const nick = await askNick();
     if (!nick || !loadRoundCode()) return;
     syncNickButton();
@@ -1058,13 +1224,6 @@ function startVotes({ force = false } = {}) {
   if (!welcomePassed) return;
   if (votesListening && !force) return;
   votesListening = true;
-  /* Drop seats from a previous round before the new listener returns. */
-  voteState = {
-    counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
-    records: {},
-    mine: null,
-    uid: voteState.uid,
-  };
   const onVotes = (next) => {
     voteState = next;
     applyVoteUi();
@@ -1184,14 +1343,29 @@ function bindMascotEgg() {
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  navigator.serviceWorker.register("./sw.js").catch(() => {
-    /* file:// or blocked */
-  });
+  navigator.serviceWorker
+    .register("./sw.js")
+    .then((reg) => {
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner();
+      reg.addEventListener("updatefound", () => {
+        const installing = reg.installing;
+        installing?.addEventListener("statechange", () => {
+          if (installing.state === "installed" && navigator.serviceWorker.controller) {
+            showUpdateBanner();
+          }
+        });
+      });
+      return reg.update();
+    })
+    .catch(() => {
+      /* file:// or blocked */
+    });
 }
 
 try {
   bindLarryCorner();
   bindHits();
+  bindUpdateBanner();
   registerServiceWorker();
   const data = await loadMenu();
   menuData = data;
@@ -1202,8 +1376,8 @@ try {
   }
   const note = larryMenuNote(data);
   if (note) sayLarry(note);
-  if (banner) banner.hidden = true;
   syncNotices();
+  checkRemoteBuild();
   board.hidden = false;
   escapeWrap.hidden = false;
   const start = todayKey();
@@ -1229,12 +1403,16 @@ try {
         if (!picked) return null;
         return { index: entries.indexOf(picked), entry: picked };
       }
+      const entries = dishEntries(block, CANTEENS);
       const picked = pickMainDish(block);
       if (!picked) return null;
-      const index = listMainDishes(block).findIndex(
-        (item) => item.canteenId === picked.canteenId && item.dish === picked.dish,
+      const index = entries.findIndex(
+        (entry) =>
+          entry.pickable !== false &&
+          entry.canteenId === picked.canteenId &&
+          entry.key === dishKey(picked.dish.name),
       );
-      const entry = dishEntries(block, CANTEENS)[index];
+      const entry = entries[index];
       if (!entry || index < 0) return null;
       return { index, entry };
     },
@@ -1313,6 +1491,7 @@ try {
   syncTabs(DAY_KEYS.includes(fallback) ? fallback : "monday");
   bindLarryCorner();
   bindHits();
+  bindUpdateBanner();
   bindMascotEgg();
   syncNickButton();
   const miss = menuFreshNote({

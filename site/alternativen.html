@@ -40,9 +40,10 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=84594527" />
+    <link rel="stylesheet" href="./styles.css?v=40b82502" />
   </head>
   <body class="page-alternatives">
+    <div class="page-shell">
     <div class="status-bleed" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
     <header class="masthead alt-masthead">
@@ -105,12 +106,20 @@
         <menu>
           <button type="button" data-dice="go" value="ok">Los</button>
           <button type="button" data-dice="again" value="ok" hidden>Nochmal</button>
-          <button type="button" data-dice="show" value="show" hidden>Zeig her</button>
+          <button type="button" data-dice="show" value="show" hidden>Zeig mir wo</button>
           <button type="submit" value="cancel">Später</button>
         </menu>
       </form>
     </dialog>
     <script src="./locations.js?v=d5c051d1" type="module"></script>
-    <script src="./spotDice.js?v=253a1941" type="module"></script>
+    <script src="./spotDice.js?v=f08936a5" type="module"></script>
+    </div>
+    <a class="aufruf-stamp" href="./strichliste.html" data-aufruf="/alternativen.html">
+      <span class="aufruf-ink">
+        <span class="aufruf-count" data-aufruf-count></span>
+        <span class="aufruf-label">Aufrufe</span>
+      </span>
+    </a>
+    <script src="./visits.js?v=5f2c6ad5" type="module"></script>
   </body>
 </html>

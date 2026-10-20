@@ -16,7 +16,34 @@
           ".validate": "$key.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
           "$slot": {
             ".write": "auth != null && $key.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && root.child('meta/voteDay').exists() && $child == root.child('meta/voteDay').val() && $slot.matches(/^(?:[0-9]|1[0-9]|2[0-3])$/) && (!data.exists() || data.child('uid').val() == auth.uid) && (!newData.exists() || newData.child('uid').val() == auth.uid)",
-            ".validate": "newData.hasChildren(['uid', 'nick', 'canteen', 'at']) && newData.child('uid').isString() && newData.child('uid').val() == auth.uid && newData.child('nick').isString() && newData.child('nick').val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && newData.child('nick').val().matches(/[A-Za-zÄÖÜäöüß]/) && newData.child('canteen').isString() && newData.child('canteen').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt)$/) && newData.child('at').isNumber() && newData.child('at').val() >= now - 300000 && newData.child('at').val() <= now + 60000"
+            ".validate": "newData.hasChildren(['uid', 'nick', 'canteen', 'at']) && newData.child('uid').isString() && newData.child('uid').val() == auth.uid && newData.child('nick').isString() && newData.child('nick').val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && newData.child('nick').val().matches(/[A-Za-zÄÖÜäöüß]/) && newData.child('canteen').isString() && newData.child('canteen').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt|egal)$/) && (newData.child('canteen').val() == 'egal' ? !newData.child('second').exists() : (!newData.child('second').exists() || (newData.child('second').isString() && newData.child('second').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt)$/) && newData.child('second').val() != newData.child('canteen').val()))) && newData.child('at').isNumber() && newData.child('at').val() >= now - 300000 && newData.child('at').val() <= now + 60000"
+          }
+        }
+      }
+    },
+    "tallies": {
+      "rounds": {
+        "$code": {
+          ".read": "$code.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$code.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+          "days": {
+            "$day": {
+              ".write": "auth != null && $code.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$code.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && !data.exists() && newData.exists() && root.child('meta/voteDay').exists() && $day < root.child('meta/voteDay').val()",
+              ".validate": "newData.hasChildren(['stmuv', 'sodexo', 'bella23', 'wochenmarkt', 'egal', 'second', 'n'])",
+              "$field": {
+                ".validate": "($field.matches(/^(stmuv|sodexo|bella23|wochenmarkt|egal|second|n)$/) || $field.matches(/^h([0-9]|1[0-9]|2[0-3])$/)) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 24 && newData.val() % 1 == 0"
+              }
+            }
+          },
+          "nicks": {
+            "$nick": {
+              ".write": "auth != null && $code.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$code.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $nick.matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && $nick.matches(/[A-Za-zÄÖÜäöüß]/) && newData.exists()",
+              ".validate": "newData.hasChildren(['stmuv', 'sodexo', 'bella23', 'wochenmarkt', 'egal', 'days']) && newData.child('stmuv').isNumber() && newData.child('stmuv').val() % 1 == 0 && newData.child('stmuv').val() >= 0 && newData.child('stmuv').val() <= (data.exists() ? data.child('stmuv').val() + 24 : 24) && (!data.exists() || newData.child('stmuv').val() >= data.child('stmuv').val()) && newData.child('sodexo').isNumber() && newData.child('sodexo').val() % 1 == 0 && newData.child('sodexo').val() >= 0 && newData.child('sodexo').val() <= (data.exists() ? data.child('sodexo').val() + 24 : 24) && (!data.exists() || newData.child('sodexo').val() >= data.child('sodexo').val()) && newData.child('bella23').isNumber() && newData.child('bella23').val() % 1 == 0 && newData.child('bella23').val() >= 0 && newData.child('bella23').val() <= (data.exists() ? data.child('bella23').val() + 24 : 24) && (!data.exists() || newData.child('bella23').val() >= data.child('bella23').val()) && newData.child('wochenmarkt').isNumber() && newData.child('wochenmarkt').val() % 1 == 0 && newData.child('wochenmarkt').val() >= 0 && newData.child('wochenmarkt').val() <= (data.exists() ? data.child('wochenmarkt').val() + 24 : 24) && (!data.exists() || newData.child('wochenmarkt').val() >= data.child('wochenmarkt').val()) && newData.child('egal').isNumber() && newData.child('egal').val() % 1 == 0 && newData.child('egal').val() >= 0 && newData.child('egal').val() <= (data.exists() ? data.child('egal').val() + 24 : 24) && (!data.exists() || newData.child('egal').val() >= data.child('egal').val())",
+              "days": {
+                "$date": {
+                  ".validate": "$date.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.val() == true"
+                }
+              }
+            }
           }
         }
       }
