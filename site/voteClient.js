@@ -20,12 +20,14 @@ import {
   voteRecords,
   voteTargetIds,
   votesPath,
-} from "./vote.js?v=9c3d4b08";
+} from "./vote.js?v=857e7e26";
+import { foldDay, foldNicks, mergeNickTotals } from "./tally.js?v=87fac9f0";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
 let uid = null;
 let unsub = null;
+let listenGen = 0;
 let purgeOnce = null;
 
 function dayVotesPath() {
@@ -51,7 +53,7 @@ async function firebase() {
   const [
     { initializeApp },
     { getAuth, onAuthStateChanged, signInAnonymously },
-    { getDatabase, get, onValue, ref, remove, set },
+    { getDatabase, get, onValue, ref, remove, runTransaction, set },
   ] = await Promise.all([
     import("https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js"),
     import("https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js"),
@@ -68,6 +70,7 @@ async function firebase() {
     onValue,
     ref,
     remove,
+    runTransaction,
     set,
     signInAnonymously,
   };
@@ -126,6 +129,32 @@ async function advanceVoteDay() {
   }
 }
 
+/**
+ * Nick totals first, then the day. The day key on each nick makes a retry
+ * skip people already counted. Ballots stay until both writes succeed.
+ * @returns {Promise<boolean>}
+ */
+async function archiveStaleDay(db, code, day, raw) {
+  const { get, ref, runTransaction, set } = await ensureApp();
+  const dayRef = ref(db, `tallies/rounds/${code}/days/${day}`);
+  if ((await get(dayRef)).exists()) return true;
+  const records = voteRecords(raw);
+  const deltas = foldNicks(records);
+  try {
+    for (const [nick, delta] of Object.entries(deltas)) {
+      const result = await runTransaction(ref(db, `tallies/rounds/${code}/nicks/${nick}`), (current) =>
+        mergeNickTotals(current, delta, day),
+      );
+      if (!result.committed) return false;
+    }
+    await set(dayRef, foldDay(records));
+    return true;
+  } catch (err) {
+    if (!isPermissionDenied(err)) return false;
+    return (await get(dayRef)).exists();
+  }
+}
+
 async function purgeActiveRound() {
   const code = loadRoundCode();
   if (!code) return;
@@ -134,17 +163,27 @@ async function purgeActiveRound() {
     const keep = berlinDate();
     const { db, get, ref, remove } = await ensureApp();
     const snap = await get(ref(db, `votes/${code}`));
-    const keys = Object.keys(snap.val() || {});
-    await Promise.all(
-      staleVoteDays(keys, keep).map((day) => remove(ref(db, votesPath(day, code)))),
-    );
+    const all = snap.val() || {};
+    for (const day of staleVoteDays(Object.keys(all), keep)) {
+      const archived = await archiveStaleDay(db, code, day, all[day]);
+      if (!archived) continue;
+      await remove(ref(db, votesPath(day, code)));
+    }
   } catch {
     /* offline / rules */
   }
 }
 
+export function stopListening() {
+  listenGen += 1;
+  unsub?.();
+  unsub = null;
+}
+
 export function listenVotes(onChange) {
   unsub?.();
+  unsub = null;
+  const gen = ++listenGen;
   const now = new Date();
   const day = berlinDate(now);
   const empty = {
@@ -156,7 +195,9 @@ export function listenVotes(onChange) {
   };
   ensureApp()
     .then(async ({ db, onValue, ref }) => {
+      if (gen !== listenGen) return;
       await purgeStaleVotes();
+      if (gen !== listenGen) return;
       const path = votesPath(day, loadRoundCode());
       if (!isVoteDay(now) || !path) {
         onChange(empty);
@@ -180,6 +221,10 @@ export function listenVotes(onChange) {
           /* Keep the last snapshot. A rules/network blip must not empty Heute dabei. */
         },
       );
+      if (gen !== listenGen) {
+        handle();
+        return;
+      }
       unsub = () => handle();
     })
     .catch(() => {

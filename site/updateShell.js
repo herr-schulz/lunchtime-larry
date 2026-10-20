@@ -1,5 +1,5 @@
 /** Stamped from version.json so a cached app.js can notice a newer deploy. */
-export const SHELL_BUILD = "47";
+export const SHELL_BUILD = "51";
 
 export function cacheNameFor(build) {
   return `larry-shell-v${build}`;
@@ -20,7 +20,8 @@ export function shouldBypassCache(pathname) {
     file === "version.json" ||
     file === "sw.js" ||
     file === "index.html" ||
-    file === "alternativen.html"
+    file === "alternativen.html" ||
+    file === "strichliste.html"
   ) {
     return true;
   }

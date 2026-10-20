@@ -1,5 +1,5 @@
 /* Lunchtime Larry — shell + menu cache for installed PWA */
-const CACHE = "larry-shell-v47";
+const CACHE = "larry-shell-v51";
 const SHELL = [
   "./",
   "./index.html",
@@ -23,6 +23,10 @@ const SHELL = [
   "./diceReel.js",
   "./spotDice.js",
   "./updateShell.js",
+  "./visits.js",
+  "./tally.js",
+  "./strichliste.html",
+  "./strichliste.js",
   "./canteens.json",
   "./firebase.json",
   "./larry.svg",
@@ -38,7 +42,8 @@ function shouldBypassCache(pathname) {
     file === "version.json" ||
     file === "sw.js" ||
     file === "index.html" ||
-    file === "alternativen.html"
+    file === "alternativen.html" ||
+    file === "strichliste.html"
   ) {
     return true;
   }
@@ -78,6 +83,7 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
+  if (url.hostname.endsWith("goatcounter.com")) return;
   if (url.origin !== self.location.origin) return;
 
   const live = shouldBypassCache(url.pathname);

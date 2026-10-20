@@ -8,8 +8,8 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=9dac3651";
-import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
+} from "./calendar.js?v=2b03e76d";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=d6d5734e";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
 import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
 import {
@@ -18,7 +18,7 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=7c6058c6";
+} from "./diceReel.js?v=ef7db429";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=0999fa96";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=3249edcb";
 import {
   favoritePoint,
   favoriteToday,
@@ -45,7 +45,7 @@ import {
   egalButtonLabel,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=556a6576";
+} from "./larryLines.js?v=89fb248d";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -78,20 +78,22 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=9c3d4b08";
+  heuteDabeiLine,
+} from "./vote.js?v=857e7e26";
 import {
   ensureVoteUser,
   listenVotes,
+  stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=27098236";
+} from "./voteClient.js?v=517e4605";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=63eeac25";
+} from "./updateShell.js?v=059ecf0b";
 import {
   berlinAt,
   demoVotes,
@@ -141,6 +143,7 @@ const welcomeDialog = document.querySelector("#welcome-dialog");
 const welcomeCode = document.querySelector("#welcome-code");
 const welcomeCopy = document.querySelector("#welcome-copy");
 const welcomeEdit = document.querySelector("#welcome-edit");
+const welcomeLeave = document.querySelector("#welcome-leave");
 let welcomeCopyTimer = 0;
 const weekendDialog = document.querySelector("#weekend-dialog");
 const mascot = document.querySelector(".masthead .mascot");
@@ -581,15 +584,20 @@ function activeVotes() {
   return previewVotes ?? voteState;
 }
 
+function votePlaceNames() {
+  const names = Object.fromEntries(
+    Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
+  );
+  names[MARKET_ID] = MARKET_NAME;
+  return names;
+}
+
 function applyVoteUi() {
   const open = votingOpen();
   const show = showVoteMarks();
   const reveal = show && votePhase() === "reveal";
   const votes = activeVotes();
-  const names = Object.fromEntries(
-    Object.entries(CANTEENS).map(([id, meta]) => [id, meta.name]),
-  );
-  names[MARKET_ID] = MARKET_NAME;
+  const names = votePlaceNames();
   const result = winnerOf(votes.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
@@ -650,7 +658,12 @@ function applyVoteUi() {
     const labelEl = egalVote.querySelector(".escape-label");
     if (labelEl) labelEl.textContent = label;
     else egalVote.textContent = label;
-    egalVote.setAttribute("aria-label", pressed ? `${label} — mit der Runde` : label);
+    egalVote.setAttribute("aria-label", pressed ? `${label} — mit in der Runde` : label);
+    if (pressed) {
+      if (!egalVote.classList.contains("is-drawn")) replayCheck(egalVote);
+    } else {
+      egalVote.classList.remove("is-drawn");
+    }
   }
   marketBanner?.classList.toggle("is-voted", showMarket && mineHasPick(votes.mine, MARKET_ID));
   marketBanner?.classList.toggle(
@@ -705,6 +718,8 @@ function maybeAnnounceStuffed(records) {
 function syncVoteChrome() {
   const show = showVoteMarks();
   const phase = votePhase();
+  const votes = activeVotes();
+  const result = winnerOf(votes.counts, votePlaceNames());
   if (voteLock) {
     if (show && phase === "locked") {
       voteLock.hidden = false;
@@ -714,14 +729,13 @@ function syncVoteChrome() {
     }
   }
   if (heuteDabei) {
-    const names = roundNicks(voteState.records);
-    if (show && names.length) {
-      heuteDabei.hidden = false;
-      heuteDabei.textContent = `Heute dabei · ${names.join(" · ")}`;
-    } else {
-      heuteDabei.hidden = true;
-      heuteDabei.textContent = "";
-    }
+    const names = roundNicks(votes.records);
+    const reveal = show && phase === "reveal";
+    const text = show ? heuteDabeiLine(result, names, reveal) : "";
+    heuteDabei.hidden = !text;
+    heuteDabei.textContent = text;
+    heuteDabei.classList.toggle("is-result", Boolean(reveal && result.status === "lead"));
+    heuteDabei.classList.toggle("is-replay", Boolean(reveal && result.status === "lead"));
   }
 }
 
@@ -1004,6 +1018,7 @@ async function settleRound() {
   if (!loadNick() || !loadRoundCode()) return;
   if (!welcomePassed) {
     const action = await showWelcome();
+    if (action === "leave") return;
     if (action === "edit") {
       const nick = await askNick();
       if (nick && loadRoundCode()) syncNickButton();
@@ -1026,6 +1041,11 @@ marketVote?.addEventListener("click", () => {
 egalVote?.addEventListener("click", () => {
   if (!votingOpen()) return;
   handleEgal();
+});
+heuteDabei?.addEventListener("click", () => {
+  if (!showVoteMarks() || votePhase() !== "reveal") return;
+  const result = winnerOf(activeVotes().counts, votePlaceNames());
+  if (result.status === "lead" && result.name) showRevealDialog(result.name);
 });
 
 async function handleVote(canteen) {
@@ -1095,6 +1115,21 @@ function maybeWeekendNote() {
   );
 }
 
+function leaveRound() {
+  saveRoundCode("");
+  stopListening();
+  votesListening = false;
+  voteState = {
+    counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
+    records: {},
+    mine: emptyMine(),
+    uid: null,
+  };
+  syncNickButton();
+  if (menuData) renderDay(menuData, currentDay);
+  else applyVoteUi();
+}
+
 function bindNickUi() {
   nickInput?.addEventListener("input", () => {
     const cleaned = normalizeNick(nickInput.value);
@@ -1129,6 +1164,10 @@ function bindNickUi() {
   welcomeEdit?.addEventListener("click", () => {
     welcomeDialog?.close("edit");
   });
+  welcomeLeave?.addEventListener("click", () => {
+    leaveRound();
+    welcomeDialog?.close("leave");
+  });
   welcomeCopy?.addEventListener("click", () => {
     copyWelcomeCode();
   });
@@ -1149,7 +1188,7 @@ function bindNickUi() {
       return;
     }
     const action = await showWelcome();
-    if (action !== "edit") return;
+    if (action === "leave" || action !== "edit") return;
     const nick = await askNick();
     if (!nick || !loadRoundCode()) return;
     syncNickButton();

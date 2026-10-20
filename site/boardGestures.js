@@ -1,5 +1,10 @@
 /** Board pointer gestures: day swipe, dish like, pizza hold. */
 
+/** Day swipe is for fingers and pens — not a mouse drag that was selecting text. */
+export function canDaySwipe(pointerType) {
+  return pointerType === "touch" || pointerType === "pen";
+}
+
 /**
  * @param {object} opts
  * @param {HTMLElement} opts.board
@@ -38,6 +43,7 @@ export function bindBoardGestures({
   });
   board.addEventListener("pointermove", (event) => {
     if (!origin || origin.id !== event.pointerId) return;
+    if (!canDaySwipe(origin.type)) return;
     if (Math.abs(event.clientX - origin.x) > 28) swiped = true;
   });
   board.addEventListener("click", (event) => {
@@ -51,11 +57,18 @@ export function bindBoardGestures({
     origin = null;
     const dx = event.clientX - x;
     const dy = event.clientY - y;
-    if (swiped || (Math.abs(dx) >= 56 && Math.abs(dx) > Math.abs(dy) * 1.4)) {
+    if (
+      canDaySwipe(type) &&
+      (swiped || (Math.abs(dx) >= 56 && Math.abs(dx) > Math.abs(dy) * 1.4))
+    ) {
       lastTap = null;
       const index = dayKeys.indexOf(getDay());
       const next = dx < 0 ? index + 1 : index - 1;
       if (next >= 0 && next < dayKeys.length) selectDay(dayKeys[next]);
+      return;
+    }
+    if (!canDaySwipe(type) && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      lastTap = null;
       return;
     }
     if (event.target.closest("a, .vote-mark, .pizza")) return;

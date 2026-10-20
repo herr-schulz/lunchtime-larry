@@ -56,8 +56,13 @@ describe("vote opt-in and first visit", () => {
     );
     expect(document.querySelector("#optin-dialog h2")?.textContent).toBe("Deine Runde");
     expect(document.querySelector("#optin-dialog h2")?.textContent).not.toMatch(/6er/);
+    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Mit in der Runde\?/);
     expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Ich bin dabei/);
+    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Kantine egal/);
     expect(document.querySelector("#egal-vote")?.hasAttribute("hidden")).toBe(true);
+    expect(document.querySelector("#welcome-edit")?.textContent).toBe("Name/Runde ändern");
+    expect(document.querySelector("#welcome-leave")?.textContent).toBe("Runde verlassen");
+    expect(document.querySelector("#round-leave")).toBeNull();
     expect(document.querySelector("#intro-again")?.textContent).toBe("Was ist das hier?");
     expect(document.querySelector("#intro-again")?.hasAttribute("hidden")).toBe(false);
   });
@@ -97,7 +102,8 @@ describe("voting welcome", () => {
     expect(text).toMatch(/über den Zetteln/);
     expect(app).toMatch(/copyWelcomeCode/);
     expect(app).toMatch(/navigator\.clipboard\.writeText/);
-    expect(app).toMatch(/roundNicks\(voteState\.records\)/);
+    expect(app).toMatch(/roundNicks\(votes\.records\)/);
+    expect(document.querySelector("#heute-dabei")?.tagName).toBe("BUTTON");
     expect(document.querySelector("#welcome-dialog button[value='ok']")?.textContent).toBe(
       "Alles klar",
     );
@@ -130,6 +136,8 @@ describe("vote phases sit on a round", () => {
     expect(app).toMatch(
       /if \(!reveal \|\| !loadVoteOptIn\(\) \|\| !loadRoundCode\(\)\) return/,
     );
+    expect(app).toMatch(/heuteDabeiLine/);
+    expect(app).toMatch(/showRevealDialog\(result\.name\)/);
   });
 });
 
