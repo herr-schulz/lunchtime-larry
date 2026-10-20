@@ -1,5 +1,5 @@
-import { pickSpot } from "./dice.js?v=b5a71252";
-import { mountDice, prefersReducedMotion, spotEntries } from "./diceReel.js?v=fd7d170f";
+import { pickSpot } from "./dice.js?v=ca08ab4d";
+import { mountDice, prefersReducedMotion, spotEntries } from "./diceReel.js?v=7c6058c6";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 

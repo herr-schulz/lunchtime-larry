@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  isDessertDish,
   isMainDish,
+  isSoupDish,
   listMainDishes,
+  listReelDishes,
   pickMainDish,
   pickSpot,
 } from "../site/dice.js";
@@ -12,9 +15,12 @@ const creme = { name: "Bayerisch Creme", diet: "unknown", category: "Dessert" };
 const soup = { name: "Suppe", diet: "unknown", category: "Suppe" };
 
 describe("isMainDish", () => {
-  it("accepts a normal main", () => {
+  it("accepts a normal main and rejects soup", () => {
     expect(isMainDish(schnitzel)).toBe(true);
-    expect(isMainDish(soup)).toBe(true);
+    expect(isMainDish(soup)).toBe(false);
+    expect(isSoupDish(soup)).toBe(true);
+    expect(isSoupDish({ name: "Blumenkohl", category: "Suppe" })).toBe(true);
+    expect(isDessertDish(creme)).toBe(true);
   });
 
   it("rejects dessert categories like sanity.ts", () => {
@@ -53,14 +59,18 @@ describe("listMainDishes", () => {
     ],
   };
 
-  it("flattens mains with canteen id and skips desserts plus ghosts", () => {
+  it("flattens mains with canteen id and skips desserts, soups, plus ghosts", () => {
     expect(listMainDishes(block)).toEqual([
       { canteenId: "sodexo", dish: schnitzel },
-      { canteenId: "stmuv", dish: soup },
       {
         canteenId: "bella23",
         dish: { name: "Grillhähnchen Kartoffelsalat" },
       },
+    ]);
+    expect(listReelDishes(block).map((row) => [row.canteenId, row.pickable])).toEqual([
+      ["sodexo", true],
+      ["sodexo", false],
+      ["bella23", true],
     ]);
   });
 
@@ -74,21 +84,23 @@ describe("listMainDishes", () => {
 });
 
 describe("pickMainDish", () => {
+  const grilly = { name: "Grillhähnchen Kartoffelsalat" };
   const block = {
     canteens: [
       { id: "sodexo", dishes: [schnitzel, creme] },
       { id: "stmuv", dishes: [soup] },
+      { id: "bella23", dishes: [grilly] },
     ],
   };
 
-  it("picks uniformly among mains with an injected rng", () => {
+  it("picks uniformly among mains and never lands on soup or dessert", () => {
     expect(pickMainDish(block, () => 0)).toEqual({
       canteenId: "sodexo",
       dish: schnitzel,
     });
     expect(pickMainDish(block, () => 0.99)).toEqual({
-      canteenId: "stmuv",
-      dish: soup,
+      canteenId: "bella23",
+      dish: grilly,
     });
   });
 

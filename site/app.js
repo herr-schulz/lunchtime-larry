@@ -8,17 +8,17 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=7eeefca7";
+} from "./calendar.js?v=9dac3651";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=687394ac";
 import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { pickMainDish, pickSpot, listMainDishes } from "./dice.js?v=b5a71252";
+import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
 import {
   berlinWeekMonday,
   canteenEntries,
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=fd7d170f";
+} from "./diceReel.js?v=7c6058c6";
 import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
 import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=4ac9bf8c";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=0999fa96";
 import {
   favoritePoint,
   favoriteToday,
@@ -41,9 +41,11 @@ import {
   unlikeAck,
   voteFull,
   voteOffline,
+  voteStuffed,
+  egalButtonLabel,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=f1c20612";
+} from "./larryLines.js?v=556a6576";
 import { LOCATIONS } from "./locations.js?v=d5c051d1";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
@@ -57,7 +59,12 @@ import {
   loadVoteOptIn,
   lockLine,
   minutesUntilReveal,
+  berlinDate,
+  emptyMine,
+  isValidNick,
+  mineHasPick,
   nicksFor,
+  stuffedBallots,
   MARKET_ID,
   MARKET_NAME,
   normalizeNick,
@@ -71,24 +78,25 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-} from "./vote.js?v=dbd83b51";
+} from "./vote.js?v=9c3d4b08";
 import {
   ensureVoteUser,
   listenVotes,
+  toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=e9ab2586";
+} from "./voteClient.js?v=27098236";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=965b86a3";
+} from "./updateShell.js?v=63eeac25";
 import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=b32841dd";
+} from "./devPreview.js?v=dc1f260e";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -115,6 +123,7 @@ const optinDialog = document.querySelector("#optin-dialog");
 const optinCancel = document.querySelector("#optin-cancel");
 const voteLock = document.querySelector("#vote-lock");
 const heuteDabei = document.querySelector("#heute-dabei");
+const egalVote = document.querySelector("#egal-vote");
 const revealDialog = document.querySelector("#reveal-dialog");
 const revealName = document.querySelector("#reveal-name");
 const revealStrip = document.querySelector("#reveal-strip");
@@ -142,7 +151,7 @@ let likes = loadLikes();
 let voteState = {
   counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
   records: {},
-  mine: null,
+  mine: emptyMine(),
   uid: null,
 };
 /** Localhost ?dev=1 — freezes ballots so the 12:00 presentation can be replayed. */
@@ -201,7 +210,6 @@ function showVoteMarks() {
     loadVoteOptIn() &&
     welcomePassed &&
     Boolean(loadRoundCode()) &&
-    isVoteDay() &&
     currentDay === todayKey()
   );
 }
@@ -585,7 +593,7 @@ function applyVoteUi() {
   const result = winnerOf(votes.counts, names);
   for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
     const id = slip.dataset.canteen;
-    const mine = show && votes.mine === id;
+    const mine = show && mineHasPick(votes.mine, id);
     const nickList = reveal ? nicksFor(votes.records, id) : [];
     slip.classList.toggle("is-voted", mine);
     slip.classList.toggle(
@@ -615,7 +623,7 @@ function applyVoteUi() {
   if (marketVote) {
     marketVote.hidden = !showMarket;
     marketVote.disabled = !open;
-    const mine = showMarket && votes.mine === MARKET_ID;
+    const mine = showMarket && mineHasPick(votes.mine, MARKET_ID);
     const nickList = showMarket && reveal ? nicksFor(votes.records, MARKET_ID) : [];
     marketVote.setAttribute("aria-pressed", String(mine));
     const label = nickList.length
@@ -632,17 +640,66 @@ function applyVoteUi() {
       marketVote.classList.remove("is-drawn");
     }
   }
-  marketBanner?.classList.toggle("is-voted", showMarket && votes.mine === MARKET_ID);
+  if (egalVote) {
+    const pressed = Boolean(votes.mine?.egal);
+    egalVote.hidden = !show;
+    egalVote.disabled = !open;
+    egalVote.classList.toggle("is-on", pressed);
+    egalVote.setAttribute("aria-pressed", String(pressed));
+    const label = egalButtonLabel(pressed, berlinDate());
+    const labelEl = egalVote.querySelector(".escape-label");
+    if (labelEl) labelEl.textContent = label;
+    else egalVote.textContent = label;
+    egalVote.setAttribute("aria-label", pressed ? `${label} — mit der Runde` : label);
+  }
+  marketBanner?.classList.toggle("is-voted", showMarket && mineHasPick(votes.mine, MARKET_ID));
   marketBanner?.classList.toggle(
     "is-leading",
     showMarket && reveal && result.status === "lead" && result.id === MARKET_ID,
   );
   syncVoteChrome();
   maybeAnnounceWinner(result, reveal);
+  maybeAnnounceStuffed(votes.records);
 }
 
 function voteTotal() {
-  return Object.values(activeVotes().counts).reduce((sum, n) => sum + (n || 0), 0);
+  return Object.keys(activeVotes().records ?? {}).length;
+}
+
+const stuffedSaid = new Set();
+
+function stuffedStorageKey() {
+  return `lunchtime-larry-stuffed-${berlinDate()}`;
+}
+
+function loadStuffedSaid() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(stuffedStorageKey()) || "[]");
+    if (Array.isArray(raw)) raw.forEach((uid) => stuffedSaid.add(uid));
+  } catch {
+    /* private mode */
+  }
+}
+
+function rememberStuffed(uid) {
+  stuffedSaid.add(uid);
+  try {
+    localStorage.setItem(stuffedStorageKey(), JSON.stringify([...stuffedSaid]));
+  } catch {
+    /* private mode */
+  }
+}
+
+function maybeAnnounceStuffed(records) {
+  if (previewVotes || votePhase() !== "reveal") return;
+  loadStuffedSaid();
+  const rows = stuffedBallots(records).filter((row) => !stuffedSaid.has(row.uid));
+  if (!rows.length) return;
+  for (const row of rows) rememberStuffed(row.uid);
+  const names = rows
+    .map((row) => (isValidNick(row.nick) ? row.nick : ""))
+    .filter(Boolean);
+  sayLarry(voteStuffed(names));
 }
 
 function syncVoteChrome() {
@@ -657,7 +714,7 @@ function syncVoteChrome() {
     }
   }
   if (heuteDabei) {
-    const names = roundNicks(activeVotes().records);
+    const names = roundNicks(voteState.records);
     if (show && names.length) {
       heuteDabei.hidden = false;
       heuteDabei.textContent = `Heute dabei · ${names.join(" · ")}`;
@@ -806,12 +863,15 @@ function runDevPhase(phase, mode = "lead") {
     return;
   }
   ensurePreviewSession();
+  const clockBase = isVoteDay(new Date())
+    ? new Date()
+    : new Date(`${lastVoteDate(new Date())}T12:00:00+02:00`);
   const clock =
     phase === "open"
-      ? berlinAt(11, 0)
+      ? berlinAt(11, 0, clockBase)
       : phase === "locked"
-        ? berlinAt(11, 55)
-        : berlinAt(12, 0);
+        ? berlinAt(11, 55, clockBase)
+        : berlinAt(12, 0, clockBase);
   setNowOverride(clock);
   previewVotes = demoVotes(mode === "tie" ? "tie" : "lead");
   clearWinnerSeen();
@@ -963,6 +1023,10 @@ marketVote?.addEventListener("click", () => {
   if (!votingOpen()) return;
   handleVote(MARKET_ID);
 });
+egalVote?.addEventListener("click", () => {
+  if (!votingOpen()) return;
+  handleEgal();
+});
 
 async function handleVote(canteen) {
   if (!votingOpen()) return;
@@ -971,12 +1035,14 @@ async function handleVote(canteen) {
     if (!nick || !loadRoundCode()) return;
     await settleRound();
   }
+  previewVotes = null;
   try {
     voteState.mine = await toggleVote(
       canteen,
       voteState.mine,
       voteState.records,
     );
+    applyVoteUi();
   } catch (err) {
     console.warn(err);
     const msg = String(err?.message || err);
@@ -986,6 +1052,23 @@ async function handleVote(canteen) {
     } else {
       sayLarry(voteOffline());
     }
+  }
+}
+
+async function handleEgal() {
+  if (!votingOpen()) return;
+  if (!loadNick() || !loadRoundCode()) {
+    const nick = await askNick();
+    if (!nick || !loadRoundCode()) return;
+    await settleRound();
+  }
+  previewVotes = null;
+  try {
+    voteState.mine = await toggleEgal(voteState.records);
+    applyVoteUi();
+  } catch (err) {
+    console.warn(err);
+    /* Egal is presence, not a seat fight — stay quiet on write/rules blips. */
   }
 }
 
@@ -1102,13 +1185,6 @@ function startVotes({ force = false } = {}) {
   if (!welcomePassed) return;
   if (votesListening && !force) return;
   votesListening = true;
-  /* Drop seats from a previous round before the new listener returns. */
-  voteState = {
-    counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
-    records: {},
-    mine: null,
-    uid: voteState.uid,
-  };
   const onVotes = (next) => {
     voteState = next;
     applyVoteUi();
@@ -1288,12 +1364,16 @@ try {
         if (!picked) return null;
         return { index: entries.indexOf(picked), entry: picked };
       }
+      const entries = dishEntries(block, CANTEENS);
       const picked = pickMainDish(block);
       if (!picked) return null;
-      const index = listMainDishes(block).findIndex(
-        (item) => item.canteenId === picked.canteenId && item.dish === picked.dish,
+      const index = entries.findIndex(
+        (entry) =>
+          entry.pickable !== false &&
+          entry.canteenId === picked.canteenId &&
+          entry.key === dishKey(picked.dish.name),
       );
-      const entry = dishEntries(block, CANTEENS)[index];
+      const entry = entries[index];
       if (!entry || index < 0) return null;
       return { index, entry };
     },

@@ -1,20 +1,45 @@
 const DESSERT = /dessert/i;
+const SOUP = /suppe/i;
+
+function dishText(dish) {
+  const name = String(dish?.name ?? "").replace(/\s+/g, " ").trim();
+  const category = String(dish?.category ?? "");
+  return { name, category };
+}
 
 /**
- * True for a real Hauptgericht — not a dessert (category or name) and not an empty ghost.
+ * @param {{ name?: string, category?: string } | null | undefined} dish
+ */
+export function isDessertDish(dish) {
+  if (dish == null || typeof dish !== "object") return false;
+  const { name, category } = dishText(dish);
+  return DESSERT.test(category) || DESSERT.test(name);
+}
+
+/**
+ * @param {{ name?: string, category?: string } | null | undefined} dish
+ */
+export function isSoupDish(dish) {
+  if (dish == null || typeof dish !== "object") return false;
+  const { name } = dishText(dish);
+  if (!name) return false;
+  const { category } = dishText(dish);
+  return SOUP.test(category) || SOUP.test(name);
+}
+
+/**
+ * True for a real Hauptgericht — not soup, dessert, or an empty ghost.
  * @param {{ name?: string, category?: string } | null | undefined} dish
  */
 export function isMainDish(dish) {
   if (dish == null || typeof dish !== "object") return false;
-  const name = String(dish.name ?? "").replace(/\s+/g, " ").trim();
+  const { name } = dishText(dish);
   if (!name) return false;
-  if (DESSERT.test(String(dish.category ?? ""))) return false;
-  if (DESSERT.test(name)) return false;
-  return true;
+  return !isDessertDish(dish) && !isSoupDish(dish);
 }
 
 /**
- * Flatten today's canteen dishes, skipping desserts and empty ghosts.
+ * Flatten today's pickable mains — soups and desserts stay off this list.
  * @param {{ canteens?: Array<{ id?: string, dishes?: Array<{ name?: string, category?: string }> | null }> } | null | undefined} block
  */
 export function listMainDishes(block) {
@@ -23,6 +48,26 @@ export function listMainDishes(block) {
     for (const dish of canteen?.dishes ?? []) {
       if (!isMainDish(dish)) continue;
       found.push({ canteenId: canteen.id, dish });
+    }
+  }
+  return found;
+}
+
+/**
+ * Reel rows: mains plus desserts for filler. Soups never appear.
+ * @param {{ canteens?: Array<{ id?: string, dishes?: Array<{ name?: string, category?: string }> | null }> } | null | undefined} block
+ */
+export function listReelDishes(block) {
+  const found = [];
+  for (const canteen of block?.canteens ?? []) {
+    for (const dish of canteen?.dishes ?? []) {
+      const { name } = dishText(dish);
+      if (!name || isSoupDish(dish)) continue;
+      found.push({
+        canteenId: canteen.id,
+        dish,
+        pickable: isMainDish(dish),
+      });
     }
   }
   return found;

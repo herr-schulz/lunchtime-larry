@@ -2,6 +2,8 @@ export const CANTEEN_IDS: readonly ["stmuv", "sodexo", "bella23"];
 export const MARKET_ID: "wochenmarkt";
 export const MARKET_NAME: string;
 export function voteTargetIds(weekday: string): string[];
+export const EGAL_ID: "egal";
+export const MAX_PICKS: 2;
 export const MAX_VOTERS: 24;
 export const MAX_NICK: 20;
 export const MAX_NICK_WORD: 12;
@@ -13,10 +15,17 @@ export type VoteRecord = {
   uid?: string;
   nick?: string;
   canteen?: CanteenId | string;
+  second?: CanteenId | string;
+  egal?: boolean;
   at?: number;
 };
 
-export type VoteRecords = Record<string, VoteRecord | undefined | null>;
+export type VoteMine = { picks: string[]; egal: boolean };
+
+export type VoteSeat = VoteRecord | undefined | null;
+export type VoteRecords = Record<string, VoteSeat>;
+/** Firebase may send a 24-slot array with empty holes. */
+export type VoteSnapshot = VoteRecords | VoteSeat[];
 
 export function berlinDate(now?: Date): string;
 export function berlinWeekday(now?: Date): string;
@@ -27,6 +36,37 @@ export function normalizeNick(value: unknown): string;
 export function isValidNick(value: unknown): boolean;
 export function loadNick(): string;
 export function saveNick(nick: string): string;
+export function emptyMine(): VoteMine;
+export function voteRecords(val: VoteSnapshot | null | undefined): VoteRecords;
+export function isEgalRecord(rec: VoteRecord | null | undefined): boolean;
+export function picksFromRecord(
+  rec: VoteRecord | null | undefined,
+  allowed?: readonly string[] | null,
+): string[];
+export function mineFromRecord(
+  rec: VoteRecord | null | undefined,
+  weekday?: string,
+): VoteMine;
+export function mineHasPick(
+  mine: VoteMine | null | undefined,
+  canteen: string,
+): boolean;
+export function nextMineForPick(
+  mine: VoteMine | null | undefined,
+  canteen: string,
+): VoteMine;
+export function ballotPayload(
+  uid: string,
+  nick: string,
+  mine: VoteMine | null | undefined,
+  at: number,
+): { uid: string; nick: string; canteen: string; second?: string; at: number } | null;
+export function firstRecordsByUid(
+  records: VoteRecords | null | undefined,
+): VoteRecord[];
+export function stuffedBallots(
+  records: VoteRecords | null | undefined,
+): { uid: string; nick: string; picks: number }[];
 export function countVotes(
   records: VoteRecords | null | undefined,
 ): Record<VoteTargetId, number>;
@@ -54,8 +94,11 @@ export function mySlot(
   records: VoteRecords | null | undefined,
   uid: string | null | undefined,
 ): string | null;
+export function occupiedSeatCount(
+  records: VoteSnapshot | null | undefined,
+): number;
 export function canAcceptVote(
-  records: VoteRecords | null | undefined,
+  records: VoteSnapshot | null | undefined,
   uid: string | null | undefined,
 ): boolean;
 

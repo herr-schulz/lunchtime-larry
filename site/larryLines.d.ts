@@ -22,6 +22,11 @@ export function menuFreshNote(opts?: {
 export function winnerLead(name: string): { kicker: string; line: string };
 export function winnerTie(): { kicker: string; line: string };
 export function voteFull(): { kicker: string; line: string };
+export function votePicksFull(): { kicker: string; line: string };
+export function voteStuffed(
+  nickOrNicks?: string | string[],
+): { kicker: string; line: string };
+export function egalButtonLabel(pressed: boolean, day?: string): string;
 export function voteOffline(): { kicker: string; line: string };
 export function likeAck(label: string): { kicker: string; line: string };
 export function unlikeAck(label: string): { kicker: string; line: string };

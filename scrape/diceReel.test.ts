@@ -31,22 +31,30 @@ const bella = { name: "Grillhähnchen Kartoffelsalat" };
 
 const block = {
   canteens: [
-    { id: "sodexo", dishes: [schnitzel, creme, { name: "Currywurst", category: "Essen" }] },
+    { id: "sodexo", dishes: [schnitzel, creme, soup, { name: "Currywurst", category: "Essen" }] },
     { id: "stmuv", dishes: [creme] },
     { id: "bella23", dishes: [bella] },
   ],
 };
 
 describe("reel entries", () => {
-  it("phrases mains and leaves desserts out", () => {
+  it("phrases mains, keeps desserts as filler, and drops soups", () => {
     const entries = dishEntries(block, canteens);
     expect(entries.map((entry) => entry.label)).toEqual([
       phraseDish(schnitzel.name, { canteen: "sodexo" }).title,
+      phraseDish(creme.name, { canteen: "sodexo" }).title,
       phraseDish("Currywurst", { canteen: "sodexo" }).title,
+      phraseDish(creme.name, { canteen: "stmuv" }).title,
       phraseDish(bella.name, { canteen: "bella23" }).title,
     ]);
-    expect(entries.map((entry) => entry.hint)).toEqual(["Dave B", "Dave B", "Bella 23"]);
-    expect(entries.some((entry) => /dessert|creme/i.test(entry.label))).toBe(false);
+    expect(entries.map((entry) => entry.pickable)).toEqual([
+      true,
+      false,
+      true,
+      false,
+      true,
+    ]);
+    expect(entries.some((entry) => /suppe/i.test(entry.label))).toBe(false);
   });
 
   it("spins only canteens that have a main today", () => {
@@ -126,7 +134,8 @@ describe("dice markup", () => {
     const { document } = parseHTML(readFileSync("site/index.html", "utf8"));
     const wrap = document.querySelector("#escape-wrap");
     const kids = [...(wrap?.children ?? [])].map((node) => node.id);
-    expect(kids).toEqual(["dice-open", "escape-link"]);
+    expect(kids).toEqual(["egal-vote", "dice-open", "escape-link"]);
+    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Ich bin dabei/);
     const open = document.querySelector("#dice-open");
     expect(open?.textContent).toMatch(/Unentschlossen\?/);
     expect(open?.textContent).toMatch(/Lass Larry entscheiden/);

@@ -1,20 +1,26 @@
 import {
   berlinDate,
+  ballotPayload,
   canAcceptVote,
   berlinWeekday,
   countVotes,
+  emptyMine,
   isValidNick,
   isVoteDay,
   loadNick,
   loadRoundCode,
+  MARKET_ID,
   MAX_VOTERS,
+  mineFromRecord,
   mySlot,
+  nextMineForPick,
   normalizeNick,
   staleVoteDays,
   votePhase,
+  voteRecords,
   voteTargetIds,
   votesPath,
-} from "./vote.js?v=dbd83b51";
+} from "./vote.js?v=9c3d4b08";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;
@@ -145,7 +151,7 @@ export function listenVotes(onChange) {
     day,
     records: {},
     counts: countVotes({}),
-    mine: null,
+    mine: emptyMine(),
     uid,
   };
   ensureApp()
@@ -159,29 +165,35 @@ export function listenVotes(onChange) {
       const handle = onValue(
         ref(db, path),
         (snap) => {
-          const records = snap.val() || {};
+          const records = voteRecords(snap.val());
           onChange({
             day,
             records,
             counts: countVotes(records),
-            mine: uid
-              ? Object.values(records).find((rec) => rec?.uid === uid)?.canteen ??
-                null
-              : null,
+            mine: mineFromRecord(
+              uid ? Object.values(records).find((rec) => rec?.uid === uid) : null,
+            ),
             uid,
           });
         },
-        () => onChange(empty),
+        () => {
+          /* Keep the last snapshot. A rules/network blip must not empty Heute dabei. */
+        },
       );
       unsub = () => handle();
     })
-    .catch(() => onChange(empty));
+    .catch(() => {
+      /* Same as the listener error path: do not wipe names already on the board. */
+    });
   return () => unsub?.();
 }
 
-export async function setVote(canteen, _records = {}) {
-  assertBallotOpen();
-  assertCanteen(canteen);
+function isPermissionDenied(err) {
+  const msg = String(err?.code || err?.message || err);
+  return /permission[_-]?denied/i.test(msg);
+}
+
+async function writeBallot(mine) {
   const nick = normalizeNick(loadNick());
   if (!isValidNick(nick)) throw new Error("nick");
   const id = await ensureVoteUser();
@@ -189,20 +201,35 @@ export async function setVote(canteen, _records = {}) {
   const { db, get, ref, set } = await ensureApp();
   const path = dayVotesPath();
   /* Always re-read seats — voteState can still hold another round after a join. */
-  const fresh = (await get(ref(db, path))).val() || {};
+  const fresh = voteRecords((await get(ref(db, path))).val());
   if (!canAcceptVote(fresh, id)) throw new Error("full");
-  /* Nick only in today’s ballot for display — never a permanent profile. */
-  const ballot = { uid: id, nick, canteen, at: Date.now() };
+  const ballot = ballotPayload(id, nick, mine, Date.now());
+  if (!ballot) throw new Error("nick");
+  const writeSlot = async (slot, payload) => {
+    await set(ref(db, `${path}/${slot}`), payload);
+    return mineFromRecord(payload);
+  };
+  const write = async (slot) => {
+    try {
+      return await writeSlot(slot, ballot);
+    } catch (err) {
+      /* Live rules may still reject `canteen: egal` until this PR's rules deploy. */
+      if (!mine?.egal || !isPermissionDenied(err)) throw err;
+      return writeSlot(slot, {
+        uid: id,
+        nick,
+        canteen: MARKET_ID,
+        at: ballot.at,
+        egal: true,
+      });
+    }
+  };
   const existing = mySlot(fresh, id);
-  if (existing != null) {
-    await set(ref(db, `${path}/${existing}`), ballot);
-    return;
-  }
+  if (existing != null) return write(existing);
   for (let slot = 0; slot < MAX_VOTERS; slot += 1) {
     if (fresh[slot]) continue;
     try {
-      await set(ref(db, `${path}/${slot}`), ballot);
-      return;
+      return await write(String(slot));
     } catch {
       /* seat taken between get and write */
     }
@@ -213,20 +240,33 @@ export async function setVote(canteen, _records = {}) {
 export async function clearVote(records = {}) {
   assertBallotOpen();
   const id = await ensureVoteUser();
-  const slot = mySlot(records, id);
-  if (slot == null) return;
+  const slot = mySlot(voteRecords(records), id);
+  if (slot == null) return emptyMine();
   await purgeStaleVotes();
   const { db, ref, remove } = await ensureApp();
   await remove(ref(db, `${dayVotesPath()}/${slot}`));
+  return emptyMine();
 }
 
-export async function toggleVote(canteen, current, records = {}) {
+export async function toggleVote(canteen, _current, records = {}) {
   assertBallotOpen();
   assertCanteen(canteen);
-  if (current === canteen) {
-    await clearVote(records);
-    return null;
-  }
-  await setVote(canteen, records);
-  return canteen;
+  const id = await ensureVoteUser();
+  const { db, get, ref } = await ensureApp();
+  const fresh = voteRecords((await get(ref(db, dayVotesPath()))).val() || records);
+  const next = nextMineForPick(mineFromRecord(fresh[mySlot(fresh, id)]), canteen);
+  if (!next.picks.length) return clearVote(fresh);
+  return writeBallot(next);
+}
+
+export async function toggleEgal(records = {}) {
+  assertBallotOpen();
+  const id = await ensureVoteUser();
+  const { db, get, ref } = await ensureApp();
+  const fresh = voteRecords((await get(ref(db, dayVotesPath()))).val() || records);
+  const mine = mineFromRecord(
+    id ? Object.values(fresh).find((rec) => rec?.uid === id) : null,
+  );
+  if (mine.egal) return clearVote(fresh);
+  return writeBallot({ picks: [], egal: true });
 }
