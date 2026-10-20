@@ -44,15 +44,13 @@ const stamp = `<span class="aufruf-count" data-aufruf-count>${counts.total}</spa
 for (const name of ["index.html", "alternativen.html"]) {
   const path = join(site, name);
   const html = await readFile(path, "utf8");
-  const next = html.replace(
-    /<span class="aufruf-count" data-aufruf-count>[\s\S]*?<\/span>\s*<span class="aufruf-label">[\s\S]*?<\/span>/,
-    stamp,
-  );
-  if (next === html) {
+  const stampRe =
+    /<span class="aufruf-count" data-aufruf-count>[\s\S]*?<\/span>\s*<span class="aufruf-label">[\s\S]*?<\/span>/;
+  if (!stampRe.test(html)) {
     console.warn(`stamp markup missing in ${name}`);
     continue;
   }
-  await writeFile(path, next);
+  await writeFile(path, html.replace(stampRe, stamp));
 }
 
 console.log(`aufrufe ${counts.total}`);
