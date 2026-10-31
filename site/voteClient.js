@@ -20,8 +20,8 @@ import {
   voteRecords,
   voteTargetIds,
   votesPath,
-} from "./vote.js?v=857e7e26";
-import { foldDay, foldNicks, mergeNickTotals } from "./tally.js?v=f9ee7536";
+} from "./vote.js?v=881e6ec7";
+import { foldDay, foldNicks, mergeNickTotals } from "./tally.js?v=4f35ceaa";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 let appReady = null;

@@ -27,11 +27,12 @@ export function nextLookLine(hour, weekday) {
 export const WEEK_STALE_LOOK =
   "Montags und mittwochs wird nach neuen Plänen geschaut.";
 
+/** One line under the kicker: last crawl, no essay. */
 export function weekStaleHitsNote(lastStand = "") {
-  const stand = lastStand ? ` Letzter Stand: ${lastStand}.` : "";
+  const stand = (lastStand || "—").replace(/\s+/g, "\u00A0");
   return {
     kicker: "Kein neuer Plan",
-    line: `Für diese Woche wurde kein neuer Speiseplan geholt.${stand} ${WEEK_STALE_LOOK}`,
+    line: `Letzter Stand:\u00A0${stand}`,
   };
 }
 

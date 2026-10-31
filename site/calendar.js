@@ -1,6 +1,6 @@
 /** Berlin-calendar helpers and weekday labels for the board. */
 
-import { berlinDate, getNow } from "./vote.js?v=857e7e26";
+import { berlinDate, getNow } from "./vote.js?v=881e6ec7";
 
 export const DAYS = {
   monday: "Montag",
@@ -69,7 +69,9 @@ export function formatDate(iso) {
   const when = new Intl.DateTimeFormat("de-DE", {
     day: "numeric",
     month: "long",
-  }).format(date);
+  })
+    .format(date)
+    .replace(/\s+/g, "\u00A0");
   return `<span class="weekday">${weekday}</span><span class="when">${when}</span>`;
 }
 
