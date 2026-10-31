@@ -90,14 +90,6 @@ body {
   min-height: 100dvh;
 }
 
-body:has(> .aufruf-stamp) .page-shell {
-  padding-bottom: 4.75rem;
-}
-
-body:has(> .aufruf-stamp):has(.larry-corner.is-live:not(.is-left):not(.is-top)) .page-shell {
-  padding-bottom: 9.4rem;
-}
-
 .masthead,
 .day-switch,
 .day-band,
@@ -195,7 +187,7 @@ body:has(> .aufruf-stamp):has(.larry-corner.is-live:not(.is-left):not(.is-top)) 
 }
 
 .kicker.is-week-stale::after {
-  content: " · alt";
+  content: "\00a0·\00a0alt";
   color: var(--stamp);
   letter-spacing: 0.16em;
 }
@@ -214,6 +206,11 @@ h1 {
   margin: 0;
   font-style: italic;
   color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.lede-keep {
+  white-space: nowrap;
 }
 
 .page-strich .mascot {
@@ -477,6 +474,12 @@ h1 {
 
 #hits.is-week-stale .toast-head {
   border-bottom-color: color-mix(in srgb, var(--stamp) 28%, var(--rule));
+}
+
+#hits.is-week-stale .toast-stale-copy {
+  margin-top: 0.45rem;
+  font-size: clamp(0.84rem, 3.5vw, 0.95rem);
+  white-space: nowrap;
 }
 
 .toast-hit-item {
@@ -786,32 +789,34 @@ h1 {
 
 .day-date {
   display: flex;
+  flex-wrap: nowrap;
   align-items: baseline;
-  gap: 0.55rem;
+  gap: 0.4rem 0.5rem;
+  width: 100%;
+  min-width: 0;
   margin: 0;
   padding-block: 0.45rem;
   color: var(--ink);
 }
 
 .day-date .weekday {
+  flex: 0 0 auto;
   font-family: var(--font-display);
   font-style: italic;
   font-optical-sizing: auto;
   font-weight: 560;
-  font-size: clamp(1.45rem, 3vw, 2rem);
+  font-size: clamp(1.35rem, 4.6vw, 2rem);
   letter-spacing: -0.03em;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .day-date .when {
+  flex: 0 0 auto;
   color: var(--ink-soft);
-  font-size: 0.92rem;
-  letter-spacing: 0.04em;
-}
-
-.day-date.is-week-stale .weekday,
-.day-date.is-week-stale .when {
-  color: var(--ink-soft);
+  font-size: clamp(0.78rem, 3.1vw, 0.92rem);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .day-date.is-entering .weekday,
@@ -2325,21 +2330,17 @@ button.escape-link {
 }
 
 .day-date.is-weekend::after {
-  content: " · Wochenende · Freitagsplan";
+  content: "· Wochenende · Freitagsplan";
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
   color: var(--ink-soft);
   font-style: italic;
-  font-size: 0.85em;
-}
-
-.day-date.is-week-stale::after {
-  content: " · letzter Stand";
-  color: var(--stamp);
-  font-style: italic;
-  font-size: 0.85em;
-}
-
-.day-date.is-weekend.is-week-stale::after {
-  content: " · letzter Stand · Wochenende · Freitagsplan";
+  font-size: clamp(0.62rem, 2.9vw, 0.82rem);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .larry-corner {
@@ -3046,6 +3047,13 @@ body:not(.page-alternatives) .colophon {
     padding-left: 0;
   }
 
+  .masthead:not(.alt-masthead) .kicker {
+    font-size: 0.64rem;
+    letter-spacing: 0.11em;
+    text-wrap: pretty;
+    line-height: 1.35;
+  }
+
   .alt-masthead .masthead-lockup {
     gap: 0.4rem;
   }
@@ -3136,6 +3144,14 @@ body:not(.page-alternatives) .colophon {
     transition: none !important;
   }
 
+  .aufruf-stamp.is-inking .aufruf-ink {
+    animation: none;
+    opacity: 1;
+    transform:
+      translate(var(--aufruf-x, 0px), var(--aufruf-y, 0px))
+      rotate(var(--aufruf-tilt, -8deg));
+  }
+
   .spot-card:hover,
   .escape-link:hover .escape-arrow,
   .market-banner:hover,
@@ -3218,18 +3234,22 @@ body:not(.page-alternatives) .colophon {
 }
 
 .aufruf-stamp {
-  --aufruf-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px) + 1.15rem);
-  position: fixed;
-  z-index: 21;
+  --aufruf-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px) + 1.35rem);
+  position: relative;
+  z-index: 1;
+  align-self: flex-end;
   width: max-content;
-  max-width: calc(100vw - var(--page-gutter) * 2);
-  right: calc(var(--page-gutter) + env(safe-area-inset-right, 0px));
-  bottom: var(--aufruf-bottom);
-  left: auto;
-  margin: 0;
+  max-width: calc(100% - var(--page-gutter) * 2);
+  /* Padding keeps the rotated ink inside the box, so the page end cannot crop it. */
+  padding: 1.5rem 1.15rem 1.85rem 1rem;
+  margin: 0.15rem calc(var(--page-gutter) + env(safe-area-inset-right, 0px)) calc(1.35rem + env(safe-area-inset-bottom, 0px)) auto;
   text-decoration: none;
   line-height: 1;
   pointer-events: auto;
+}
+
+.aufruf-stamp.is-armed:not(.is-inking):not(.is-set) .aufruf-ink {
+  opacity: 0;
 }
 
 .aufruf-ink {
@@ -3245,8 +3265,38 @@ body:not(.page-alternatives) .colophon {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transform: rotate(var(--aufruf-tilt, -8deg));
+  transform:
+    translate(var(--aufruf-x, 0px), var(--aufruf-y, 0px))
+    rotate(var(--aufruf-tilt, -8deg));
   transform-origin: center;
+}
+
+.aufruf-stamp.is-inking .aufruf-ink {
+  animation: aufruf-press 0.46s var(--ease-out-expo) both;
+}
+
+@keyframes aufruf-press {
+  0% {
+    opacity: 0;
+    transform:
+      translate(var(--aufruf-x, 0px), calc(var(--aufruf-y, 0px) - 0.65rem))
+      rotate(calc(var(--aufruf-tilt, -8deg) + 7deg))
+      scale(1.2);
+  }
+  58% {
+    opacity: 1;
+    transform:
+      translate(var(--aufruf-x, 0px), calc(var(--aufruf-y, 0px) + 1px))
+      rotate(var(--aufruf-tilt, -8deg))
+      scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform:
+      translate(var(--aufruf-x, 0px), var(--aufruf-y, 0px))
+      rotate(var(--aufruf-tilt, -8deg))
+      scale(1);
+  }
 }
 
 .aufruf-stamp:focus-visible .aufruf-ink {
@@ -3276,21 +3326,19 @@ body:not(.page-alternatives) .colophon {
   pointer-events: none;
 }
 
-/* Clear Larry's head. The face is about 5.3rem tall. */
-body:has(.larry-corner.is-live:not(.is-left):not(.is-top)) .aufruf-stamp {
-  --aufruf-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px) + 6.1rem);
-}
-
-/* Once the margin can hold the stamp, hang it on the outer side of the Tafel. */
+/* Once the margin can hold the stamp, hang it beside the Tafel instead of the page end. */
 @media (min-width: calc(1180px + 14rem)) {
   .aufruf-stamp {
+    position: fixed;
+    z-index: 21;
     right: auto;
+    bottom: var(--aufruf-bottom);
     left: calc(50% + var(--page-max) / 2 + 0.75rem);
+    margin: 0;
   }
 
-  body:has(> .aufruf-stamp) .page-shell,
-  body:has(> .aufruf-stamp):has(.larry-corner.is-live:not(.is-left):not(.is-top)) .page-shell {
-    padding-bottom: 0;
+  body:has(.larry-corner.is-live:not(.is-left):not(.is-top)) .aufruf-stamp {
+    --aufruf-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px) + 6.1rem);
   }
 }
 

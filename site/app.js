@@ -8,19 +8,19 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=2b03e76d";
-import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=d6d5734e";
-import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
+} from "./calendar.js?v=40f1119f";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=4f974005";
+import { escapeHtml } from "./dom.js?v=55e28ecf";
+import { pickMainDish, pickSpot } from "./dice.js?v=d68df4b5";
 import {
   berlinWeekMonday,
   canteenEntries,
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=ef7db429";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=a16ea3dd";
-import { applyPenMark } from "./icons.js?v=0e5f763d";
+} from "./diceReel.js?v=dd0ac731";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=9b21f1f2";
+import { applyPenMark } from "./icons.js?v=2133ca3c";
 import {
   alarmLabel,
   dishKey,
@@ -29,8 +29,8 @@ import {
   isLiked,
   listAllFavorites,
   toggleLikeSet,
-} from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=3249edcb";
+} from "./likes.js?v=16f9871b";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=8d2f8051";
 import {
   favoritePoint,
   favoriteToday,
@@ -45,9 +45,9 @@ import {
   egalButtonLabel,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=89fb248d";
-import { LOCATIONS } from "./locations.js?v=d5c051d1";
-import { loadMenu } from "./menuFetch.js?v=99f0e614";
+} from "./larryLines.js?v=e093dc99";
+import { LOCATIONS } from "./locations.js?v=a93ec85e";
+import { loadMenu } from "./menuFetch.js?v=64fd5683";
 import {
   berlinWeekday,
   isVoteDay,
@@ -79,26 +79,26 @@ import {
   votePhase,
   winnerOf,
   heuteDabeiLine,
-} from "./vote.js?v=857e7e26";
+} from "./vote.js?v=881e6ec7";
 import {
   ensureVoteUser,
   listenVotes,
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=8598aae9";
+} from "./voteClient.js?v=466e1abb";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=4b1698b7";
+} from "./updateShell.js?v=b080c3b7";
 import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=dc1f260e";
+} from "./devPreview.js?v=11924659";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";

@@ -4,6 +4,7 @@ export function countPixelUrl(path: string, rnd?: number): string;
 export function totalCountUrl(): string;
 export function counterUrl(path: string, start?: string): string;
 export function countDigits(count: string | number | null | undefined): number | null;
+export function stampImprint(random?: () => number): { tilt: number; x: number; y: number };
 export function aufrufWord(count: string | number): string;
 export function readCountAt(
   url: string,

@@ -1,7 +1,7 @@
-import { pickSpot } from "./dice.js?v=ca08ab4d";
-import { mountDice, prefersReducedMotion, spotEntries } from "./diceReel.js?v=ef7db429";
-import { applyPenMark } from "./icons.js?v=0e5f763d";
-import { LOCATIONS } from "./locations.js?v=d5c051d1";
+import { pickSpot } from "./dice.js?v=d68df4b5";
+import { mountDice, prefersReducedMotion, spotEntries } from "./diceReel.js?v=dd0ac731";
+import { applyPenMark } from "./icons.js?v=2133ca3c";
+import { LOCATIONS } from "./locations.js?v=a93ec85e";
 
 const openButton = document.querySelector("#dice-open");
 const dialog = document.querySelector("#dice-dialog");

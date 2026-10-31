@@ -1,8 +1,8 @@
 /** Pure HTML builders for the canteen board (no DOM writes). */
 
-import { escapeHtml } from "./dom.js?v=d3d5b527";
-import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=0e5f763d";
-import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=9db8d9ec";
+import { escapeHtml } from "./dom.js?v=55e28ecf";
+import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=2133ca3c";
+import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=16f9871b";
 
 const DIET = {
   vegan: "vegan",
@@ -176,9 +176,7 @@ export function hitsHtml({
 }) {
   if (weekStale) {
     const kicker = staleNote?.kicker || "Kein neuer Plan";
-    const line =
-      staleNote?.line ||
-      "Für diese Woche wurde kein neuer Speiseplan geholt. Montags und mittwochs wird nach neuen Plänen geschaut.";
+    const line = staleNote?.line || "Letzter Stand:\u00A0—";
     return `<div class="toast-head">
       <p class="toast-kicker"><span>${escapeHtml(kicker)}</span></p>
     </div>

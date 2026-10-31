@@ -83,15 +83,17 @@ describe("menuFreshNote", () => {
 });
 
 describe("weekStaleHitsNote", () => {
-  it("names the last stand and crawl days without clock times", () => {
+  it("is only the last stand and date", () => {
     const note = weekStaleHitsNote("Fr., 18. Sept., 11:27");
     expect(note.kicker).toBe("Kein neuer Plan");
-    expect(note.line).toContain("Für diese Woche");
-    expect(note.line).toContain("Letzter Stand: Fr., 18. Sept., 11:27");
-    expect(note.line).toContain("Montags und mittwochs");
-    expect(note.line).not.toContain("10 Uhr");
-    expect(note.line).not.toContain("11:30");
+    expect(note.line).toBe("Letzter Stand:\u00A0Fr.,\u00A018.\u00A0Sept.,\u00A011:27");
+    expect(note.line).not.toContain("Für diese Woche");
+    expect(note.line).not.toContain("Montags und mittwochs");
     expect(note.line).not.toMatch(/Dienstag|Donnerstag/);
+  });
+
+  it("still names the stand when the crawl time is missing", () => {
+    expect(weekStaleHitsNote("").line).toBe("Letzter Stand:\u00A0—");
   });
 });
 

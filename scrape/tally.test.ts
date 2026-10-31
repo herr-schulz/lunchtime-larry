@@ -18,6 +18,7 @@ import {
 } from "../site/tally.js";
 import {
   aufrufWord,
+  stampImprint,
   countDigits,
   countPathFor,
   countPixelUrl,
@@ -200,5 +201,17 @@ describe("visit pixel", () => {
     expect(aufrufWord("0")).toBe("Aufrufe");
     expect(aufrufWord("21")).toBe("Aufrufe");
     expect(aufrufWord("1.284")).toBe("Aufrufe");
+  });
+});
+
+describe("stampImprint", () => {
+  it("tilts either way and never sits almost straight", () => {
+    const left = stampImprint(() => 0.1);
+    const right = stampImprint(() => 0.8);
+    expect(left.tilt).toBeLessThanOrEqual(-6);
+    expect(left.tilt).toBeGreaterThanOrEqual(-16);
+    expect(right.tilt).toBeGreaterThanOrEqual(6);
+    expect(right.tilt).toBeLessThanOrEqual(16);
+    expect(left.tilt).not.toBe(right.tilt);
   });
 });

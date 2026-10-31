@@ -71,7 +71,7 @@ describe("boardHtml week-stale", () => {
 });
 
 describe("hitsHtml week-stale", () => {
-  it("swaps the favorites alarm for crawl-day copy without hearts or times", () => {
+  it("swaps the favorites alarm for the last stand, without the long crawl copy", () => {
     const html = hitsHtml({
       items: [
         {
@@ -87,9 +87,10 @@ describe("hitsHtml week-stale", () => {
       staleNote: weekStaleHitsNote("Fr., 18. Sept., 11:27"),
     });
     expect(html).toContain("Kein neuer Plan");
-    expect(html).toContain("Für diese Woche");
     expect(html).toContain("Letzter Stand");
-    expect(html).toContain("Montags und mittwochs");
+    expect(html).toMatch(/Fr\.,\s18\.\sSept\.,\s11:27/);
+    expect(html).not.toContain("Für diese Woche");
+    expect(html).not.toContain("Montags und mittwochs");
     expect(html).not.toMatch(/Favorit/);
     expect(html).not.toContain("toast-gear");
     expect(html).not.toContain("fav-row-heart");

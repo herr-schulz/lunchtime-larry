@@ -1,5 +1,5 @@
-import { berlinDate, loadRoundCode } from "./vote.js?v=857e7e26";
-import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=f843f58e";
+import { berlinDate, loadRoundCode } from "./vote.js?v=881e6ec7";
+import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=7f685c41";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 import {
   BAR_FIELDS,
@@ -14,7 +14,7 @@ import {
   sumTallies,
   thursdayMarket,
   winsLine,
-} from "./tally.js?v=f9ee7536";
+} from "./tally.js?v=4f35ceaa";
 
 const RANGES = [
   ["days", "Tage"],
