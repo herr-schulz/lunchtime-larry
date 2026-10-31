@@ -3144,6 +3144,14 @@ body:not(.page-alternatives) .colophon {
     transition: none !important;
   }
 
+  .aufruf-stamp.is-inking .aufruf-ink {
+    animation: none;
+    opacity: 1;
+    transform:
+      translate(var(--aufruf-x, 0px), var(--aufruf-y, 0px))
+      rotate(var(--aufruf-tilt, -8deg));
+  }
+
   .spot-card:hover,
   .escape-link:hover .escape-arrow,
   .market-banner:hover,
@@ -3226,16 +3234,22 @@ body:not(.page-alternatives) .colophon {
 }
 
 .aufruf-stamp {
-  --aufruf-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px) + 1.15rem);
+  --aufruf-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px) + 1.35rem);
   position: relative;
   z-index: 1;
   align-self: flex-end;
   width: max-content;
   max-width: calc(100% - var(--page-gutter) * 2);
-  margin: 0.35rem calc(var(--page-gutter) + env(safe-area-inset-right, 0px)) 1.15rem auto;
+  /* Padding keeps the rotated ink inside the box, so the page end cannot crop it. */
+  padding: 1.5rem 1.15rem 1.85rem 1rem;
+  margin: 0.15rem calc(var(--page-gutter) + env(safe-area-inset-right, 0px)) calc(1.35rem + env(safe-area-inset-bottom, 0px)) auto;
   text-decoration: none;
   line-height: 1;
   pointer-events: auto;
+}
+
+.aufruf-stamp.is-armed:not(.is-inking):not(.is-set) .aufruf-ink {
+  opacity: 0;
 }
 
 .aufruf-ink {
@@ -3251,8 +3265,38 @@ body:not(.page-alternatives) .colophon {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transform: rotate(var(--aufruf-tilt, -8deg));
+  transform:
+    translate(var(--aufruf-x, 0px), var(--aufruf-y, 0px))
+    rotate(var(--aufruf-tilt, -8deg));
   transform-origin: center;
+}
+
+.aufruf-stamp.is-inking .aufruf-ink {
+  animation: aufruf-press 0.46s var(--ease-out-expo) both;
+}
+
+@keyframes aufruf-press {
+  0% {
+    opacity: 0;
+    transform:
+      translate(var(--aufruf-x, 0px), calc(var(--aufruf-y, 0px) - 0.65rem))
+      rotate(calc(var(--aufruf-tilt, -8deg) + 7deg))
+      scale(1.2);
+  }
+  58% {
+    opacity: 1;
+    transform:
+      translate(var(--aufruf-x, 0px), calc(var(--aufruf-y, 0px) + 1px))
+      rotate(var(--aufruf-tilt, -8deg))
+      scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform:
+      translate(var(--aufruf-x, 0px), var(--aufruf-y, 0px))
+      rotate(var(--aufruf-tilt, -8deg))
+      scale(1);
+  }
 }
 
 .aufruf-stamp:focus-visible .aufruf-ink {

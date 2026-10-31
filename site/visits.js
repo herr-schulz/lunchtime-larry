@@ -35,6 +35,19 @@ export function countDigits(count) {
   return Number.isSafeInteger(n) ? n : null;
 }
 
+/**
+ * A fresh rubber-stamp imprint: tilted either way, never almost straight,
+ * and a few pixels off the last spot.
+ * @param {() => number} [random]
+ */
+export function stampImprint(random = Math.random) {
+  const swing = random() < 0.5 ? -1 : 1;
+  const tilt = Math.round(swing * (6 + random() * 10) * 10) / 10;
+  const x = Math.round((random() * 12 - 5) * 10) / 10;
+  const y = Math.round((random() * 8 - 4) * 10) / 10;
+  return { tilt, x, y };
+}
+
 /** One hit is singular. Grouped totals such as 1.284 stay plural. */
 export function aufrufWord(count) {
   const digits = String(count).replace(/\D/g, "");
@@ -70,11 +83,38 @@ export async function readLocalAufrufe(fetchImpl = fetch) {
   return data && typeof data === "object" ? data : {};
 }
 
+function reducedMotion() {
+  return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+}
+
+/** The ink lands once, when the mark is actually on screen. */
+function armStamp(stamp) {
+  const reduce = reducedMotion();
+  if (!reduce) stamp.classList.add("is-armed");
+  const land = () => {
+    if (stamp.classList.contains("is-inking") || stamp.classList.contains("is-set")) return;
+    stamp.classList.add(reduce ? "is-set" : "is-inking");
+  };
+  if (reduce || typeof IntersectionObserver !== "function") {
+    land();
+    return;
+  }
+  const io = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    land();
+    io.disconnect();
+  }, { threshold: 0.85 });
+  io.observe(stamp);
+}
+
 export function mountVisits(root = document) {
   const stamp = root.querySelector("[data-aufruf]");
   if (!stamp) return;
-  const tilt = (-16 + Math.random() * 10).toFixed(1);
-  stamp.style.setProperty("--aufruf-tilt", `${tilt}deg`);
+  const imprint = stampImprint();
+  stamp.style.setProperty("--aufruf-tilt", `${imprint.tilt}deg`);
+  stamp.style.setProperty("--aufruf-x", `${imprint.x}px`);
+  stamp.style.setProperty("--aufruf-y", `${imprint.y}px`);
+  armStamp(stamp);
   const path = stamp.getAttribute("data-aufruf") || "/";
   const pixel = document.createElement("img");
   pixel.className = "aufruf-pixel";
