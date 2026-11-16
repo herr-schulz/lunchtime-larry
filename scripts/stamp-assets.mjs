@@ -78,10 +78,9 @@ if (existsSync(eatPagePath)) {
 
 const calendarPath = join(site, "calendar.js");
 const calendarBefore = await readFile(calendarPath, "utf8");
-const calendarAfter = calendarBefore.replace(
-  /(\.\/vote\.js)(?:\?v=[^"']*)?/g,
-  `./vote.js?v=${voteHash}`,
-);
+const calendarAfter = calendarBefore
+  .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
+  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`);
 if (calendarAfter !== calendarBefore) {
   await writeFile(calendarPath, calendarAfter);
   console.log("stamped calendar.js imports");
