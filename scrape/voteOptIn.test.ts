@@ -43,8 +43,10 @@ describe("vote opt-in and first visit", () => {
     expect(document.querySelector("#round-roll svg")).toBeTruthy();
     expect(document.querySelector("#round-input")?.hasAttribute("required")).toBe(true);
     const client = readFileSync("site/voteClient.js", "utf8");
-    expect(client).toMatch(/votesPath\(day, loadRoundCode\(\)\)/);
-    expect(client).not.toMatch(/votesPath\(day\)/);
+    expect(client).toMatch(/roundKeyFor\(loadRoundCode\(\)\)/);
+    expect(client).toMatch(/dayVotesPath\(/);
+    expect(client).toMatch(/votesPath\(day, key\)/);
+    expect(client).not.toMatch(/votesPath\(day\)(?!\s*,)/);
     const app = readFileSync("site/app.js", "utf8");
     expect(app).toMatch(/nickEdit\.textContent = code\s*\?\s*`Spitzname: \$\{nick\} · \$\{code\}`/);
     expect(app).not.toMatch(/nickEdit\.innerHTML/);
