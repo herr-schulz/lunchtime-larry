@@ -4043,3 +4043,43 @@ body:not(.page-alternatives) .colophon {
   color: var(--ink-soft);
   font-size: 0.82rem;
 }
+
+/* Hacktime Harry — theme-plugin easter egg */
+.matrix-rain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+}
+
+html.is-hacktime .page-shell,
+html.is-hacktime .masthead,
+html.is-hacktime .day-switch,
+html.is-hacktime #board,
+html.is-hacktime .footer-bar {
+  position: relative;
+  z-index: 1;
+}
+
+html.is-hacktime .masthead h1 {
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 18px color-mix(in srgb, #39ff14 55%, transparent);
+}
+
+html.is-hacktime .masthead .lede {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+}
+
+html.is-hacktime .grain {
+  opacity: 0.35;
+  z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matrix-rain {
+    display: none;
+  }
+}
