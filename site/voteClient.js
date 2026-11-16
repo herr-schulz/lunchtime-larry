@@ -2,7 +2,6 @@ import { isPlateId } from "./eat.js?v=4c1eats1";
 import {
   berlinDate,
   ballotPayload,
-  canAcceptVote,
   berlinWeekday,
   countVotes,
   emptyMine,
@@ -25,7 +24,7 @@ import {
   voteRecords,
   voteTargetIds,
   votesPath,
-} from "./vote.js?v=857e7e26";
+} from "./vote.js?v=4d6bd53e";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 const FIREBASE_VER = "11.10.0";
@@ -273,6 +272,19 @@ async function advanceVoteDay() {
   }
 }
 
+/** ISO days ending at `keep`, newest first — used when parent list reads are denied. */
+function recentIsoDays(keep, count = 21) {
+  const [year, month, date] = String(keep || "")
+    .split("-")
+    .map(Number);
+  if (!year || !month || !date) return [];
+  const days = [];
+  for (let i = 0; i < count; i += 1) {
+    days.push(new Date(Date.UTC(year, month - 1, date - i)).toISOString().slice(0, 10));
+  }
+  return days;
+}
+
 async function purgeActiveRound() {
   const code = loadRoundCode();
   if (!code) return;
@@ -280,17 +292,38 @@ async function purgeActiveRound() {
     await ensureVoteUser();
     const key = await activeRoundKey();
     const keep = berlinDate();
-    const { db, get, ref, remove } = await ensureApp();
-    const snap = await get(ref(db, `votes/${key}`));
-    const all = snap.val() || {};
-    for (const day of staleVoteDays(Object.keys(all), keep)) {
+    const { db, ref, remove } = await ensureApp();
+    for (const day of staleVoteDays(recentIsoDays(keep, 21), keep)) {
       await remove(ref(db, votesPath(day, key))).catch(() => {});
       await remove(ref(db, seatsPath(day, key))).catch(() => {});
       await remove(ref(db, presentPath(day, key))).catch(() => {});
+      await remove(ref(db, `history/${key}/${day}`)).catch(() => {});
     }
   } catch {
     /* offline / rules */
   }
+}
+
+/** Own ballot via seat (works before lock). Falls back to in-memory records after reveal. */
+async function loadOwnBallot(id, key, records = {}) {
+  const { db, get, ref } = await ensureApp();
+  const day = berlinDate();
+  const seatPath = `${seatsPath(day, key)}/${id}`;
+  try {
+    const seat = (await get(ref(db, seatPath))).val();
+    if (typeof seat === "string") {
+      const own = (await get(ref(db, `${dayVotesPath(key, day)}/${seat}`))).val();
+      if (own?.uid === id) {
+        return { slot: seat, mine: mineFromRecord(own), records: { [seat]: own } };
+      }
+      return { slot: seat, mine: emptyMine(), records: {} };
+    }
+  } catch {
+    /* pre-lock race / offline */
+  }
+  const fresh = voteRecords(records);
+  const slot = mySlot(fresh, id);
+  return { slot, mine: mineFromRecord(slot != null ? fresh[slot] : null), records: fresh };
 }
 
 export function stopListening() {
@@ -501,13 +534,21 @@ async function writeBallot(mine) {
   await purgeStaleVotes();
   const key = await activeRoundKey();
   const { db, get, ref, update } = await ensureApp();
-  const path = dayVotesPath(key);
-  const seatPath = `${seatsPath(berlinDate(), key)}/${id}`;
-  const showPath = `${presentPath(berlinDate(), key)}/${id}`;
-  const histPath = historyPath(berlinDate(), key, id);
-  const [votesSnap, seatSnap] = await Promise.all([get(ref(db, path)), get(ref(db, seatPath))]);
-  const fresh = voteRecords(votesSnap.val());
-  if (!canAcceptVote(fresh, id)) throw new Error("full");
+  const day = berlinDate();
+  const path = dayVotesPath(key, day);
+  const seatPath = `${seatsPath(day, key)}/${id}`;
+  const showPath = `${presentPath(day, key)}/${id}`;
+  const histPath = historyPath(day, key, id);
+  // Before lock the day tree is unreadable — use seat + present instead.
+  const [seatSnap, presentSnap] = await Promise.all([
+    get(ref(db, seatPath)),
+    get(ref(db, presentPath(day, key))),
+  ]);
+  const present = presentSnap.val() && typeof presentSnap.val() === "object" ? presentSnap.val() : {};
+  const seated = Object.keys(present).filter((who) => UID_RE.test(who)).length;
+  const seat = seatSnap.val();
+  const updating = typeof seat === "string";
+  if (!updating && seated >= MAX_VOTERS) throw new Error("full");
   const ballot = ballotPayload(id, nick, mine, Date.now());
   if (!ballot) throw new Error("nick");
   const hist = historyPayload(mine, nick);
@@ -535,16 +576,12 @@ async function writeBallot(mine) {
       });
     }
   };
-  const seat = seatSnap.val();
-  const existing =
-    typeof seat === "string" && (!fresh[seat] || fresh[seat].uid === id) ? seat : mySlot(fresh, id);
-  if (existing != null) return write(existing);
+  if (updating) return write(seat);
   for (let slot = 0; slot < MAX_VOTERS; slot += 1) {
-    if (fresh[slot]) continue;
     try {
       return await write(String(slot));
     } catch {
-      /* seat taken between get and write */
+      /* seat taken between probe and write */
     }
   }
   throw new Error("full");
@@ -554,17 +591,17 @@ export async function clearVote(records = {}) {
   assertBallotOpen();
   const id = await ensureVoteUser();
   const key = await activeRoundKey();
-  const { db, get, ref, update } = await ensureApp();
-  const path = dayVotesPath(key);
-  const fresh = voteRecords((await get(ref(db, path))).val() || records);
-  const slot = mySlot(fresh, id);
+  const { db, ref, update } = await ensureApp();
+  const { slot } = await loadOwnBallot(id, key, records);
   if (slot == null) return emptyMine();
   await purgeStaleVotes();
+  const day = berlinDate();
+  const path = dayVotesPath(key, day);
   await update(ref(db), {
     [`${path}/${slot}`]: null,
-    [`${seatsPath(berlinDate(), key)}/${id}`]: null,
-    [`${presentPath(berlinDate(), key)}/${id}`]: null,
-    [historyPath(berlinDate(), key, id)]: null,
+    [`${seatsPath(day, key)}/${id}`]: null,
+    [`${presentPath(day, key)}/${id}`]: null,
+    [historyPath(day, key, id)]: null,
   });
   return emptyMine();
 }
@@ -574,10 +611,9 @@ export async function toggleVote(canteen, _current, records = {}) {
   assertCanteen(canteen);
   const id = await ensureVoteUser();
   const key = await activeRoundKey();
-  const { db, get, ref } = await ensureApp();
-  const fresh = voteRecords((await get(ref(db, dayVotesPath(key)))).val() || records);
-  const next = nextMineForPick(mineFromRecord(fresh[mySlot(fresh, id)]), canteen);
-  if (!next.picks.length) return clearVote(fresh);
+  const { mine, records: ownRecords } = await loadOwnBallot(id, key, records);
+  const next = nextMineForPick(mine, canteen);
+  if (!next.picks.length) return clearVote(ownRecords);
   return writeBallot(next);
 }
 
@@ -699,8 +735,19 @@ export async function loadHistory(key) {
   await ensureVoteUser();
   const round = key || (await activeRoundKey());
   const { db, get, ref } = await ensureApp();
-  const snap = await get(ref(db, `history/${round}`));
-  return snap.val() || {};
+  const keep = berlinDate();
+  const out = {};
+  await Promise.all(
+    recentIsoDays(keep, 120).map(async (day) => {
+      try {
+        const snap = await get(ref(db, `history/${round}/${day}`));
+        if (snap.exists()) out[day] = snap.val();
+      } catch {
+        /* day still locked or empty */
+      }
+    }),
+  );
+  return out;
 }
 
 export async function loadDirectory() {
@@ -727,16 +774,13 @@ export async function toggleEgal(records = {}) {
   assertBallotOpen();
   const id = await ensureVoteUser();
   const key = await activeRoundKey();
-  const { db, get, ref } = await ensureApp();
-  const fresh = voteRecords((await get(ref(db, dayVotesPath(key)))).val() || records);
-  const mine = mineFromRecord(
-    id ? Object.values(fresh).find((rec) => rec?.uid === id) : null,
-  );
-  if (mine.egal) return clearVote(fresh);
+  const { mine, records: ownRecords } = await loadOwnBallot(id, key, records);
+  if (mine.egal) return clearVote(ownRecords);
   return writeBallot({ picks: [], egal: true });
 }
 
 export async function setRoundLabel(label) {
+  if (!(await hasDeskClaim())) throw new Error("desk");
   const key = await activeRoundKey();
   const text = String(label || "").trim().slice(0, 40);
   if (!text) return;

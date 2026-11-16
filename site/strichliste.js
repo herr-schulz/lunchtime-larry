@@ -9,7 +9,7 @@ import {
   roundKeyFor,
   votePhase,
   voteRecords,
-} from "./vote.js?v=857e7e26";
+} from "./vote.js?v=4d6bd53e";
 import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=4504ad9a";
 import { pastWeeks } from "./eat.js?v=4c1eats5";
 import {
@@ -31,7 +31,7 @@ import {
   sumTallies,
   thursdayMarket,
   winsLine,
-} from "./tally.js?v=4aaf9693";
+} from "./tally.js?v=d8bad0b8";
 import {
   ensureVoteUser,
   hasDeskClaim,

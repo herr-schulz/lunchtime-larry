@@ -71,14 +71,17 @@ function collectNames(votes) {
 }
 
 const account = JSON.parse(await readFile(credentialPath, "utf8"));
-let adminApp;
+const databaseURL =
+  account.databaseURL ||
+  process.env.FIREBASE_DATABASE_URL ||
+  "https://lunchtime-larry-default-rtdb.europe-west1.firebasedatabase.app";
 let db;
 try {
   const { initializeApp, cert } = await import("firebase-admin/app");
   const { getDatabase } = await import("firebase-admin/database");
-  adminApp = initializeApp({
+  const adminApp = initializeApp({
     credential: cert(account),
-    databaseURL: account.databaseURL || process.env.FIREBASE_DATABASE_URL,
+    databaseURL,
   });
   db = getDatabase(adminApp);
 } catch (err) {
@@ -88,11 +91,6 @@ try {
     console.error(err?.message || err);
   }
   process.exit(1);
-}
-
-if (!process.env.FIREBASE_DATABASE_URL && !account.databaseURL) {
-  // Default project URL for lunchtime-larry
-  db = (await import("firebase-admin/database")).getDatabase(adminApp, "https://lunchtime-larry-default-rtdb.europe-west1.firebasedatabase.app");
 }
 
 if (cleanup) {
