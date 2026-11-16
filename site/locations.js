@@ -1,4 +1,6 @@
 /** Lunch-Locations ab Elektrstraße 6 · Arabellapark */
+import { html, safeUrl, setHtml } from "./dom.js";
+
 export const LOCATIONS = [
   {
     name: "REWE Arabellapark",
@@ -131,32 +133,22 @@ export function isLikelyOpenToday(when, weekdayKey = berlinWeekdayKey()) {
   return true;
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
+const PEN = html`<svg class="pen-underline" viewBox="0 0 120 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1.5 3.1 L 118.5 2.9" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" pathLength="1"/></svg>`;
 
 function renderLocationCard(spot, index = 0) {
   const open = isLikelyOpenToday(spot.when);
-  const tags = (spot.tags ?? [])
-    .map((t) => `<span class="pill tag">${escapeHtml(t)}</span>`)
-    .join("");
-  const closed = open
-    ? ""
-    : `<span class="spot-closed">Heute zu</span>`;
-  return `<a class="spot-card${open ? "" : " is-closed"}" data-spot="${escapeHtml(spot.name)}" href="${escapeHtml(spot.url)}" target="_blank" rel="noopener noreferrer" style="--i:${index}">
+  const tags = html`${(spot.tags ?? []).map((t) => html`<span class="pill tag">${t}</span>`)}`;
+  const closed = open ? "" : html`<span class="spot-closed">Heute zu</span>`;
+  return html`<a class="spot-card${open ? "" : " is-closed"}" data-spot="${spot.name}" href="${safeUrl(spot.url)}" target="_blank" rel="noopener noreferrer" style="--i:${index}">
     <div class="spot-top">
-      <h3><span class="dish-mark">${escapeHtml(spot.name)}<svg class="pen-underline" viewBox="0 0 120 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1.5 3.1 L 118.5 2.9" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" pathLength="1"/></svg></span></h3>
+      <h3><span class="dish-mark">${spot.name}${PEN}</span></h3>
       <span class="spot-walk">${spot.walk} min</span>
     </div>
-    <span class="spot-vibe">${escapeHtml(spot.vibe)}</span>
+    <span class="spot-vibe">${spot.vibe}</span>
     ${closed}
-    <p class="spot-note">${escapeHtml(spot.note)}</p>
+    <p class="spot-note">${spot.note}</p>
     <div class="spot-tags">${tags}</div>
-    <p class="spot-meta">${escapeHtml(spot.where)} · ${escapeHtml(spot.when)}</p>
+    <p class="spot-meta">${spot.where} · ${spot.when}</p>
   </a>`;
 }
 
@@ -169,9 +161,7 @@ if (grid) {
     if (aOpen !== bOpen) return aOpen - bOpen;
     return a.walk - b.walk;
   });
-  grid.innerHTML = ranked
-    .map((spot, i) => renderLocationCard(spot, i))
-    .join("");
+  setHtml(grid, html`${ranked.map((spot, i) => renderLocationCard(spot, i))}`);
   window.requestAnimationFrame(() => {
     document.body.classList.add("spots-ready");
   });

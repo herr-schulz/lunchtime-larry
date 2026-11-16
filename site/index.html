@@ -2,6 +2,7 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://www.gstatic.com/recaptcha/ https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.google.com https://gc.zgo.at https://lunchtime-larry.goatcounter.com https://herr-schulz.github.io wss://*.firebaseio.com wss://*.firebasedatabase.app; frame-src https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'self'; require-trusted-types-for 'script'; trusted-types larry" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -34,7 +35,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=f2c48342" />
+    <link rel="stylesheet" href="./styles.css?v=7e1a9c20" />
   </head>
   <body>
     <div class="page-shell">
@@ -44,7 +45,7 @@
       <div class="masthead-lockup">
         <img
           class="mascot"
-          src="./larry.svg?v=6828d846"
+          src="./larry.svg?v=3aa5e5c7"
           alt="Lunchtime Larry"
           width="96"
           height="96"
@@ -133,7 +134,28 @@
         <p class="day-date" id="day-date"></p>
       </div>
       <p id="vote-lock" class="vote-lock" hidden></p>
-      <button type="button" id="heute-dabei" class="heute-dabei" hidden></button>
+      <div class="dabei-row">
+        <button type="button" id="heute-dabei" class="heute-dabei" hidden></button>
+        <button type="button" class="dabei-pill" id="egal-vote" hidden aria-pressed="false">
+          <svg
+            class="vote-check"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1" />
+            <path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1" />
+          </svg>
+          <span class="dabei-label">auch dabei?</span>
+        </button>
+      </div>
     </div>
 
     <div id="market-row" class="market-row" hidden>
@@ -203,29 +225,13 @@
     </section>
 
     <div class="escape-wrap" id="escape-wrap" hidden>
-      <button type="button" class="escape-link egal-vote" id="egal-vote" hidden aria-pressed="false">
-        <span class="escape-kicker">Mit in der Runde?</span>
+      <a href="./wer-isst-was.html" class="escape-link" id="eat-link">
+        <span class="escape-kicker">Schon entschieden?</span>
         <span class="escape-row">
-          <svg
-            class="vote-check egal-check"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1" />
-            <path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1" />
-          </svg>
-          <span class="escape-label">Ich bin dabei</span>
+          <span class="escape-label">Wer isst was?</span>
         </span>
-        <span class="escape-sub">Kantine egal. Du bist dabei.</span>
-      </button>
+        <span class="escape-sub">Dein Teller. Dann die anderen.</span>
+      </a>
       <button type="button" class="escape-link dice-open" id="dice-open">
         <span class="escape-kicker">Unentschlossen?</span>
         <span class="escape-row">
@@ -248,13 +254,14 @@
       <p>Angaben ohne Gewähr (Stand der Kantinenseiten).</p>
       <p>
         <button type="button" id="nick-edit" class="nick-edit" hidden>Mitstimmen</button>
+        <span id="score-badge" class="nick-edit" hidden></span>
         <button type="button" id="intro-again" class="nick-edit">Was ist das hier?</button>
       </p>
     </footer>
     <a class="aufruf-stamp" href="./strichliste.html" data-aufruf="/">
       <span class="aufruf-ink">
-        <span class="aufruf-count" data-aufruf-count>1</span>
-        <span class="aufruf-label">Aufruf</span>
+        <span class="aufruf-count" data-aufruf-count>37</span>
+        <span class="aufruf-label">Aufrufe</span>
       </span>
     </a>
     <div id="larry-corner" class="larry-corner" hidden>
@@ -262,9 +269,9 @@
         <span class="larry-disc" aria-hidden="true"></span>
         <img
           class="larry-face-img"
-          src="./lazy-larry.svg?v=fd98693f"
-          data-lazy="./lazy-larry.svg?v=fd98693f"
-          data-laugh="./laughing-larry.svg?v=385115aa"
+          src="./lazy-larry.svg?v=85f592b0"
+          data-lazy="./lazy-larry.svg?v=85f592b0"
+          data-laugh="./laughing-larry.svg?v=ae7875a7"
           alt=""
           width="72"
           height="72"
@@ -275,6 +282,10 @@
         <div class="larry-bubble">
           <p class="larry-kicker"></p>
           <p class="larry-line"></p>
+          <div class="larry-asks" id="eat-ask" hidden>
+            <button type="button" id="eat-yes">Ja, klar</button>
+            <button type="button" id="eat-no">Heute nicht</button>
+          </div>
         </div>
         <button type="button" class="larry-dismiss" tabindex="-1" aria-label="Schließen">
           <svg
@@ -301,7 +312,7 @@
       <form method="dialog">
         <img
           class="weekend-larry"
-          src="./larry.svg?v=6828d846"
+          src="./larry.svg?v=3aa5e5c7"
           alt=""
           width="192"
           height="192"
@@ -347,7 +358,7 @@
         </div>
         <img
           class="weekend-larry"
-          src="./laughing-larry.svg?v=385115aa"
+          src="./laughing-larry.svg?v=ae7875a7"
           alt=""
           width="192"
           height="192"
@@ -432,7 +443,7 @@
       <form method="dialog" id="welcome-form">
         <img
           class="weekend-larry"
-          src="./larry.svg?v=6828d846"
+          src="./larry.svg?v=3aa5e5c7"
           alt=""
           width="192"
           height="192"
@@ -463,8 +474,8 @@
         <ol class="intro-points">
           <li>Schick den Code an deine Kolleg:innen — sie geben denselben ein.</li>
           <li>
-            Bis zu zwei Haken, oder unten Ich bin dabei, wenn dir jeder Spot recht
-            ist — bis 11:55 frei wechseln.
+            Bis zu zwei Haken, oder Ich bin dabei neben den Namen, wenn dir jeder Spot
+            recht ist — bis 11:55 frei wechseln.
           </li>
           <li>Ab 11:55 ist zu. Um 12 Uhr präsentiert Larry das Ziel.</li>
           <li>Die Namen der Runde stehen über den Zetteln.</li>
@@ -480,7 +491,7 @@
       <form method="dialog" id="dice-form">
         <img
           class="weekend-larry dice-larry"
-          src="./laughing-larry.svg?v=385115aa"
+          src="./laughing-larry.svg?v=ae7875a7"
           alt=""
           width="192"
           height="192"
@@ -514,7 +525,7 @@
       <form method="dialog" id="weekend-form">
         <img
           class="weekend-larry"
-          src="./leisure-larry.svg?v=aca3bc1c"
+          src="./leisure-larry.svg?v=5bba5905"
           alt=""
           width="192"
           height="192"
@@ -533,8 +544,8 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=a6f34bb1" type="module"></script>
+    <script src="./app.js?v=4c1eats1" type="module"></script>
     </div>
-    <script src="./visits.js?v=7f685c41" type="module"></script>
+    <script src="./visits.js?v=4504ad9a" type="module"></script>
   </body>
 </html>

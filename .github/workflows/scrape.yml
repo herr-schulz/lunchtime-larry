@@ -37,7 +37,7 @@ jobs:
       PREV_MENU_URL: https://herr-schulz.github.io/lunchtime-larry/data/menu.json
       FORCE_SCRAPE: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event_name == 'push') && '1' || '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Cron probe
         run: |
@@ -46,7 +46,7 @@ jobs:
           echo "utc=$(date -u -Iseconds)"
           echo "berlin=$(TZ=Europe/Berlin date -Iseconds)"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -62,7 +62,7 @@ jobs:
         id: pw
         run: echo "version=$(npx playwright --version)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         if: steps.gate.outputs.needed == 'true'
         id: playwright-cache
         with:
@@ -90,7 +90,7 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: scrape-debug
@@ -103,26 +103,47 @@ jobs:
       - run: node scripts/fetch-aufrufe.mjs
         if: always() && steps.ready.outputs.ready == 'true'
 
+      - name: Auth Google Cloud (Hosting only)
+        id: auth
+        if: always() && steps.ready.outputs.ready == 'true' && vars.GCP_WIF_PROVIDER != '' && vars.GCP_SA_EMAIL != ''
+        uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+
       - name: Deploy Firebase Hosting
         if: always() && steps.ready.outputs.ready == 'true'
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          if [ -z "$FIREBASE_TOKEN" ]; then
-            echo "::warning::No FIREBASE_TOKEN — web.app keeps its last hosting upload. Pages still gets the new menu."
+          # Prefer WIF (Hosting Admin SA). Fall back to legacy CI token for hosting only.
+          # Database rules are never deployed from this workflow.
+          if [ "${{ steps.auth.outcome }}" = "success" ]; then
+            npx --yes firebase-tools@13 deploy --only hosting --non-interactive
+          elif [ -n "$FIREBASE_TOKEN" ]; then
+            echo "::notice::Using FIREBASE_TOKEN fallback for hosting-only deploy. Prefer GCP_WIF_PROVIDER + GCP_SA_EMAIL."
+            npx --yes firebase-tools@13 deploy --only hosting --non-interactive
+          else
+            echo "::warning::No WIF vars and no FIREBASE_TOKEN — web.app keeps its last hosting upload. Pages still gets the new menu."
             exit 0
           fi
-          npx --yes firebase-tools@13 deploy --only hosting,database --non-interactive
 
-      - uses: actions/upload-pages-artifact@v3
+      # Pages serves only data/menu.json plus redirects to lunchtime-larry.web.app.
+      - run: node scripts/build-pages-dist.mjs
+        if: always() && steps.ready.outputs.ready == 'true'
+
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         if: always() && steps.ready.outputs.ready == 'true'
         with:
-          path: site
+          path: pages-dist
 
   refill:
     needs: scrape
     if: needs.scrape.outputs.holes == 'true' && github.event.inputs.retry != 'true'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
       - name: Wait for the kitchen
         run: sleep 480
@@ -135,9 +156,12 @@ jobs:
     needs: scrape
     if: needs.scrape.outputs.ready == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

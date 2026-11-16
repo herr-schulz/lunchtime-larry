@@ -64,6 +64,18 @@ export function hourBands(tally: Partial<Tally> | null | undefined): {
 export function peopleRows(nicks: Record<string, Partial<NickCounts>> | null | undefined): {
   name: string;
   total: number;
+  days: number;
   picks: { id: string; n: number }[];
 }[];
+export function personDetail(row: {
+  name?: string;
+  total: number;
+  days: number;
+  picks: { id: string; n: number }[];
+}): string;
 export function winsLine(lead: { ids?: string[]; days?: number } | null | undefined): string;
+export function isDesk(
+  nick?: string | null,
+  code?: string | null,
+  claim?: boolean,
+): boolean;

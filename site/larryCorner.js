@@ -1,7 +1,7 @@
 /** Single Larry speech-bubble — toast-like, free drag, gravity snap. */
 
-import { idleTip } from "./larryLines.js?v=e093dc99";
-import { loadVoteOptIn } from "./vote.js?v=881e6ec7";
+import { idleTip } from "./larryLines.js?v=cac37a42";
+import { loadVoteOptIn } from "./vote.js?v=857e7e26";
 
 const DOCK_KEY = "lunchtime-larry-corner-dock";
 const SIDE_KEY = "lunchtime-larry-corner-side";
@@ -337,6 +337,11 @@ function clearFaceOffset() {
   face.style.transition = "";
 }
 
+function syncAsks(show) {
+  const asks = root?.querySelector("#eat-ask");
+  if (asks) asks.hidden = !show;
+}
+
 function paint(msg, { pop = true } = {}) {
   if (!kickerEl || !lineEl || !speech) return;
   kickerEl.textContent = msg.kicker || "";
@@ -352,12 +357,14 @@ function paint(msg, { pop = true } = {}) {
   }
   root?.classList.add("is-speaking");
   speaking = true;
+  syncAsks(false);
 }
 
 /** Dismiss bubble; keep face parked (lazy) if history exists. */
 function hideBubble() {
   if (!speech) return;
   speech.hidden = true;
+  syncAsks(false);
   root?.classList.remove("is-speaking");
   speaking = false;
   setFace(false);
@@ -392,7 +399,7 @@ function bindLarryDrag() {
 
   root.addEventListener("pointerdown", (event) => {
     if (event.button != null && event.button !== 0) return;
-    if (event.target.closest(".larry-dismiss")) return;
+    if (event.target.closest(".larry-dismiss, .larry-asks")) return;
     const handle = event.target.closest(".larry-face, .larry-bubble");
     if (!handle) return;
     const rect = root.getBoundingClientRect();
@@ -514,6 +521,7 @@ export function sayLarry(msg) {
   if (history.length > 12) history.shift();
   historyIndex = history.length - 1;
   paint(next);
+  syncAsks(Boolean(msg.choices));
 }
 
 export function bindLarryCorner() {

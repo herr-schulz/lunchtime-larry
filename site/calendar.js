@@ -1,6 +1,6 @@
 /** Berlin-calendar helpers and weekday labels for the board. */
 
-import { berlinDate, getNow } from "./vote.js?v=881e6ec7";
+import { berlinDate, getNow } from "./vote.js?v=857e7e26";
 
 export const DAYS = {
   monday: "Montag",

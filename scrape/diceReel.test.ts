@@ -134,12 +134,11 @@ describe("dice markup", () => {
     const { document } = parseHTML(readFileSync("site/index.html", "utf8"));
     const wrap = document.querySelector("#escape-wrap");
     const kids = [...(wrap?.children ?? [])].map((node) => node.id);
-    expect(kids).toEqual(["egal-vote", "dice-open", "escape-link"]);
-    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Mit in der Runde\?/);
-    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Ich bin dabei/);
-    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Kantine egal/);
-    expect(document.querySelector("#egal-vote")?.textContent).not.toMatch(/Ohne Haken/);
-    expect(document.querySelector("#egal-vote .escape-row .egal-check")).toBeTruthy();
+    expect(kids).toEqual(["eat-link", "dice-open", "escape-link"]);
+    expect(document.querySelector("#eat-link")?.textContent).toMatch(/Wer isst was\?/);
+    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/auch dabei\?/);
+    expect(document.querySelector("#egal-vote")?.closest(".dabei-row")).toBeTruthy();
+    expect(document.querySelector("#egal-vote .vote-check")).toBeTruthy();
     expect(document.querySelector("[data-dice='show']")?.textContent).toBe("Zeig mir wo");
     const open = document.querySelector("#dice-open");
     expect(open?.textContent).toMatch(/Unentschlossen\?/);

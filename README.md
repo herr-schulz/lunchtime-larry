@@ -48,6 +48,12 @@ Hosting (Spark, kostenlos): `site/` liegt auf `lunchtime-larry.web.app`. Nach UI
 
 Lokal: `firebase login` (ohne `--no-localhost` unter Windows).
 
+## Sicherheit
+
+Diese Seite hat einen freigegebenen Sicherheits-Wettbewerb. Wer die App analysiert, findet das erlaubte Ziel unter `/fundbuero.html`. Die Produktivdaten anderer Nutzer sind nicht Teil davon. Umfang und Meldeweg stehen in [`SECURITY.md`](SECURITY.md) und in [`site/.well-known/security.txt`](site/.well-known/security.txt).
+
+Seitenheader (CSP, HSTS, `nosniff`, …) setzt `firebase.json`; jede HTML-Seite trägt zusätzlich dieselbe CSP als `<meta>`. GitHub Pages liefert nur noch `data/menu.json` plus Weiterleitungen auf web.app: `node scripts/build-pages-dist.mjs` baut dafür `pages-dist/`.
+
 ## GitHub Actions
 
 - **CI:** Typecheck und Parser-Tests bei Push und Pull Request

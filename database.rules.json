@@ -1,22 +1,115 @@
 {
   "rules": {
+    "calendar": {
+      ".write": false,
+      "$date": {
+        ".read": true
+      }
+    },
     "meta": {
       "voteDay": {
-        ".read": true,
-        ".write": "auth != null && newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && (!data.exists() || newData.val() >= data.val())"
+        ".read": "auth != null",
+        ".write": "auth != null && newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && (newData.val() == data.val() || (root.child('calendar/' + newData.val() + '/s').isNumber() && root.child('calendar/' + newData.val() + '/e').isNumber() && root.child('calendar/' + newData.val() + '/s').val() <= now && now < root.child('calendar/' + newData.val() + '/e').val()))"
+      }
+    },
+    "config": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "vault": {
+      ".read": false,
+      ".write": false
+    },
+    "hunt": {
+      ".read": "auth != null",
+      "$uid": {
+        "$n": {
+          ".write": "auth != null && auth.uid == $uid && $uid.matches(/^[A-Za-z0-9]{16,128}$/) && $n.matches(/^[1-4]$/) && newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{8,64}$/) && newData.val() == root.child('vault/' + $n).val() && (!data.exists() || data.val() == newData.val())",
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+    "moves": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid && data.exists() && !newData.exists()",
+        "code": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9-]{8,24}$/)"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "rounds": {
+      "$key": {
+        ".validate": "$key.matches(/^[a-f0-9]{64}$/)",
+        "names": {
+          "$name": {
+            ".read": "auth != null",
+            ".write": "auth != null && $key.matches(/^[a-f0-9]{64}$/) && $name.matches(/^[a-zäöüß' -]{1,20}$/) && (auth.token.desk == true || ((!data.exists() && newData.exists() && newData.val() == auth.uid) || (data.exists() && data.val() == auth.uid && !newData.exists()) || (auth.token.desk == true)))",
+            ".validate": "!newData.exists() || (newData.isString() && newData.val() == auth.uid)"
+          }
+        }
       }
     },
     "votes": {
       "$key": {
-        ".read": "($key.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)) || $key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
-        ".validate": "($key.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)) || $key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
-        ".write": "auth != null && $key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && !newData.exists() && root.child('meta/voteDay').exists() && $key < root.child('meta/voteDay').val()",
+        ".validate": "$key.matches(/^[a-f0-9]{64}$/)",
         "$child": {
-          ".write": "auth != null && $key.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && !newData.exists() && root.child('meta/voteDay').exists() && $child < root.child('meta/voteDay').val()",
-          ".validate": "$key.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+          ".read": "auth != null && $key.matches(/^[a-f0-9]{64}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && root.child('calendar/' + $child + '/l').isNumber() && root.child('calendar/' + $child + '/l').val() <= now",
+          ".write": "auth != null && $key.matches(/^[a-f0-9]{64}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && !newData.exists() && root.child('meta/voteDay').exists() && $child < root.child('meta/voteDay').val()",
+          ".validate": "$key.matches(/^[a-f0-9]{64}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
           "$slot": {
-            ".write": "auth != null && $key.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$key.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && root.child('meta/voteDay').exists() && $child == root.child('meta/voteDay').val() && $slot.matches(/^(?:[0-9]|1[0-9]|2[0-3])$/) && (!data.exists() || data.child('uid').val() == auth.uid) && (!newData.exists() || newData.child('uid').val() == auth.uid)",
-            ".validate": "newData.hasChildren(['uid', 'nick', 'canteen', 'at']) && newData.child('uid').isString() && newData.child('uid').val() == auth.uid && newData.child('nick').isString() && newData.child('nick').val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && newData.child('nick').val().matches(/[A-Za-zÄÖÜäöüß]/) && newData.child('canteen').isString() && newData.child('canteen').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt|egal)$/) && (newData.child('canteen').val() == 'egal' ? !newData.child('second').exists() : (!newData.child('second').exists() || (newData.child('second').isString() && newData.child('second').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt)$/) && newData.child('second').val() != newData.child('canteen').val()))) && newData.child('at').isNumber() && newData.child('at').val() >= now - 300000 && newData.child('at').val() <= now + 60000"
+            ".read": "auth != null && data.child('uid').val() == auth.uid",
+            ".write": "auth != null && $key.matches(/^[a-f0-9]{64}$/) && $child.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && root.child('meta/voteDay').exists() && $child == root.child('meta/voteDay').val() && root.child('calendar/' + $child + '/w').val() == true && root.child('calendar/' + $child + '/l').isNumber() && now < root.child('calendar/' + $child + '/l').val() && $slot.matches(/^([0-9]|1[0-9]|2[0-3])$/) && (!data.exists() || data.child('uid').val() == auth.uid) && (newData.exists() ? newData.parent().parent().parent().parent().child('seats/' + $key + '/' + $child + '/' + auth.uid).val() == $slot && newData.parent().parent().parent().parent().child('present/' + $key + '/' + $child + '/' + auth.uid).val() == newData.child('nick').val() && newData.parent().parent().parent().parent().child('history/' + $key + '/' + $child + '/' + auth.uid + '/canteen').val() == newData.child('canteen').val() : !newData.parent().parent().parent().parent().child('seats/' + $key + '/' + $child + '/' + auth.uid).exists() && !newData.parent().parent().parent().parent().child('present/' + $key + '/' + $child + '/' + auth.uid).exists() && !newData.parent().parent().parent().parent().child('history/' + $key + '/' + $child + '/' + auth.uid).exists())",
+            ".validate": "newData.hasChildren(['uid', 'nick', 'canteen', 'at']) && newData.child('uid').isString() && newData.child('uid').val() == auth.uid && newData.child('nick').isString() && newData.child('nick').val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && newData.child('nick').val().matches(/[A-Za-zÄÖÜäöüß]/) && newData.parent().parent().parent().parent().child('rounds/' + $key + '/names/' + newData.child('nick').val().toLowerCase()).val() == auth.uid && newData.child('canteen').isString() && newData.child('canteen').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt|egal)$/) && (newData.child('canteen').val() == 'egal' ? !newData.child('second').exists() : (!newData.child('second').exists() || (newData.child('second').isString() && newData.child('second').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt)$/) && newData.child('second').val() != newData.child('canteen').val()))) && (!newData.child('egal').exists() || newData.child('egal').val() == true) && newData.child('at').isNumber() && newData.child('at').val() >= now - 300000 && newData.child('at').val() <= now + 60000 && (!data.exists() || newData.child('at').val() >= data.child('at').val() + 2000)",
+            "$field": {
+              ".validate": "$field.matches(/^(uid|nick|canteen|second|egal|at)$/)"
+            }
+          }
+        }
+      }
+    },
+    "seats": {
+      "$code": {
+        ".validate": "$code.matches(/^[a-f0-9]{64}$/)",
+        "$day": {
+          ".write": "auth != null && $code.matches(/^[a-f0-9]{64}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && !newData.exists() && root.child('meta/voteDay').exists() && $day < root.child('meta/voteDay').val()",
+          "$uid": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && auth.uid == $uid && $code.matches(/^[a-f0-9]{64}$/) && root.child('meta/voteDay').exists() && $day == root.child('meta/voteDay').val() && root.child('calendar/' + $day + '/w').val() == true && root.child('calendar/' + $day + '/l').isNumber() && now < root.child('calendar/' + $day + '/l').val() && (newData.exists() || !data.exists() || newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + data.val() + '/uid').val() != auth.uid)",
+            ".validate": "newData.isString() && newData.val().matches(/^([0-9]|1[0-9]|2[0-3])$/) && (!data.exists() || data.val() == newData.val()) && newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + newData.val() + '/uid').val() == auth.uid"
+          }
+        }
+      }
+    },
+    "present": {
+      "$code": {
+        ".validate": "$code.matches(/^[a-f0-9]{64}$/)",
+        "$day": {
+          ".read": "auth != null && $code.matches(/^[a-f0-9]{64}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+          ".write": "auth != null && $code.matches(/^[a-f0-9]{64}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && !newData.exists() && root.child('meta/voteDay').exists() && $day < root.child('meta/voteDay').val()",
+          "$uid": {
+            ".write": "auth != null && auth.uid == $uid && $uid.matches(/^[A-Za-z0-9]{16,128}$/) && $code.matches(/^[a-f0-9]{64}$/) && root.child('meta/voteDay').exists() && $day == root.child('meta/voteDay').val() && root.child('calendar/' + $day + '/w').val() == true && root.child('calendar/' + $day + '/l').isNumber() && now < root.child('calendar/' + $day + '/l').val() && (newData.exists() ? newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).isString() && newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).val() + '/uid').val() == $uid && newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).val() + '/nick').val() == newData.val() : !newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).exists())",
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && newData.val().matches(/[A-Za-zÄÖÜäöüß]/)"
+          }
+        }
+      }
+    },
+    "history": {
+      "$code": {
+        ".validate": "$code.matches(/^[a-f0-9]{64}$/)",
+        "$day": {
+          ".read": "auth != null && $code.matches(/^[a-f0-9]{64}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && root.child('calendar/' + $day + '/l').isNumber() && root.child('calendar/' + $day + '/l').val() <= now",
+          ".write": "auth != null && $code.matches(/^[a-f0-9]{64}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && !newData.exists() && root.child('meta/voteDay').exists() && $day < root.child('meta/voteDay').val()",
+          "$uid": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && auth.uid == $uid && $uid.matches(/^[A-Za-z0-9]{16,128}$/) && $code.matches(/^[a-f0-9]{64}$/) && root.child('meta/voteDay').exists() && $day == root.child('meta/voteDay').val() && root.child('calendar/' + $day + '/w').val() == true && root.child('calendar/' + $day + '/l').isNumber() && now < root.child('calendar/' + $day + '/l').val() && (newData.exists() ? newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).isString() && newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).val() + '/uid').val() == $uid && newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).val() + '/canteen').val() == newData.child('canteen').val() && newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).val() + '/nick').val() == newData.child('nick').val() : !newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).exists())",
+            ".validate": "newData.hasChildren(['canteen', 'nick']) && newData.child('canteen').isString() && newData.child('canteen').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt|egal)$/) && newData.child('nick').isString() && newData.child('nick').val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && newData.child('nick').val().matches(/[A-Za-zÄÖÜäöüß]/) && (newData.child('canteen').val() == 'egal' ? !newData.child('second').exists() : (!newData.child('second').exists() || (newData.child('second').isString() && newData.child('second').val().matches(/^(stmuv|sodexo|bella23|wochenmarkt)$/) && newData.child('second').val() != newData.child('canteen').val())))",
+            "$field": {
+              ".validate": "$field.matches(/^(canteen|second|nick)$/)"
+            }
           }
         }
       }
@@ -24,25 +117,87 @@
     "tallies": {
       "rounds": {
         "$code": {
-          ".read": "$code.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$code.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+          ".read": "auth != null && $code.matches(/^[a-f0-9]{64}$/)",
           "days": {
-            "$day": {
-              ".write": "auth != null && $code.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$code.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && !data.exists() && newData.exists() && root.child('meta/voteDay').exists() && $day < root.child('meta/voteDay').val()",
-              ".validate": "newData.hasChildren(['stmuv', 'sodexo', 'bella23', 'wochenmarkt', 'egal', 'second', 'n'])",
-              "$field": {
-                ".validate": "($field.matches(/^(stmuv|sodexo|bella23|wochenmarkt|egal|second|n)$/) || $field.matches(/^h([0-9]|1[0-9]|2[0-3])$/)) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 24 && newData.val() % 1 == 0"
-              }
-            }
+            ".write": false
           },
           "nicks": {
-            "$nick": {
-              ".write": "auth != null && $code.matches(/^[a-z0-9][a-z0-9-]{0,22}[a-z0-9]$/) && !$code.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $nick.matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && $nick.matches(/[A-Za-zÄÖÜäöüß]/) && newData.exists()",
-              ".validate": "newData.hasChildren(['stmuv', 'sodexo', 'bella23', 'wochenmarkt', 'egal', 'days']) && newData.child('stmuv').isNumber() && newData.child('stmuv').val() % 1 == 0 && newData.child('stmuv').val() >= 0 && newData.child('stmuv').val() <= (data.exists() ? data.child('stmuv').val() + 24 : 24) && (!data.exists() || newData.child('stmuv').val() >= data.child('stmuv').val()) && newData.child('sodexo').isNumber() && newData.child('sodexo').val() % 1 == 0 && newData.child('sodexo').val() >= 0 && newData.child('sodexo').val() <= (data.exists() ? data.child('sodexo').val() + 24 : 24) && (!data.exists() || newData.child('sodexo').val() >= data.child('sodexo').val()) && newData.child('bella23').isNumber() && newData.child('bella23').val() % 1 == 0 && newData.child('bella23').val() >= 0 && newData.child('bella23').val() <= (data.exists() ? data.child('bella23').val() + 24 : 24) && (!data.exists() || newData.child('bella23').val() >= data.child('bella23').val()) && newData.child('wochenmarkt').isNumber() && newData.child('wochenmarkt').val() % 1 == 0 && newData.child('wochenmarkt').val() >= 0 && newData.child('wochenmarkt').val() <= (data.exists() ? data.child('wochenmarkt').val() + 24 : 24) && (!data.exists() || newData.child('wochenmarkt').val() >= data.child('wochenmarkt').val()) && newData.child('egal').isNumber() && newData.child('egal').val() % 1 == 0 && newData.child('egal').val() >= 0 && newData.child('egal').val() <= (data.exists() ? data.child('egal').val() + 24 : 24) && (!data.exists() || newData.child('egal').val() >= data.child('egal').val())",
-              "days": {
-                "$date": {
-                  ".validate": "$date.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.val() == true"
-                }
+            ".write": false
+          }
+        }
+      },
+      "directory": {
+        ".read": "auth != null && auth.token.desk == true",
+        "$code": {
+          ".validate": "$code.matches(/^[a-f0-9]{64}$/)",
+          "label": {
+            ".write": "auth != null && $code.matches(/^[a-f0-9]{64}$/) && newData.isString() && newData.val().matches(/^[A-Za-zÄÖÜäöüß0-9 '._-]{1,40}$/) && (!data.exists() || data.val() == newData.val())"
+          },
+          "last": {
+            ".write": false
+          },
+          "days": {
+            ".write": false
+          }
+        }
+      }
+    },
+    "eats": {
+      "$code": {
+        ".validate": "$code.matches(/^[a-f0-9]{64}$/)",
+        "$day": {
+          ".read": "auth != null && $code.matches(/^[a-f0-9]{64}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && root.child('calendar/' + $day + '/l').isNumber() && root.child('calendar/' + $day + '/l').val() <= now",
+          "$uid": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && auth.uid == $uid && $uid.matches(/^[A-Za-z0-9]{16,128}$/) && $code.matches(/^[a-f0-9]{64}$/) && $day.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && root.child('meta/voteDay').exists() && $day == root.child('meta/voteDay').val() && root.child('calendar/' + $day + '/w').val() == true && root.child('calendar/' + $day + '/l').isNumber() && now < root.child('calendar/' + $day + '/l').val()",
+            ".validate": "newData.hasChildren(['uid', 'nick', 'dish', 'at']) && newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).isString() && newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).val() + '/uid').val() == $uid && newData.child('nick').val() == newData.parent().parent().parent().parent().child('votes/' + $code + '/' + $day + '/' + newData.parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $uid).val() + '/nick').val() && (!data.exists() || newData.child('at').val() >= data.child('at').val() + 2000)",
+            "uid": {
+              ".validate": "newData.isString() && newData.val() == $uid"
+            },
+            "nick": {
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-zÄÖÜäöüß' -]{1,20}$/) && newData.val().matches(/[A-Za-zÄÖÜäöüß]/)"
+            },
+            "dish": {
+              ".validate": "newData.isString() && newData.val().matches(/^(stmuv|sodexo|bella23):[a-z0-9-]{1,40}$/)"
+            },
+            "at": {
+              ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 60000"
+            },
+            "guesses": {
+              "$who": {
+                ".validate": "$who.matches(/^[A-Za-z0-9]{16,128}$/) && $who != $uid && newData.parent().parent().parent().parent().parent().parent().child('seats/' + $code + '/' + $day + '/' + $who).isString() && newData.isString() && newData.val().matches(/^(stmuv|sodexo|bella23):[a-z0-9-]{1,40}$/)"
               }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    },
+    "scores": {
+      "$code": {
+        ".validate": "$code.matches(/^[a-f0-9]{64}$/)",
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid && $uid.matches(/^[A-Za-z0-9]{16,128}$/) && $code.matches(/^[a-f0-9]{64}$/)",
+          ".validate": "newData.hasChildren(['points', 'week']) && newData.child('points').isNumber() && newData.child('points').val() >= 0 && newData.child('points').val() <= 200 && newData.child('points').val() % 1 == 0 && newData.child('week').isString() && newData.child('week').val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+          "$field": {
+            ".validate": "$field.matches(/^(points|week)$/)"
+          }
+        }
+      }
+    },
+    "ops": {
+      "veto": {
+        "$code": {
+          ".validate": "$code.matches(/^[a-f0-9]{64}$/)",
+          "$uid": {
+            ".read": false,
+            ".write": "auth != null && auth.uid == $uid && $uid.matches(/^[A-Za-z0-9]{16,128}$/) && $code.matches(/^[a-f0-9]{64}$/) && !data.exists()",
+            ".validate": "newData.hasChildren(['at', 'reason']) && newData.child('at').isNumber() && newData.child('at').val() >= now - 300000 && newData.child('at').val() <= now + 60000 && newData.child('reason').isString() && newData.child('reason').val().matches(/^[a-z0-9_-]{1,32}$/)",
+            "$field": {
+              ".validate": "$field.matches(/^(at|reason)$/)"
             }
           }
         }

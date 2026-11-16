@@ -8,19 +8,19 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=40f1119f";
-import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=4f974005";
-import { escapeHtml } from "./dom.js?v=55e28ecf";
-import { pickMainDish, pickSpot } from "./dice.js?v=d68df4b5";
+} from "./calendar.js?v=31cf002b";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=d6d5734e";
+import { html, setHtml } from "./dom.js?v=d3d5b527";
+import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
 import {
   berlinWeekMonday,
   canteenEntries,
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=dd0ac731";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=9b21f1f2";
-import { applyPenMark } from "./icons.js?v=2133ca3c";
+} from "./diceReel.js?v=ef7db429";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=71dde6e5";
+import { applyPenMark } from "./icons.js?v=0e5f763d";
 import {
   alarmLabel,
   dishKey,
@@ -29,8 +29,8 @@ import {
   isLiked,
   listAllFavorites,
   toggleLikeSet,
-} from "./likes.js?v=16f9871b";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=8d2f8051";
+} from "./likes.js?v=9db8d9ec";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=4c1eats1";
 import {
   favoritePoint,
   favoriteToday,
@@ -42,12 +42,11 @@ import {
   voteFull,
   voteOffline,
   voteStuffed,
-  egalButtonLabel,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=e093dc99";
-import { LOCATIONS } from "./locations.js?v=a93ec85e";
-import { loadMenu } from "./menuFetch.js?v=64fd5683";
+} from "./larryLines.js?v=cac37a42";
+import { LOCATIONS } from "./locations.js?v=d5c051d1";
+import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
   berlinWeekday,
   isVoteDay,
@@ -79,26 +78,29 @@ import {
   votePhase,
   winnerOf,
   heuteDabeiLine,
-} from "./vote.js?v=881e6ec7";
+} from "./vote.js?v=857e7e26";
 import {
   ensureVoteUser,
   listenVotes,
+  loadFeatures,
+  readBadge,
+  requestVeto,
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=466e1abb";
+} from "./voteClient.js?v=367744b9";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=b080c3b7";
+} from "./updateShell.js?v=4b1698b7";
 import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=11924659";
+} from "./devPreview.js?v=dc1f260e";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";
@@ -298,18 +300,22 @@ function popToast(toast) {
   toast.classList.add("is-popping");
 }
 
+let lastHitsMarkup = "";
+
 function renderHits(data, day) {
   if (!hits) return;
   if (menuWeekStale(data)) {
-    const html = hitsHtml({
+    const trusted = hitsHtml({
       items: [],
       canteens: CANTEENS,
       weekStale: true,
       staleNote: weekStaleHitsNote(lastStandLabel(data.scrapedAt)),
     });
-    const changed = hits.hidden || hits.innerHTML !== html;
+    const markup = String(trusted);
+    const changed = hits.hidden || lastHitsMarkup !== markup;
+    lastHitsMarkup = markup;
     hits.hidden = false;
-    hits.innerHTML = html;
+    setHtml(hits, trusted);
     hits.classList.add("is-week-stale");
     hits.classList.remove("is-sheet-open");
     syncNotices();
@@ -321,17 +327,20 @@ function renderHits(data, day) {
   const saved = listAllFavorites(likes, data.days, day);
   if (!found.length) {
     hits.hidden = true;
-    hits.innerHTML = "";
+    hits.textContent = "";
+    lastHitsMarkup = "";
     hits.classList.remove("is-sheet-open");
     syncNotices();
     return;
   }
   const sheetOpen = hits.classList.contains("is-sheet-open");
-  const html = hitsHtml({ items: found, saved, sheetOpen, canteens: CANTEENS });
-  const changed = hits.hidden || hits.innerHTML !== html;
+  const trusted = hitsHtml({ items: found, saved, sheetOpen, canteens: CANTEENS });
+  const markup = String(trusted);
+  const changed = hits.hidden || lastHitsMarkup !== markup;
+  lastHitsMarkup = markup;
   const gearFocus = document.activeElement?.closest?.(".toast-gear");
   hits.hidden = false;
-  hits.innerHTML = html;
+  setHtml(hits, trusted);
   hits.classList.toggle("is-sheet-open", sheetOpen);
   syncNotices();
   if (gearFocus) hits.querySelector(".toast-gear")?.focus();
@@ -466,18 +475,21 @@ function bindHits() {
 function renderDay(data, day) {
   const block = data.days[day];
   const weekStale = menuWeekStale(data);
-  dayDate.innerHTML = block ? formatDate(block.date) : "";
+  dayDate.textContent = block ? formatDate(block.date) : "";
   if (marketRow) marketRow.hidden = day !== "thursday";
   markWeekStaleChrome(weekStale);
-  board.innerHTML = boardHtml({
-    block,
-    canteens: CANTEENS,
-    sources: data.sources,
-    likes,
-    votingOpen: votingOpen(),
-    showVotes: showVoteMarks(),
-    weekStale,
-  });
+  setHtml(
+    board,
+    boardHtml({
+      block,
+      canteens: CANTEENS,
+      sources: data.sources,
+      likes,
+      votingOpen: votingOpen(),
+      showVotes: showVoteMarks(),
+      weekStale,
+    }),
+  );
   renderHits(data, day);
   applyVoteUi();
   maybeWeekendBoardHint(day);
@@ -654,8 +666,9 @@ function applyVoteUi() {
     egalVote.disabled = !open;
     egalVote.classList.toggle("is-on", pressed);
     egalVote.setAttribute("aria-pressed", String(pressed));
-    const label = egalButtonLabel(pressed, berlinDate());
-    const labelEl = egalVote.querySelector(".escape-label");
+    const names = roundNicks(votes.records);
+    const label = pressed ? "dabei" : names.length ? "auch dabei?" : "ohne Vote dabei";
+    const labelEl = egalVote.querySelector(".dabei-label");
     if (labelEl) labelEl.textContent = label;
     else egalVote.textContent = label;
     egalVote.setAttribute("aria-label", pressed ? `${label} — mit in der Runde` : label);
@@ -779,9 +792,10 @@ function buildRevealStrip(winner) {
   if (labels.length > 1 && labels[labels.length - 2] === winner) {
     labels[labels.length - 2] = pool.find((label) => label !== winner) || winner;
   }
-  revealStrip.innerHTML = labels
-    .map((label) => `<span class="reveal-item">${escapeHtml(label)}</span>`)
-    .join("");
+  setHtml(
+    revealStrip,
+    html`${labels.map((label) => html`<span class="reveal-item">${label}</span>`)}`,
+  );
   revealStrip.style.transition = "none";
   revealStrip.style.transform = "translateY(0)";
 }
@@ -915,9 +929,9 @@ function syncNickButton() {
   }
   const code = loadRoundCode();
   nickEdit.hidden = false;
-  nickEdit.innerHTML = code
-    ? `Spitzname: ${escapeHtml(nick)} · ${escapeHtml(code)}`
-    : `Spitzname: ${escapeHtml(nick)}`;
+  nickEdit.textContent = code
+    ? `Spitzname: ${nick} · ${code}`
+    : `Spitzname: ${nick}`;
 }
 
 function askOptIn() {
@@ -1063,6 +1077,7 @@ async function handleVote(canteen) {
       voteState.records,
     );
     applyVoteUi();
+    maybeAskEat(voteState.mine);
   } catch (err) {
     console.warn(err);
     const msg = String(err?.message || err);
@@ -1074,6 +1089,40 @@ async function handleVote(canteen) {
     }
   }
 }
+
+const EAT_ASK_KEY = "lunchtime-larry-eat-ask";
+
+function rememberEatAsk() {
+  try {
+    localStorage.setItem(EAT_ASK_KEY, berlinDate());
+  } catch {
+    /* private mode */
+  }
+}
+
+function maybeAskEat(mine) {
+  if (!mine?.picks?.length) return;
+  try {
+    if (localStorage.getItem(EAT_ASK_KEY) === berlinDate()) return;
+  } catch {
+    return;
+  }
+  rememberEatAsk();
+  sayLarry({
+    kicker: "Kurz",
+    line: "Hast du Lust, Wer isst was zu spielen?",
+    choices: true,
+  });
+}
+
+document.querySelector("#eat-yes")?.addEventListener("click", () => {
+  rememberEatAsk();
+  window.location.href = "./wer-isst-was.html";
+});
+document.querySelector("#eat-no")?.addEventListener("click", () => {
+  rememberEatAsk();
+  document.querySelector(".larry-dismiss")?.click();
+});
 
 async function handleEgal() {
   if (!votingOpen()) return;
@@ -1235,6 +1284,17 @@ function startVotes({ force = false } = {}) {
       /* offline or missing database */
     }
     listenVotes(onVotes);
+    loadFeatures()
+      .then(async (features) => {
+        if (features?.vetoOverride) await requestVeto("feature");
+        const badge = document.querySelector("#score-badge");
+        if (!badge || !loadRoundCode()) return;
+        const row = await readBadge();
+        if (!row || typeof row.points !== "number") return;
+        badge.hidden = false;
+        badge.textContent = `Woche · ${row.points}`;
+      })
+      .catch(() => {});
   };
   boot();
 }

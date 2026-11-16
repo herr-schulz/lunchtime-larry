@@ -1,7 +1,7 @@
-import { listReelDishes } from "./dice.js?v=d68df4b5";
-import { escapeHtml } from "./dom.js?v=55e28ecf";
-import { dishKey, phraseDish } from "./likes.js?v=16f9871b";
-import { berlinDate } from "./vote.js?v=881e6ec7";
+import { listReelDishes } from "./dice.js?v=ca08ab4d";
+import { html, setHtml } from "./dom.js?v=d3d5b527";
+import { dishKey, phraseDish } from "./likes.js?v=9db8d9ec";
+import { berlinDate } from "./vote.js?v=857e7e26";
 
 export const REEL_COPIES = 3;
 export const OVERSHOOT_PX = 2;
@@ -93,17 +93,17 @@ export function spotEntries(locations) {
 
 export function reelMarkup(entries, copies = REEL_COPIES) {
   if (!entries?.length) {
-    return `<div class="reel-row is-empty"><span class="reel-label">Nichts auf dem Zettel.</span></div>`;
+    return html`<div class="reel-row is-empty"><span class="reel-label">Nichts auf dem Zettel.</span></div>`;
   }
   const rows = [];
   for (let copy = 0; copy < copies; copy += 1) {
     entries.forEach((entry, index) => {
       rows.push(
-        `<div class="reel-row" data-copy="${copy}" data-index="${index}"><span class="reel-label">${escapeHtml(entry.label)}</span></div>`,
+        html`<div class="reel-row" data-copy="${copy}" data-index="${index}"><span class="reel-label">${entry.label}</span></div>`,
       );
     });
   }
-  return rows.join("");
+  return html`${rows}`;
 }
 
 /** translateY that parks `index` of the given copy in the center row. */
@@ -201,7 +201,7 @@ export function mountDice({
 
   function paint(parkIndex = 0) {
     const entries = getEntries(mode) ?? [];
-    strip.innerHTML = reelMarkup(entries);
+    setHtml(strip, reelMarkup(entries));
     const y = reelTranslateY({
       length: entries.length,
       index: parkIndex,

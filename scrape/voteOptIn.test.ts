@@ -46,7 +46,8 @@ describe("vote opt-in and first visit", () => {
     expect(client).toMatch(/votesPath\(day, loadRoundCode\(\)\)/);
     expect(client).not.toMatch(/votesPath\(day\)/);
     const app = readFileSync("site/app.js", "utf8");
-    expect(app).toMatch(/escapeHtml\(code\)/);
+    expect(app).toMatch(/nickEdit\.textContent = code\s*\?\s*`Spitzname: \$\{nick\} · \$\{code\}`/);
+    expect(app).not.toMatch(/nickEdit\.innerHTML/);
   });
 
   it("puts Mitstimmen in the footer and Abstimmen on the opt-in dialog", () => {
@@ -56,9 +57,8 @@ describe("vote opt-in and first visit", () => {
     );
     expect(document.querySelector("#optin-dialog h2")?.textContent).toBe("Deine Runde");
     expect(document.querySelector("#optin-dialog h2")?.textContent).not.toMatch(/6er/);
-    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Mit in der Runde\?/);
-    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Ich bin dabei/);
-    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/Kantine egal/);
+    expect(document.querySelector("#egal-vote")?.textContent).toMatch(/auch dabei\?/);
+    expect(document.querySelector("#egal-vote")?.closest(".day-band")).toBeTruthy();
     expect(document.querySelector("#egal-vote")?.hasAttribute("hidden")).toBe(true);
     expect(document.querySelector("#welcome-edit")?.textContent).toBe("Name/Runde ändern");
     expect(document.querySelector("#welcome-leave")?.textContent).toBe("Runde verlassen");

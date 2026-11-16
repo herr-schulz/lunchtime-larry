@@ -2,10 +2,31 @@
   "database": {
     "rules": "database.rules.json"
   },
+  "emulators": {
+    "database": { "port": 9000 },
+    "singleProjectMode": true
+  },
   "hosting": {
     "public": "site",
-    "ignore": ["**/.*", "**/node_modules/**"],
+    "ignore": ["**/node_modules/**", "**/.nojekyll", "**/.gitkeep", "**/.DS_Store"],
     "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Content-Security-Policy",
+            "value": "default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://www.gstatic.com/recaptcha/ https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.google.com https://gc.zgo.at https://lunchtime-larry.goatcounter.com https://herr-schulz.github.io wss://*.firebaseio.com wss://*.firebasedatabase.app; frame-src https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'; trusted-types larry"
+          },
+          { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "no-referrer" },
+          {
+            "key": "Permissions-Policy",
+            "value": "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=()"
+          },
+          { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" }
+        ]
+      },
       {
         "source": "/data/menu.json",
         "headers": [{ "key": "Cache-Control", "value": "no-store" }]

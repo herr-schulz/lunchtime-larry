@@ -5,10 +5,12 @@ import {
   foldDay,
   foldNicks,
   hourBands,
+  isDesk,
   isoWeekKey,
   leadingDays,
   mergeNickTotals,
   peopleRows,
+  personDetail,
   recentDays,
   recentMonths,
   recentWeeks,
@@ -119,26 +121,49 @@ describe("ranges", () => {
     });
     expect(rows.map((row) => row.name)).toEqual(["Ada", "Benno"]);
     expect(rows[0].picks[0]).toEqual({ id: "stmuv", n: 4 });
+    expect(rows[0].days).toBe(0);
+  });
+
+  it("says how many days a person joined and where they went", () => {
+    const [ada] = peopleRows({
+      Ada: {
+        stmuv: 2,
+        sodexo: 0,
+        bella23: 1,
+        wochenmarkt: 0,
+        egal: 0,
+        days: { "2026-10-21": true, "2026-10-23": true },
+      },
+    });
+    expect(ada.days).toBe(2);
+    expect(personDetail(ada)).toBe(
+      "war an 2 Tagen dabei und hat 2 Mal StMUV und 1 Mal Bella 23 gewählt. Eine zweite Kantine am selben Tag zählt extra.",
+    );
+    expect(personDetail({ name: "Benno", total: 1, days: 1, picks: [{ id: "stmuv", n: 1 }] })).toBe(
+      "war an einem Tag dabei: 1 Mal StMUV.",
+    );
+  });
+
+  it("opens the other groups only with the desk claim", () => {
+    expect(isDesk("Sven", "aiteam", true)).toBe(true);
+    expect(isDesk("Sven", "aiteam")).toBe(false);
+    expect(isDesk("Ada", "aiteam", false)).toBe(false);
   });
 });
 
 describe("tally rules", () => {
   const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
 
-  it("does not list every round and creates a day only once", () => {
+  it("keeps the directory desk-only and freezes legacy tallies", () => {
     expect(rules.tallies[".read"]).toBeUndefined();
     expect(rules.tallies.rounds[".read"]).toBeUndefined();
+    expect(rules.tallies.directory[".read"]).toMatch(/auth\.token\.desk/);
+    expect(rules.tallies.directory.$code.days[".write"]).toBe(false);
+    expect(rules.tallies.directory.$code.last[".write"]).toBe(false);
     const round = rules.tallies.rounds.$code;
-    expect(round[".read"]).toMatch(/a-z0-9-/);
-    const day = round.days.$day;
-    expect(day[".write"]).toMatch(/!data\.exists\(\)/);
-    expect(day[".write"]).toMatch(/\$day < root\.child\('meta\/voteDay'\)/);
-    expect(day[".validate"]).toMatch(/second/);
-    expect(day.$field[".validate"]).toMatch(/<= 24/);
-    const nick = round.nicks.$nick;
-    expect(nick[".write"]).toMatch(/A-Za-z/);
-    expect(nick[".validate"]).toMatch(/\+ 24/);
-    expect(nick.days.$date[".validate"]).toMatch(/== true/);
+    expect(round[".read"]).toMatch(/a-f0-9/);
+    expect(round.days[".write"]).toBe(false);
+    expect(round.nicks[".write"]).toBe(false);
   });
 });
 
@@ -177,6 +202,12 @@ describe("visit pixel", () => {
     expect(list).not.toContain("Tritt einer Runde bei");
     expect(list).toContain("Zurück zu Larry");
     expect(list).toContain("https://lunchtime-larry.goatcounter.com/");
+    expect(list).toContain("nicht nach Runden getrennt");
+    const page = readFileSync("site/strichliste.js", "utf8");
+    expect(page).toContain("Die Auszählung kommt um 12 Uhr.");
+    expect(page).toContain("Grün ist StMUV");
+    expect(page).toContain("hasDeskClaim");
+    expect(page).toContain("isDesk(loadNick(), code, await hasDeskClaim())");
   });
 
   it("reads the formatted total and stays blank when the counter is off", async () => {
