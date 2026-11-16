@@ -192,6 +192,7 @@ const appAfter = appBefore
   .replace(/(\.\/calendar\.js)(?:\?v=[^"']*)?/g, `./calendar.js?v=${calendarHash}`)
   .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
   .replace(/(\.\/menuFetch\.js)(?:\?v=[^"']*)?/g, `./menuFetch.js?v=${menuFetchHash}`)
+  .replace(/(\.\/skinGuard\.js)(?:\?v=[^"']*)?/g, `./skinGuard.js?v=${await hashFile("skinGuard.js")}`)
   .replace(/(\.\/boardRender\.js)(?:\?v=[^"']*)?/g, `./boardRender.js?v=${boardRenderHash}`)
   .replace(/(\.\/boardGestures\.js)(?:\?v=[^"']*)?/g, `./boardGestures.js?v=${boardGesturesHash}`)
   .replace(/(\.\/dice\.js)(?:\?v=[^"']*)?/g, `./dice.js?v=${diceHash}`)

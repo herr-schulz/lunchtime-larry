@@ -47,6 +47,7 @@ import {
 } from "./larryLines.js?v=cac37a42";
 import { LOCATIONS } from "./locations.js?v=2dcdf871";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
+import { watchSkin } from "./skinGuard.js?v=df1aa58d";
 import {
   berlinWeekday,
   isVoteDay,
@@ -1423,6 +1424,7 @@ function registerServiceWorker() {
 }
 
 try {
+  watchSkin();
   bindLarryCorner();
   bindHits();
   bindUpdateBanner();

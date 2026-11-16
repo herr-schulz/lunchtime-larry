@@ -20,6 +20,7 @@ const SHELL = [
   "./calendar.js",
   "./dom.js",
   "./menuFetch.js",
+  "./skinGuard.js",
   "./boardRender.js",
   "./boardGestures.js",
   "./dice.js",
