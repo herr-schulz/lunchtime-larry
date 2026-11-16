@@ -10,7 +10,7 @@ import {
   watchBerlinMidnight,
 } from "./calendar.js?v=82a88a6a";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=d6d5734e";
-import { html, setHtml } from "./dom.js?v=fef89c0f";
+import { html, setHtml } from "./dom.js?v=6b123156";
 import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
 import {
   berlinWeekMonday,
@@ -18,9 +18,9 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=7535fdd0";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=ed346771";
-import { applyPenMark } from "./icons.js?v=1393df62";
+} from "./diceReel.js?v=a71ad46d";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=10e8b96c";
+import { applyPenMark } from "./icons.js?v=952ff298";
 import {
   alarmLabel,
   dishKey,
@@ -45,7 +45,7 @@ import {
   weekStaleHitsNote,
   winnerTie,
 } from "./larryLines.js?v=cac37a42";
-import { LOCATIONS } from "./locations.js?v=8917343f";
+import { LOCATIONS } from "./locations.js?v=2dcdf871";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
   berlinWeekday,
@@ -1544,7 +1544,8 @@ try {
     run: runDevPhase,
     phaseLabel: syncDevPhaseLabel,
   });
-} catch {
+} catch (err) {
+  console.error("larry boot failed", err);
   empty.hidden = false;
   stamp.textContent = "Stand: noch kein Crawl";
   const fallback = todayKey();

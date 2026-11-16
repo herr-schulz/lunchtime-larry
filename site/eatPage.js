@@ -1,5 +1,5 @@
 import CANTEENS from "./canteens.json" with { type: "json" };
-import { escapeHtml, html, setHtml } from "./dom.js?v=d3d5b527";
+import { escapeHtml, html, setHtml } from "./dom.js?v=6b123156";
 import {
   gameMains,
   isPlateId,
