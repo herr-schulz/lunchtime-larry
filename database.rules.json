@@ -131,7 +131,7 @@
         "$code": {
           ".validate": "$code.matches(/^[a-f0-9]{64}$/)",
           "label": {
-            ".write": "auth != null && $code.matches(/^[a-f0-9]{64}$/) && newData.isString() && newData.val().matches(/^[A-Za-zÄÖÜäöüß0-9 '._-]{1,40}$/) && (!data.exists() || data.val() == newData.val())"
+            ".write": "auth != null && auth.token.desk == true && $code.matches(/^[a-f0-9]{64}$/) && newData.isString() && newData.val().matches(/^[A-Za-zÄÖÜäöüß0-9 '._-]{1,40}$/) && (!data.exists() || data.val() == newData.val())"
           },
           "last": {
             ".write": false

@@ -8,9 +8,9 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=31cf002b";
+} from "./calendar.js?v=82a88a6a";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=d6d5734e";
-import { html, setHtml } from "./dom.js?v=d3d5b527";
+import { html, setHtml } from "./dom.js?v=fef89c0f";
 import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
 import {
   berlinWeekMonday,
@@ -18,9 +18,9 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=ef7db429";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=71dde6e5";
-import { applyPenMark } from "./icons.js?v=0e5f763d";
+} from "./diceReel.js?v=7535fdd0";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=ed346771";
+import { applyPenMark } from "./icons.js?v=1393df62";
 import {
   alarmLabel,
   dishKey,
@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=4c1eats1";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=955974d9";
 import {
   favoritePoint,
   favoriteToday,
@@ -45,7 +45,7 @@ import {
   weekStaleHitsNote,
   winnerTie,
 } from "./larryLines.js?v=cac37a42";
-import { LOCATIONS } from "./locations.js?v=d5c051d1";
+import { LOCATIONS } from "./locations.js?v=8917343f";
 import { loadMenu } from "./menuFetch.js?v=99f0e614";
 import {
   berlinWeekday,
@@ -78,7 +78,7 @@ import {
   votePhase,
   winnerOf,
   heuteDabeiLine,
-} from "./vote.js?v=857e7e26";
+} from "./vote.js?v=4d6bd53e";
 import {
   ensureVoteUser,
   listenVotes,
@@ -88,7 +88,7 @@ import {
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=367744b9";
+} from "./voteClient.js?v=7f1275a1";
 import {
   isStaleShell,
   reloadFresh,
