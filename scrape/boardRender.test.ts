@@ -3,7 +3,7 @@ import { boardHtml, hitsHtml } from "../site/boardRender.js";
 import { weekStaleHitsNote } from "../site/larryLines.js";
 
 /** `html\`…\`` may return a String object under the Trusted Types tinyfill. */
-function markup(value) {
+function markup(value: unknown) {
   return String(value);
 }
 
