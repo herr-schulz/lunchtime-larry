@@ -1,10 +1,12 @@
-export function formatDishName(name: string, canteenId?: string): string;
+import type { SafeHtml } from "./dom.js";
+
+export function formatDishName(name: string, canteenId?: string): SafeHtml;
 export function dishRow(
   dish: { name: string; diet?: string; category?: string; price?: string },
   index: number,
   likes: Set<string>,
   canteenId?: string,
-): string;
+): SafeHtml;
 
 export function boardHtml(opts: {
   block:
@@ -26,7 +28,7 @@ export function boardHtml(opts: {
   likes: Set<string>;
   votingOpen: boolean;
   weekStale?: boolean;
-}): string;
+}): SafeHtml;
 
 export function placeAt(
   ids: string[] | null | undefined,
@@ -52,4 +54,4 @@ export function hitsHtml(opts: {
   canteens: Record<string, { name: string }> | null | undefined;
   weekStale?: boolean;
   staleNote?: { kicker?: string; line?: string } | null;
-}): string;
+}): SafeHtml;

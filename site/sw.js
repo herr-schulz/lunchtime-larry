@@ -1,9 +1,12 @@
 /* Lunchtime Larry — shell + menu cache for installed PWA */
-const CACHE = "larry-shell-v53";
+const CACHE = "larry-shell-v54";
 const SHELL = [
   "./",
   "./index.html",
   "./alternativen.html",
+  "./wer-isst-was.html",
+  "./eatPage.js",
+  "./eat.js",
   "./styles.css",
   "./app.js",
   "./likes.js",
@@ -43,6 +46,7 @@ function shouldBypassCache(pathname) {
     file === "sw.js" ||
     file === "index.html" ||
     file === "alternativen.html" ||
+    file === "wer-isst-was.html" ||
     file === "strichliste.html"
   ) {
     return true;

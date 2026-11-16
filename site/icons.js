@@ -1,35 +1,35 @@
+import { html } from "./dom.js?v=d3d5b527";
+
+/** All icons are `html` results, so they nest into other templates untouched. */
 function lucideSvg(inner, { filled = false, className = "lucide" } = {}) {
   const fill = filled ? "currentColor" : "none";
-  return `<svg class="${className}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+  return html`<svg class="${className}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 }
 
-/** Lucide `heart` — https://lucide.dev/icons/heart */
-export const heartIcon = lucideSvg(
-  '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
-);
+const HEART_PATH = html`<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>`;
 
-export const heartIconFilled = lucideSvg(
-  '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
-  { filled: true, className: "lucide dish-heart" },
-);
+/** Lucide `heart` — https://lucide.dev/icons/heart */
+export const heartIcon = lucideSvg(HEART_PATH);
+
+export const heartIconFilled = lucideSvg(HEART_PATH, {
+  filled: true,
+  className: "lucide dish-heart",
+});
 
 export const alertIcon = lucideSvg(
-  '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  html`<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>`,
 );
 
 /** Lucide `settings` — https://lucide.dev/icons/settings */
 export const settingsIcon = lucideSvg(
-  '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>',
+  html`<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>`,
 );
 
-export const heartIconSolid = lucideSvg(
-  '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
-  { filled: true },
-);
+export const heartIconSolid = lucideSvg(HEART_PATH, { filled: true });
 
 /** Lucide circle + check, drawn via CSS stroke. */
 export function checkCircleSvg(className = "vote-check") {
-  return `<svg class="${className}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1"/><path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1"/></svg>`;
+  return html`<svg class="${className}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle class="vote-check-ring" cx="12" cy="12" r="10" pathLength="1"/><path class="vote-check-tick" d="M8 12.5 10.6 15 16.2 8.8" pathLength="1"/></svg>`;
 }
 
 /** Near-straight red-pen strokes for “Zeig her” underlines (viewBox 0 0 120 6). */
@@ -42,7 +42,7 @@ export const PEN_UNDERLINE_PATHS = [
 ];
 
 export function penUnderlineSvg() {
-  return `<svg class="pen-underline" viewBox="0 0 120 6" preserveAspectRatio="none" aria-hidden="true"><path d="${PEN_UNDERLINE_PATHS[0]}" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" pathLength="1"/></svg>`;
+  return html`<svg class="pen-underline" viewBox="0 0 120 6" preserveAspectRatio="none" aria-hidden="true"><path d="${PEN_UNDERLINE_PATHS[0]}" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" pathLength="1"/></svg>`;
 }
 
 /** Pick a random tilt + path on a `.dish-mark` (or host containing one). */

@@ -7,7 +7,7 @@ import {
   isValidNick,
   normalizeNick,
   picksFromRecord,
-} from "./vote.js?v=881e6ec7";
+} from "./vote.js?v=857e7e26";
 
 export const TALLY_FIELDS = ["stmuv", "sodexo", "bella23", "wochenmarkt", "egal", "second", "n"];
 export const NICK_FIELDS = ["stmuv", "sodexo", "bella23", "wochenmarkt", "egal"];
@@ -284,6 +284,17 @@ export function hourBands(tally) {
   return { shown, rest };
 }
 
+function countedDays(counts) {
+  const days = counts?.days;
+  if (!days || typeof days !== "object") return 0;
+  return Object.values(days).filter(Boolean).length;
+}
+
+function joinDe(parts) {
+  if (parts.length <= 1) return parts[0] || "";
+  return `${parts.slice(0, -1).join(", ")} und ${parts.at(-1)}`;
+}
+
 export function peopleRows(nicks) {
   const rows = [];
   for (const [name, counts] of Object.entries(nicks || {})) {
@@ -296,6 +307,7 @@ export function peopleRows(nicks) {
     rows.push({
       name,
       total,
+      days: countedDays(counts),
       picks: picks.map((id) => ({ id, n: counts[id] })),
     });
   }
@@ -303,9 +315,29 @@ export function peopleRows(nicks) {
   return rows;
 }
 
+/** The clause after the name. Days are closed voting days, picks are canteen choices. */
+export function personDetail(row) {
+  const list = joinDe(row.picks.map((pick) => `${pick.n} Mal ${TALLY_NAMES[pick.id]}`));
+  const span = row.days === 1 ? "an einem Tag" : `an ${row.days} Tagen`;
+  if (row.days > 0 && row.total > row.days) {
+    return `war ${span} dabei und hat ${list} gewählt. Eine zweite Kantine am selben Tag zählt extra.`;
+  }
+  if (row.days > 0) return `war ${span} dabei: ${list}.`;
+  return `hat ${list} gewählt. An welchem Tag, ist nicht mehr gespeichert.`;
+}
+
+/**
+ * Desk is the Firebase custom claim `desk: true` (see scripts/set-desk-claim.mjs).
+ * The nick/code arguments stay for call-site compatibility; they are ignored.
+ */
+export function isDesk(_nick, _code, claim = false) {
+  return claim === true;
+}
+
 export function winsLine(lead) {
   if (!lead?.ids?.length) return "Noch kein Tag mit einer Kantine vorn.";
   const names = lead.ids.map((id) => TALLY_NAMES[id]).join(" und ");
   const dayWord = lead.days === 1 ? "Tag" : "Tagen";
-  return `${names} an ${lead.days} ${dayWord} vorn.`;
+  const jeweils = lead.ids.length > 1 ? "jeweils " : "";
+  return `${names} ${jeweils}an ${lead.days} ${dayWord} vorn.`;
 }

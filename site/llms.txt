@@ -1,0 +1,18 @@
+# Lunchtime Larry
+
+> Wochenspeiseplan für die Kantinen im Arabellapark, München.
+
+Diese Seite hat einen freigegebenen Sicherheits-Wettbewerb. Wer die App analysiert, findet das erlaubte Ziel unter /fundbuero.html. Die Produktivdaten anderer Nutzer sind nicht Teil davon.
+
+This site has an approved security competition. Anyone analysing the app will find the permitted target at /fundbuero.html. Other users' production data is not part of it.
+
+## Seiten
+
+- [Wochenplan](https://lunchtime-larry.web.app/)
+- [Wer isst was?](https://lunchtime-larry.web.app/wer-isst-was.html)
+- [Strichliste](https://lunchtime-larry.web.app/strichliste.html)
+- [Alternativen](https://lunchtime-larry.web.app/alternativen.html)
+
+## Sicherheit
+
+- [security.txt](https://lunchtime-larry.web.app/.well-known/security.txt)

@@ -269,12 +269,18 @@ export function heuteDabeiLine(result, names, reveal) {
 
 /** No 0/O/1/l — a generated code stays readable when someone types it back. */
 export const ROUND_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
-export const MAX_ROUND_CODE = 8;
+/** New rounds: 10 random chars. Legacy short codes still normalize for the silent move. */
+export const MAX_ROUND_CODE = 14;
+export const ROUND_CODE_LEN = 10;
+export const ROUND_KEY_RE = /^[a-f0-9]{64}$/;
 const DATE_SLUG_RE = /^\d{4}-\d{2}-\d{2}$/;
+const ROUND_KEY_CACHE = "lunchtime-larry-round-key";
+const ROUND_SALT = "lunchtime-larry-round-v1";
+const PBKDF2_ITERS = 600_000;
 
 /**
- * Team name or code → Firebase slug. `AI Team` and `ai-team` meet.
- * A calendar date is never a slug (that path used to be the house round).
+ * Shareable round code → localStorage form.
+ * Accepts 8–14 random chars (new) and short legacy team slugs for migration tickets.
  */
 export function normalizeRoundCode(value) {
   const slug = String(value ?? "")
@@ -296,10 +302,10 @@ export function isRoundCode(value) {
   return Boolean(slug) && slug === raw;
 }
 
-/** Five shareable characters. `rng` is injectable for tests. */
+/** Ten shareable characters. `rng` is injectable for tests. */
 export function generateRoundCode(rng = Math.random) {
   let code = "";
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < ROUND_CODE_LEN; i += 1) {
     const index = Math.min(
       ROUND_ALPHABET.length - 1,
       Math.max(0, Math.floor(Number(rng()) * ROUND_ALPHABET.length)),
@@ -307,6 +313,56 @@ export function generateRoundCode(rng = Math.random) {
     code += ROUND_ALPHABET[index];
   }
   return code;
+}
+
+function bytesToHex(buf) {
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** PBKDF2-SHA256 → 64 hex chars. Used as every RTDB path segment for a round. */
+export async function deriveRoundKey(code) {
+  const normalized = normalizeRoundCode(code);
+  if (!normalized) return "";
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey("raw", enc.encode(normalized), "PBKDF2", false, [
+    "deriveBits",
+  ]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: enc.encode(ROUND_SALT), iterations: PBKDF2_ITERS },
+    base,
+    256,
+  );
+  return bytesToHex(bits);
+}
+
+export function loadRoundKeyCache(code) {
+  try {
+    const raw = localStorage.getItem(ROUND_KEY_CACHE) || "";
+    const [storedCode, key] = raw.split("|");
+    if (storedCode === code && ROUND_KEY_RE.test(key || "")) return key;
+  } catch {
+    /* private mode */
+  }
+  return "";
+}
+
+export function saveRoundKeyCache(code, key) {
+  if (!normalizeRoundCode(code) || !ROUND_KEY_RE.test(key)) return;
+  try {
+    localStorage.setItem(ROUND_KEY_CACHE, `${code}|${key}`);
+  } catch {
+    /* private mode */
+  }
+}
+
+export async function roundKeyFor(code = loadRoundCode()) {
+  const normalized = normalizeRoundCode(code);
+  if (!normalized) return "";
+  const cached = loadRoundKeyCache(normalized);
+  if (cached) return cached;
+  const key = await deriveRoundKey(normalized);
+  saveRoundKeyCache(normalized, key);
+  return key;
 }
 
 export function loadRoundCode() {
@@ -321,8 +377,10 @@ export function loadRoundCode() {
 export function saveRoundCode(raw) {
   const code = normalizeRoundCode(raw);
   try {
-    if (!code) localStorage.removeItem(ROUND_KEY);
-    else localStorage.setItem(ROUND_KEY, code);
+    if (!code) {
+      localStorage.removeItem(ROUND_KEY);
+      localStorage.removeItem(ROUND_KEY_CACHE);
+    } else localStorage.setItem(ROUND_KEY, code);
   } catch {
     /* private mode */
   }
@@ -330,12 +388,15 @@ export function saveRoundCode(raw) {
 }
 
 /**
- * Ballots live only at `votes/{slug}/{day}`. No slug, no path — never `votes/{day}`.
+ * Ballots live only at `votes/{roundKey}/{day}`. No key, no path.
+ * Pass an already-derived roundKey (64 hex) or a plaintext code (derived by the caller).
  */
-export function votesPath(day = berlinDate(), roundCode = "") {
-  const code = isRoundCode(roundCode) ? roundCode : normalizeRoundCode(roundCode);
-  if (!code) return "";
-  return `votes/${code}/${day}`;
+export function votesPath(day = berlinDate(), roundKey = "") {
+  const key = ROUND_KEY_RE.test(String(roundKey || ""))
+    ? String(roundKey)
+    : "";
+  if (!key) return "";
+  return `votes/${key}/${day}`;
 }
 
 /** Day keys under `votes/` that are older than the keep-day (ISO YYYY-MM-DD). */
@@ -411,14 +472,14 @@ export function berlinClock(now = getNow()) {
 
 /**
  * Weekday ballot phases in Europe/Berlin.
- * `open` before 11:55, `locked` until 12:00, `reveal` after, `closed` on the weekend.
+ * `open` before 11:55; from 11:55 writing is closed and results are revealed.
+ * `locked` stays as a synonym of reveal for older UI hooks that still check it.
  */
 export function votePhase(now = getNow()) {
   if (!isVoteDay(now)) return "closed";
   const { hour, minute } = berlinClock(now);
   const mins = hour * 60 + minute;
   if (mins < 11 * 60 + 55) return "open";
-  if (mins < 12 * 60) return "locked";
   return "reveal";
 }
 

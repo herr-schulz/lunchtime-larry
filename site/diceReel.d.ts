@@ -1,4 +1,5 @@
 import type { DayBlock } from "./dice.js";
+import type { SafeHtml } from "./dom.js";
 
 export const REEL_COPIES: 3;
 export const OVERSHOOT_PX: 2;
@@ -48,7 +49,7 @@ export function spotEntries(
 export function reelMarkup(
   entries: ReadonlyArray<{ label: string }> | null | undefined,
   copies?: number,
-): string;
+): SafeHtml;
 
 export function reelTranslateY(opts: {
   length: number;

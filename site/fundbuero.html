@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://www.gstatic.com/recaptcha/ https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.google.com https://gc.zgo.at https://lunchtime-larry.goatcounter.com https://herr-schulz.github.io wss://*.firebaseio.com wss://*.firebasedatabase.app; frame-src https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'self'; require-trusted-types-for 'script'; trusted-types larry" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="robots" content="noindex" />
+    <title>Fundbüro — Lunchtime Larry</title>
+    <meta name="description" content="Larrys Fundbüro. Hier gibst du Fundstücke ab." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta name="theme-color" content="#241910" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .hunt-form { display: grid; gap: 0.75rem; margin-block: 1rem; }
+      .hunt-form label { display: grid; gap: 0.25rem; font-weight: 600; }
+      .hunt-form input {
+        font: inherit;
+        padding: 0.55rem 0.7rem;
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        background: var(--ticket);
+        color: var(--ink);
+      }
+      .hunt-form button {
+        font: inherit;
+        font-weight: 600;
+        justify-self: start;
+        padding: 0.6rem 1.1rem;
+        border: 0;
+        border-radius: 0.4rem;
+        background: var(--board);
+        color: var(--stamp-ink);
+        cursor: pointer;
+      }
+      .hunt-form button:disabled { opacity: 0.5; cursor: default; }
+      .hunt-status { min-height: 1.4em; color: var(--ink-soft); }
+      .hunt-status[data-tone="ok"] { color: var(--sage); }
+      .hunt-status[data-tone="bad"] { color: var(--danger); }
+      .hunt-hint { padding: 0.75rem 1rem; border-left: 4px solid var(--mustard); background: var(--note-fill); }
+      .hunt-board { padding: 0; list-style: none; display: grid; gap: 0.35rem; }
+      .hunt-board li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.4rem 0; border-bottom: 1px solid var(--rule); }
+      .hunt-board .me { font-weight: 700; }
+      .hunt-uid { font-family: ui-monospace, Consolas, monospace; }
+    </style>
+  </head>
+  <body class="page-strich">
+    <div class="page-shell">
+      <div class="status-bleed" aria-hidden="true"></div>
+      <div class="grain" aria-hidden="true"></div>
+      <header class="masthead">
+        <div class="masthead-lockup">
+          <img
+            class="mascot"
+            src="./lazy-larry.svg"
+            alt=""
+            width="96"
+            height="96"
+          />
+          <div class="masthead-copy">
+            <p class="kicker">Arabellapark · Fundbüro</p>
+            <h1>Larrys Fundbüro</h1>
+            <div class="chrissy-speech">
+              <p class="chrissy-bubble">
+                <span class="chrissy-kicker">Nebenbei</span>
+                <span class="chrissy-line">Hier liegt, was Gäste verloren haben. Vier Fundstücke gibt es. Wer eins gefunden hat, gibt es hier ab.</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main class="strich-sheet">
+        <section class="strich-block">
+          <h2 class="strich-kicker">Fundstück abgeben</h2>
+          <form id="hunt-form" class="hunt-form" autocomplete="off" novalidate>
+            <label>
+              Name (bleibt auf diesem Gerät)
+              <input id="hunt-nick" name="nick" type="text" maxlength="20" />
+            </label>
+            <label>
+              Fundstück 1
+              <input id="hunt-flag-1" name="flag1" type="text" maxlength="64" spellcheck="false" />
+            </label>
+            <label>
+              Fundstück 2
+              <input id="hunt-flag-2" name="flag2" type="text" maxlength="64" spellcheck="false" />
+            </label>
+            <label>
+              Fundstück 3
+              <input id="hunt-flag-3" name="flag3" type="text" maxlength="64" spellcheck="false" />
+            </label>
+            <label>
+              Fundstück 4
+              <input id="hunt-flag-4" name="flag4" type="text" maxlength="64" spellcheck="false" />
+            </label>
+            <button id="hunt-submit" type="submit">Abgeben</button>
+          </form>
+          <p id="hunt-status" class="hunt-status" role="status" aria-live="polite"></p>
+          <p id="hunt-hint" class="hunt-hint" hidden></p>
+        </section>
+        <section class="strich-block">
+          <h2 class="strich-kicker">Fundliste</h2>
+          <p class="strich-note">Wie viele Fundstücke pro Gerät abgegeben wurden.</p>
+          <ol id="hunt-board" class="hunt-board" aria-busy="true"></ol>
+        </section>
+      </main>
+      <footer class="colophon alt-footer">
+        <a class="back-cta" href="./">
+          <span aria-hidden="true">←</span>
+          Zurück zu Larry
+        </a>
+      </footer>
+    </div>
+    <script src="./fundbuero.js" type="module"></script>
+  </body>
+</html>

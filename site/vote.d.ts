@@ -92,13 +92,19 @@ export function heuteDabeiLine(
   reveal: boolean,
 ): string;
 export const ROUND_ALPHABET: string;
-export const MAX_ROUND_CODE: 8;
+export const MAX_ROUND_CODE: 14;
+export const ROUND_CODE_LEN: 10;
+export const ROUND_KEY_RE: RegExp;
 export function normalizeRoundCode(value: unknown): string;
 export function isRoundCode(value: unknown): boolean;
 export function generateRoundCode(rng?: () => number): string;
+export function deriveRoundKey(code: string): Promise<string>;
+export function roundKeyFor(code?: string): Promise<string>;
+export function loadRoundKeyCache(code: string): string;
+export function saveRoundKeyCache(code: string, key: string): void;
 export function loadRoundCode(): string;
 export function saveRoundCode(raw: unknown): string;
-export function votesPath(day?: string, roundCode?: string | null): string;
+export function votesPath(day?: string, roundKey?: string | null): string;
 export function staleVoteDays(keys: string[], keepDay: string): string[];
 export function mySlot(
   records: VoteRecords | null | undefined,

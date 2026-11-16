@@ -281,15 +281,16 @@ describe("round slug", () => {
     expect(normalizeRoundCode("foo.bar")).toBe("foobar");
     expect(normalizeRoundCode("a$b#c")).toBe("abc");
     expect(normalizeRoundCode("abcdefgh")).toBe("abcdefgh");
-    expect(normalizeRoundCode("abcdefghi")).toBe("");
+    expect(normalizeRoundCode("abcdefghi")).toBe("abcdefghi");
+    expect(normalizeRoundCode("a".repeat(15))).toBe("");
   });
 
-  it("rolls five characters without 0, O, 1, or l", () => {
+  it("rolls ten characters without 0, O, 1, or l", () => {
     expect(ROUND_ALPHABET).not.toMatch(/[01lo]/);
-    expect(generateRoundCode(() => 0)).toBe("aaaaa");
-    expect(generateRoundCode(() => 0.999)).toHaveLength(5);
+    expect(generateRoundCode(() => 0)).toBe("aaaaaaaaaa");
+    expect(generateRoundCode(() => 0.999)).toHaveLength(10);
     expect(generateRoundCode(() => 0.999)).toMatch(
-      new RegExp(`^[${ROUND_ALPHABET}]{5}$`),
+      new RegExp(`^[${ROUND_ALPHABET}]{10}$`),
     );
   });
 });
@@ -301,14 +302,12 @@ describe("votesPath", () => {
     expect(votesPath("2026-09-22", "2026-09-22")).toBe("");
   });
 
-  it("nests both spellings of a team under the same day", () => {
+  it("nests under a derived round key, never plaintext", () => {
     const thursday = new Date("2026-09-03T12:00:00+02:00");
     expect(ballotDate(thursday)).toBe("2026-09-03");
-    expect(votesPath("2026-09-04", "AI-Team")).toBe("votes/ai-team/2026-09-04");
-    expect(votesPath("2026-09-04", "ai-team")).toBe("votes/ai-team/2026-09-04");
-    expect(votesPath(berlinDate(thursday), generateRoundCode(() => 0))).toBe(
-      "votes/aaaaa/2026-09-03",
-    );
+    const key = "ab".repeat(32);
+    expect(votesPath("2026-09-04", key)).toBe(`votes/${key}/2026-09-04`);
+    expect(votesPath("2026-09-04", "ai-team")).toBe("");
   });
 });
 
@@ -363,15 +362,15 @@ describe("thursday market", () => {
 describe("round rules", () => {
   const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules;
 
-  it("writes ballots only under a slug, never on a bare date", () => {
+  it("writes ballots only under a round key, never on a bare date", () => {
     expect(rules.votes[".read"]).toBeUndefined();
     const key = rules.votes.$key;
-    expect(key.$child.$slot[".write"]).toMatch(/a-z0-9-/);
-    expect(key.$child.$slot[".write"]).toMatch(/!\$key\.matches/);
+    expect(key.$child.$slot[".write"]).toMatch(/a-f0-9/);
     expect(key.$child.$slot[".write"]).toMatch(/2\[0-3\]/);
     expect(key.$child.$slot[".write"]).toMatch(/auth\.uid/);
+    expect(key.$child.$slot[".write"]).toMatch(/calendar/);
     expect(key.$child[".write"]).not.toMatch(/\$key == root\.child\('meta\/voteDay'\)/);
-    expect(key[".write"]).toMatch(/!newData\.exists\(\)/);
+    expect(key[".write"]).toBeUndefined();
     expect(key.$child[".write"]).toMatch(/\$child < root\.child\('meta\/voteDay'\)/);
   });
 });
@@ -440,10 +439,9 @@ describe("canAcceptVote", () => {
 describe("votePhase", () => {
   const at = (clock: string) => new Date(`2026-09-22T${clock}:00+02:00`);
 
-  it("stays open until 11:55, locks, then reveals at noon", () => {
+  it("stays open until 11:55, then reveals", () => {
     expect(votePhase(at("11:54"))).toBe("open");
-    expect(votePhase(at("11:55"))).toBe("locked");
-    expect(votePhase(at("11:59"))).toBe("locked");
+    expect(votePhase(at("11:55"))).toBe("reveal");
     expect(votePhase(at("12:00"))).toBe("reveal");
   });
 

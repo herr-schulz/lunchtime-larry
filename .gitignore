@@ -17,3 +17,6 @@ Thumbs.db
 .env.*
 .firebase/
 lunchtime-larry.ai
+*-debug.log
+/calendar.json
+pages-dist/
