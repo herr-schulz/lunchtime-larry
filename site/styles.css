@@ -4050,8 +4050,25 @@ body:not(.page-alternatives) .colophon {
   position: fixed;
   inset: 0;
   z-index: 0;
-  opacity: 0.55;
-  mix-blend-mode: multiply;
+  opacity: 0.85;
+  mix-blend-mode: screen;
+}
+
+html.is-hacktime {
+  /* Paint over leftover brown chrome the plugin often skips. */
+  --board: #072010 !important;
+  --board-shadow: #39ff1440 !important;
+  --tab-muted: #1a3d28 !important;
+  --ink-soft: #8fd99a !important;
+  --rule: #1f4a30 !important;
+  color-scheme: dark;
+}
+
+html.is-hacktime body {
+  background:
+    radial-gradient(900px 420px at 12% -8%, #143d22 0%, transparent 55%),
+    radial-gradient(700px 360px at 100% 0%, #0c2818 0%, transparent 50%),
+    #040c06;
 }
 
 html.is-hacktime .page-shell,
@@ -4073,8 +4090,28 @@ html.is-hacktime .masthead .lede {
   font-size: 0.95rem;
 }
 
+/* SVG fill is hardcoded brown (#241910) — recolor via filter. */
+html.is-hacktime .mascot {
+  filter: brightness(0) saturate(100%) invert(71%) sepia(98%) saturate(1200%)
+    hue-rotate(70deg) brightness(1.15) drop-shadow(0 0 8px #39ff14aa);
+}
+
+html.is-hacktime .days {
+  background: #072010;
+  box-shadow: 0 18px 40px #39ff1428;
+}
+
+html.is-hacktime .days button {
+  color: #9fe6a8;
+}
+
+html.is-hacktime .days button[aria-selected="true"] {
+  background: #d8ffe0;
+  color: #062010;
+}
+
 html.is-hacktime .grain {
-  opacity: 0.35;
+  opacity: 0.2;
   z-index: 0;
 }
 
