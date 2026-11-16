@@ -8,7 +8,7 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=82a88a6a";
+} from "./calendar.js?v=cd46c84a";
 import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=d6d5734e";
 import { html, setHtml } from "./dom.js?v=6b123156";
 import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
@@ -476,7 +476,8 @@ function bindHits() {
 function renderDay(data, day) {
   const block = data.days[day];
   const weekStale = menuWeekStale(data);
-  dayDate.textContent = block ? formatDate(block.date) : "";
+  if (block) setHtml(dayDate, formatDate(block.date));
+  else if (dayDate) dayDate.textContent = "";
   if (marketRow) marketRow.hidden = day !== "thursday";
   markWeekStaleChrome(weekStale);
   setHtml(

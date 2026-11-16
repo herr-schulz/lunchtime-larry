@@ -1,5 +1,6 @@
 /** Berlin-calendar helpers and weekday labels for the board. */
 
+import { html } from "./dom.js?v=6b123156";
 import { berlinDate, getNow } from "./vote.js?v=4d6bd53e";
 
 export const DAYS = {
@@ -72,7 +73,7 @@ export function formatDate(iso) {
   })
     .format(date)
     .replace(/\s+/g, "\u00A0");
-  return `<span class="weekday">${weekday}</span><span class="when">${when}</span>`;
+  return html`<span class="weekday">${weekday}</span><span class="when">${when}</span>`;
 }
 
 export function formatStamp(iso) {
