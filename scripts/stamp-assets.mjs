@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,14 +36,45 @@ async function hashFile(name) {
 }
 
 const likesHash = await hashFile("likes.js");
-const iconsHash = await hashFile("icons.js");
 const voteHash = await hashFile("vote.js");
 const larryLinesHash = await hashFile("larryLines.js");
-const locationsHash = await hashFile("locations.js");
 const domHash = await hashFile("dom.js");
 const menuFetchHash = await hashFile("menuFetch.js");
 const firebaseHash = await hashFile("firebase.json");
 const diceHash = await hashFile("dice.js");
+
+const iconsPath = join(site, "icons.js");
+const iconsBefore = await readFile(iconsPath, "utf8");
+const iconsAfter = iconsBefore.replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`);
+if (iconsAfter !== iconsBefore) {
+  await writeFile(iconsPath, iconsAfter);
+  console.log("stamped icons.js imports");
+}
+const iconsHash = await hashFile("icons.js");
+
+const locationsPath = join(site, "locations.js");
+const locationsBefore = await readFile(locationsPath, "utf8");
+const locationsAfter = locationsBefore.replace(
+  /(\.\/dom\.js)(?:\?v=[^"']*)?/g,
+  `./dom.js?v=${domHash}`,
+);
+if (locationsAfter !== locationsBefore) {
+  await writeFile(locationsPath, locationsAfter);
+  console.log("stamped locations.js imports");
+}
+const locationsHash = await hashFile("locations.js");
+
+const eatPagePath = join(site, "eatPage.js");
+if (existsSync(eatPagePath)) {
+  const eatBefore = await readFile(eatPagePath, "utf8");
+  const eatAfter = eatBefore
+    .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
+    .replace(/(\.\/menuFetch\.js)(?:\?v=[^"']*)?/g, `./menuFetch.js?v=${menuFetchHash}`);
+  if (eatAfter !== eatBefore) {
+    await writeFile(eatPagePath, eatAfter);
+    console.log("stamped eatPage.js imports");
+  }
+}
 
 const calendarPath = join(site, "calendar.js");
 const calendarBefore = await readFile(calendarPath, "utf8");

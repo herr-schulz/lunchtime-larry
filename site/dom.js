@@ -42,13 +42,30 @@ function asRaw(value) {
   return value && typeof value === "object" && value[RAW] != null ? value[RAW] : null;
 }
 
+const POLICY_KEY = "__larryTrustedTypesPolicy";
 let policy;
+
+/**
+ * One policy for the whole page. Different ?v= imports of this file are
+ * separate modules — without a global stash, the second createPolicy("larry")
+ * throws and the board boot falls into the empty-menu catch.
+ */
 function larryPolicy() {
   if (policy) return policy;
+  if (globalThis[POLICY_KEY]) {
+    policy = globalThis[POLICY_KEY];
+    return policy;
+  }
   const api = globalThis.trustedTypes;
-  policy = api?.createPolicy?.("larry", {
-    createHTML: (s) => s,
-  }) ?? { createHTML: (s) => s };
+  try {
+    policy =
+      api?.createPolicy?.("larry", {
+        createHTML: (s) => s,
+      }) ?? { createHTML: (s) => s };
+  } catch {
+    policy = { createHTML: (s) => s };
+  }
+  globalThis[POLICY_KEY] = policy;
   return policy;
 }
 

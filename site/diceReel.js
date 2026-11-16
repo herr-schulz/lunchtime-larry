@@ -1,5 +1,5 @@
 import { listReelDishes } from "./dice.js?v=ca08ab4d";
-import { html, setHtml } from "./dom.js?v=fef89c0f";
+import { html, setHtml } from "./dom.js?v=6b123156";
 import { dishKey, phraseDish } from "./likes.js?v=9db8d9ec";
 import { berlinDate } from "./vote.js?v=4d6bd53e";
 

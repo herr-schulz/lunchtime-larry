@@ -1,4 +1,4 @@
-import { html } from "./dom.js?v=d3d5b527";
+import { html } from "./dom.js?v=6b123156";
 
 /** All icons are `html` results, so they nest into other templates untouched. */
 function lucideSvg(inner, { filled = false, className = "lucide" } = {}) {

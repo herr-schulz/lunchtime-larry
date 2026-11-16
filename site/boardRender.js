@@ -1,7 +1,7 @@
 /** Pure HTML builders for the canteen board (no DOM writes). */
 
-import { html, safeUrl } from "./dom.js?v=fef89c0f";
-import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=1393df62";
+import { html, safeUrl } from "./dom.js?v=6b123156";
+import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=952ff298";
 import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=9db8d9ec";
 
 const DIET = {
