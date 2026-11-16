@@ -141,18 +141,23 @@ function tickRain() {
   const ctx = canvas.getContext("2d");
   const w = window.innerWidth;
   const h = window.innerHeight;
-  ctx.fillStyle = "rgba(4, 12, 6, 0.08)";
+  // Slow fade keeps longer trails; dark veil so glyphs pop on any theme.
+  ctx.fillStyle = "rgba(2, 8, 4, 0.14)";
   ctx.fillRect(0, 0, w, h);
-  ctx.font = "14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
-  const colW = 16;
+  ctx.font = "15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+  const colW = 15;
   for (let i = 0; i < columns.length; i += 1) {
     const ch = GLYPHS[(Math.random() * GLYPHS.length) | 0];
     const x = i * colW;
     const y = columns[i];
-    ctx.fillStyle = i % 7 === 0 ? "#d7ffe0" : "#39ff14";
+    const head = i % 5 === 0;
+    ctx.shadowColor = head ? "#b6ffc0" : "#39ff14";
+    ctx.shadowBlur = head ? 12 : 6;
+    ctx.fillStyle = head ? "#eaffef" : "#3dff4a";
     ctx.fillText(ch, x, y);
-    columns[i] = y > h + Math.random() * 80 ? 0 : y + 14 + Math.random() * 8;
+    columns[i] = y > h + Math.random() * 80 ? 0 : y + 12 + Math.random() * 10;
   }
+  ctx.shadowBlur = 0;
   raf = window.requestAnimationFrame(tickRain);
 }
 
