@@ -25,6 +25,7 @@ import {
   voteTargetIds,
   votesPath,
 } from "./vote.js?v=4d6bd53e";
+import { stateFromPresent } from "./voteMarks.js?v=e1793dc6";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 const FIREBASE_VER = "11.10.0";
@@ -346,7 +347,11 @@ function emptyVoteState(day) {
   };
 }
 
-/** Before 11:55: present names only. At/after lock: full ballots. */
+/**
+ * Before lock the day tree is sealed, so names come from `present` and our
+ * checkmarks from the live seat ballot. One emit keeps the nick and the marks
+ * together. After lock the whole day is readable.
+ */
 export function listenVotes(onChange) {
   unsub?.();
   unsub = null;
@@ -370,80 +375,59 @@ export function listenVotes(onChange) {
       const lockAt = Number(cal.l) || 0;
       const revealed = lockAt > 0 && serverNow() >= lockAt;
 
-      const emitPresent = (presentMap) => {
-        const present = presentMap && typeof presentMap === "object" ? presentMap : {};
-        const fake = {};
-        let i = 0;
-        for (const [id, nick] of Object.entries(present)) {
-          if (!UID_RE.test(id) || !isValidNick(nick)) continue;
-          fake[String(i++)] = { uid: id, nick, canteen: "egal", at: 0 };
-        }
-        onChange({
-          day,
-          records: fake,
-          present,
-          counts: countVotes({}),
-          mine: emptyMine(),
-          uid,
-          revealed: false,
-        });
-      };
-
       if (!revealed) {
-        const handle = onValue(
-          ref(db, presentPath(day, key)),
-          (snap) => emitPresent(snap.val() || {}),
-          () => {},
-        );
-        const ownPath = dayVotesPath(key, day);
-        const seatPath = `${seatsPath(day, key)}/${uid || "x"}`;
+        let presentMap = {};
         let ownRec = null;
-        if (uid) {
-          try {
-            const seat = (await get(ref(db, seatPath))).val();
-            if (typeof seat === "string") {
-              ownRec = (await get(ref(db, `${ownPath}/${seat}`))).val();
-            }
-          } catch {
-            /* locked or missing */
-          }
-        }
-        const boost = (present) => {
-          const state = {
-            day,
-            records: {},
-            present: present || {},
-            counts: countVotes({}),
-            mine: mineFromRecord(ownRec),
-            uid,
-            revealed: false,
-          };
-          let i = 0;
-          for (const [id, nick] of Object.entries(present || {})) {
-            if (!UID_RE.test(id) || !isValidNick(nick)) continue;
-            state.records[String(i++)] = {
-              uid: id,
-              nick,
-              canteen: id === uid && ownRec ? ownRec.canteen : "egal",
-              second: id === uid && ownRec ? ownRec.second : undefined,
-              at: 0,
-              ...(id === uid && ownRec?.egal ? { egal: true } : {}),
-            };
-          }
-          if (uid && ownRec) {
-            state.mine = mineFromRecord(ownRec);
-            state.counts = countVotes({ 0: ownRec });
-          }
-          onChange(state);
+        let voteUnsub = () => {};
+        let stopped = false;
+        const emit = () => {
+          if (stopped || gen !== listenGen) return;
+          onChange(stateFromPresent({ day, present: presentMap, ownRec, uid, revealed: false }));
         };
         const presentHandle = onValue(
           ref(db, presentPath(day, key)),
-          (snap) => boost(snap.val() || {}),
+          (snap) => {
+            const val = snap.val();
+            presentMap = val && typeof val === "object" ? val : {};
+            emit();
+          },
           () => {},
         );
-        presentUnsub = () => {
-          handle();
+        const watchSlot = (slot) => {
+          voteUnsub();
+          voteUnsub = () => {};
+          if (stopped) return;
+          if (typeof slot !== "string") {
+            ownRec = null;
+            emit();
+            return;
+          }
+          const handle = onValue(
+            ref(db, `${dayVotesPath(key, day)}/${slot}`),
+            (snap) => {
+              const rec = snap.val();
+              ownRec = rec && rec.uid === uid ? rec : null;
+              emit();
+            },
+            () => {},
+          );
+          voteUnsub = () => handle();
+        };
+        let seatHandle = () => {};
+        if (uid) {
+          const handle = onValue(
+            ref(db, `${seatsPath(day, key)}/${uid}`),
+            (snap) => watchSlot(snap.val()),
+            () => {},
+          );
+          seatHandle = () => handle();
+        }
+        const stop = () => {
+          if (stopped) return;
+          stopped = true;
           presentHandle();
+          seatHandle();
+          voteUnsub();
         };
         const waitMs = Math.max(0, lockAt - serverNow()) + 50;
         if (lockAt > serverNow()) {
@@ -453,10 +437,11 @@ export function listenVotes(onChange) {
           }, waitMs);
         }
         if (gen !== listenGen) {
-          presentUnsub();
+          stop();
           return;
         }
-        unsub = presentUnsub;
+        presentUnsub = stop;
+        unsub = stop;
         return;
       }
 

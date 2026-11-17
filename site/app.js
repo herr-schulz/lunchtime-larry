@@ -62,8 +62,6 @@ import {
   berlinDate,
   emptyMine,
   isValidNick,
-  mineHasPick,
-  nicksFor,
   stuffedBallots,
   MARKET_ID,
   MARKET_NAME,
@@ -81,6 +79,14 @@ import {
   heuteDabeiLine,
 } from "./vote.js?v=4d6bd53e";
 import {
+  adoptRemoteVote,
+  inkMineForCanteen,
+  inkMineForEgal,
+  inkVote,
+  paintVoteBoard,
+  projectLocalVote,
+} from "./voteMarks.js?v=e1793dc6";
+import {
   ensureVoteUser,
   listenVotes,
   loadFeatures,
@@ -89,14 +95,14 @@ import {
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=7f1275a1";
+} from "./voteClient.js?v=05be3772";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=4b1698b7";
+} from "./updateShell.js?v=6b50fe78";
 import {
   berlinAt,
   demoVotes,
@@ -160,6 +166,9 @@ let voteState = {
   mine: emptyMine(),
   uid: null,
 };
+/** Click ink that the present-only listener must not wipe. */
+let pendingVote = null;
+let voteInk = 0;
 /** Localhost ?dev=1 — freezes ballots so the 12:00 presentation can be replayed. */
 let previewVotes = null;
 let lastWinnerKey = "";
@@ -587,13 +596,6 @@ function bindDayNav(data) {
   });
 }
 
-function replayCheck(el) {
-  if (!el) return;
-  el.classList.remove("is-drawn");
-  void el.offsetWidth;
-  el.classList.add("is-drawn");
-}
-
 function activeVotes() {
   return previewVotes ?? voteState;
 }
@@ -613,78 +615,13 @@ function applyVoteUi() {
   const votes = activeVotes();
   const names = votePlaceNames();
   const result = winnerOf(votes.counts, names);
-  for (const slip of board.querySelectorAll(".slip[data-canteen]")) {
-    const id = slip.dataset.canteen;
-    const mine = show && mineHasPick(votes.mine, id);
-    const nickList = reveal ? nicksFor(votes.records, id) : [];
-    slip.classList.toggle("is-voted", mine);
-    slip.classList.toggle(
-      "is-leading",
-      reveal && result.status === "lead" && result.id === id,
-    );
-    const mark = slip.querySelector(".vote-mark");
-    if (!mark) continue;
-    mark.hidden = !show;
-    mark.disabled = !open;
-    mark.setAttribute("aria-pressed", String(mine));
-    const label = nickList.length
-      ? nickList.join(" · ")
-      : mine
-        ? "Deine Stimme"
-        : "Hierhin";
-    mark.setAttribute("aria-label", label);
-    const nicks = mark.querySelector(".vote-nicks");
-    if (nicks) nicks.textContent = nickList.join(" · ");
-    if (mine) {
-      if (!mark.classList.contains("is-drawn")) replayCheck(mark);
-    } else {
-      mark.classList.remove("is-drawn");
-    }
-  }
-  const showMarket = show && currentDay === "thursday";
-  if (marketVote) {
-    marketVote.hidden = !showMarket;
-    marketVote.disabled = !open;
-    const mine = showMarket && mineHasPick(votes.mine, MARKET_ID);
-    const nickList = showMarket && reveal ? nicksFor(votes.records, MARKET_ID) : [];
-    marketVote.setAttribute("aria-pressed", String(mine));
-    const label = nickList.length
-      ? nickList.join(" · ")
-      : mine
-        ? "Deine Stimme"
-        : "Hierhin";
-    marketVote.setAttribute("aria-label", label);
-    const nicks = marketVote.querySelector(".vote-nicks");
-    if (nicks) nicks.textContent = nickList.join(" · ");
-    if (mine) {
-      if (!marketVote.classList.contains("is-drawn")) replayCheck(marketVote);
-    } else {
-      marketVote.classList.remove("is-drawn");
-    }
-  }
-  if (egalVote) {
-    const pressed = Boolean(votes.mine?.egal);
-    egalVote.hidden = !show;
-    egalVote.disabled = !open;
-    egalVote.classList.toggle("is-on", pressed);
-    egalVote.setAttribute("aria-pressed", String(pressed));
-    const names = roundNicks(votes.records);
-    const label = pressed ? "dabei" : names.length ? "auch dabei?" : "ohne Vote dabei";
-    const labelEl = egalVote.querySelector(".dabei-label");
-    if (labelEl) labelEl.textContent = label;
-    else egalVote.textContent = label;
-    egalVote.setAttribute("aria-label", pressed ? `${label} — mit in der Runde` : label);
-    if (pressed) {
-      if (!egalVote.classList.contains("is-drawn")) replayCheck(egalVote);
-    } else {
-      egalVote.classList.remove("is-drawn");
-    }
-  }
-  marketBanner?.classList.toggle("is-voted", showMarket && mineHasPick(votes.mine, MARKET_ID));
-  marketBanner?.classList.toggle(
-    "is-leading",
-    showMarket && reveal && result.status === "lead" && result.id === MARKET_ID,
-  );
+  paintVoteBoard(document, votes, {
+    open,
+    show,
+    showMarket: show && currentDay === "thursday",
+    reveal,
+    result,
+  });
   syncVoteChrome();
   maybeAnnounceWinner(result, reveal);
   maybeAnnounceStuffed(votes.records);
@@ -1072,14 +1009,10 @@ async function handleVote(canteen) {
     await settleRound();
   }
   previewVotes = null;
+  const records = voteState.records;
+  const mine = inkMineForCanteen(voteState.mine, canteen);
   try {
-    voteState.mine = await toggleVote(
-      canteen,
-      voteState.mine,
-      voteState.records,
-    );
-    applyVoteUi();
-    maybeAskEat(voteState.mine);
+    await commitBallot(mine, () => toggleVote(canteen, mine, records), maybeAskEat);
   } catch (err) {
     console.warn(err);
     const msg = String(err?.message || err);
@@ -1134,13 +1067,44 @@ async function handleEgal() {
     await settleRound();
   }
   previewVotes = null;
+  const records = voteState.records;
+  const mine = inkMineForEgal(voteState.mine);
   try {
-    voteState.mine = await toggleEgal(voteState.records);
-    applyVoteUi();
+    await commitBallot(mine, () => toggleEgal(records));
   } catch (err) {
     console.warn(err);
     /* Egal is presence, not a seat fight — stay quiet on write/rules blips. */
   }
+}
+
+async function commitBallot(mine, write, onOk) {
+  const nick = loadNick();
+  const uid = voteState.uid;
+  const gen = ++voteInk;
+  let result;
+  try {
+    result = await inkVote({
+      state: voteState,
+      mine,
+      nick,
+      uid,
+      paint: (next, pending) => {
+        if (gen !== voteInk) return;
+        pendingVote = pending;
+        voteState = next;
+        applyVoteUi();
+      },
+      write,
+    });
+  } catch (err) {
+    if (gen !== voteInk) return;
+    throw err;
+  }
+  if (gen !== voteInk) return;
+  pendingVote = { mine: result.saved, nick, uid };
+  voteState = projectLocalVote(voteState, result.saved, nick, uid);
+  applyVoteUi();
+  onOk?.(voteState.mine);
 }
 
 function maybeWeekendNote() {
@@ -1170,6 +1134,8 @@ function leaveRound() {
   saveRoundCode("");
   stopListening();
   votesListening = false;
+  pendingVote = null;
+  voteInk += 1;
   voteState = {
     counts: { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 },
     records: {},
@@ -1276,7 +1242,9 @@ function startVotes({ force = false } = {}) {
   if (votesListening && !force) return;
   votesListening = true;
   const onVotes = (next) => {
-    voteState = next;
+    const adopted = adoptRemoteVote(next, pendingVote);
+    pendingVote = adopted.pending;
+    voteState = adopted.state;
     applyVoteUi();
   };
   const boot = async () => {
