@@ -112,6 +112,20 @@ if (boardRenderAfter !== boardRenderBefore) {
 const boardRenderHash = await hashFile("boardRender.js");
 const boardGesturesHash = await hashFile("boardGestures.js");
 
+const voteMarksPath = join(site, "voteMarks.js");
+if (existsSync(voteMarksPath)) {
+  const voteMarksBefore = await readFile(voteMarksPath, "utf8");
+  const voteMarksAfter = voteMarksBefore.replace(
+    /(\.\/vote\.js)(?:\?v=[^"']*)?/g,
+    `./vote.js?v=${voteHash}`,
+  );
+  if (voteMarksAfter !== voteMarksBefore) {
+    await writeFile(voteMarksPath, voteMarksAfter);
+    console.log("stamped voteMarks.js imports");
+  }
+}
+const voteMarksHash = existsSync(voteMarksPath) ? await hashFile("voteMarks.js") : "";
+
 const voteClientPath = join(site, "voteClient.js");
 const tallyPath = join(site, "tally.js");
 const tallyBefore = await readFile(tallyPath, "utf8");
@@ -128,6 +142,7 @@ const tallyHash = await hashFile("tally.js");
 const voteClientBefore = await readFile(voteClientPath, "utf8");
 const voteClientAfter = voteClientBefore
   .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/voteMarks\.js)(?:\?v=[^"']*)?/g, `./voteMarks.js?v=${voteMarksHash}`)
   .replace(/(\.\/tally\.js)(?:\?v=[^"']*)?/g, `./tally.js?v=${tallyHash}`)
   .replace(/(\.\/firebase\.json)(?:\?v=[^"']*)?/g, `./firebase.json?v=${firebaseHash}`);
 if (voteClientAfter !== voteClientBefore) {
@@ -184,6 +199,7 @@ const appAfter = appBefore
   .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
   .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
   .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/voteMarks\.js)(?:\?v=[^"']*)?/g, `./voteMarks.js?v=${voteMarksHash}`)
   .replace(/(\.\/voteClient\.js)(?:\?v=[^"']*)?/g, `./voteClient.js?v=${voteClientHashFinal}`)
   .replace(/(\.\/larryCorner\.js)(?:\?v=[^"']*)?/g, `./larryCorner.js?v=${larryCornerHash}`)
   .replace(/(\.\/larryLines\.js)(?:\?v=[^"']*)?/g, `./larryLines.js?v=${larryLinesHash}`)
