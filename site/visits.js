@@ -87,6 +87,58 @@ function reducedMotion() {
   return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 }
 
+/**
+ * Fixed to the viewport. Width cap follows the screen so a narrow phone
+ * and a wide monitor do not share one box.
+ * `flow: false` — fixed is out of normal flow.
+ * @param {number} viewWidth
+ */
+export function stampFrame(viewWidth) {
+  const width = Number.isFinite(viewWidth) ? viewWidth : 0;
+  const gutter = 16;
+  const maxWidth = Math.max(72, Math.round(width - gutter * 2));
+  return { position: "fixed", flow: false, maxWidth };
+}
+
+/** Relative and static stay in flow. Fixed does not. */
+export function stampInFlow(position) {
+  return position === "static" || position === "relative" || position === "sticky" || position === "";
+}
+
+/**
+ * Hidden while the masthead (the top of the board) is still on screen.
+ * Once it has scrolled away the stamp is shown, and because it is fixed it
+ * stays put for the rest of the scroll.
+ * @param {{ scrollY?: number, mastheadBottom?: number }} metrics
+ */
+export function stampVisibleAt(metrics) {
+  const scrollY = metrics?.scrollY ?? 0;
+  const mastheadBottom = metrics?.mastheadBottom ?? 0;
+  if (mastheadBottom > 0 && scrollY < 48) return false;
+  return mastheadBottom <= 0;
+}
+
+/**
+ * @param {HTMLElement} stamp
+ * @param {{ viewWidth: number, scrollY?: number, mastheadBottom?: number }} metrics
+ */
+export function applyStampPin(stamp, metrics) {
+  const frame = stampFrame(metrics.viewWidth);
+  stamp.style.position = frame.position;
+  stamp.style.maxWidth = `${frame.maxWidth}px`;
+  stamp.dataset.flow = frame.flow ? "in" : "out";
+  const showing = stampVisibleAt(metrics);
+  stamp.classList.toggle("is-showing", showing);
+  if (showing) {
+    stamp.setAttribute("aria-hidden", "false");
+    stamp.removeAttribute("tabindex");
+  } else {
+    stamp.setAttribute("aria-hidden", "true");
+    stamp.setAttribute("tabindex", "-1");
+  }
+  return { ...frame, showing };
+}
+
 /** The ink lands once, when the mark is actually on screen. */
 function armStamp(stamp) {
   const reduce = reducedMotion();
@@ -107,6 +159,31 @@ function armStamp(stamp) {
   io.observe(stamp);
 }
 
+function pinMetrics(stamp) {
+  const view = stamp.ownerDocument?.defaultView;
+  const mast = stamp.ownerDocument?.querySelector?.(".masthead");
+  return {
+    viewWidth: view?.innerWidth || 0,
+    scrollY: view?.scrollY || 0,
+    mastheadBottom: mast?.getBoundingClientRect?.().bottom ?? 0,
+  };
+}
+
+/** Ink once, the first time the pinned stamp is actually on screen. */
+function watchStamp(stamp) {
+  let inked = false;
+  const sync = () => {
+    const showing = applyStampPin(stamp, pinMetrics(stamp)).showing;
+    if (!showing || inked) return;
+    inked = true;
+    armStamp(stamp);
+  };
+  sync();
+  const view = stamp.ownerDocument?.defaultView;
+  view?.addEventListener("scroll", sync, { passive: true });
+  view?.addEventListener("resize", sync);
+}
+
 export function mountVisits(root = document) {
   const stamp = root.querySelector("[data-aufruf]");
   if (!stamp) return;
@@ -114,7 +191,7 @@ export function mountVisits(root = document) {
   stamp.style.setProperty("--aufruf-tilt", `${imprint.tilt}deg`);
   stamp.style.setProperty("--aufruf-x", `${imprint.x}px`);
   stamp.style.setProperty("--aufruf-y", `${imprint.y}px`);
-  armStamp(stamp);
+  watchStamp(stamp);
   const path = stamp.getAttribute("data-aufruf") || "/";
   const pixel = document.createElement("img");
   pixel.className = "aufruf-pixel";

@@ -87,12 +87,41 @@ if (calendarAfter !== calendarBefore) {
 }
 const calendarHash = await hashFile("calendar.js");
 
+const larryTossPath = join(site, "larryToss.js");
+if (existsSync(larryTossPath)) {
+  const larryTossBefore = await readFile(larryTossPath, "utf8");
+  const larryTossAfter = larryTossBefore.replace(
+    /(\.\/vote\.js)(?:\?v=[^"']*)?/g,
+    `./vote.js?v=${voteHash}`,
+  );
+  if (larryTossAfter !== larryTossBefore) {
+    await writeFile(larryTossPath, larryTossAfter);
+    console.log("stamped larryToss.js imports");
+  }
+}
+const larryTossHash = existsSync(larryTossPath) ? await hashFile("larryToss.js") : "";
+
+const tossesPath = join(site, "tosses.js");
+if (existsSync(tossesPath)) {
+  const tossesBefore = await readFile(tossesPath, "utf8");
+  const tossesAfter = tossesBefore.replace(
+    /(\.\/firebase\.json)(?:\?v=[^"']*)?/g,
+    `./firebase.json?v=${firebaseHash}`,
+  );
+  if (tossesAfter !== tossesBefore) {
+    await writeFile(tossesPath, tossesAfter);
+    console.log("stamped tosses.js imports");
+  }
+}
+const tossesHash = existsSync(tossesPath) ? await hashFile("tosses.js") : "";
+
 const larryCornerPath = join(site, "larryCorner.js");
 const larryCornerBefore = await readFile(larryCornerPath, "utf8");
-const larryCornerAfter = larryCornerBefore.replace(
-  /(\.\/larryLines\.js)(?:\?v=[^"']*)?/g,
-  `./larryLines.js?v=${larryLinesHash}`,
-).replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`);
+const larryCornerAfter = larryCornerBefore
+  .replace(/(\.\/larryLines\.js)(?:\?v=[^"']*)?/g, `./larryLines.js?v=${larryLinesHash}`)
+  .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
+  .replace(/(\.\/larryToss\.js)(?:\?v=[^"']*)?/g, `./larryToss.js?v=${larryTossHash}`)
+  .replace(/(\.\/tosses\.js)(?:\?v=[^"']*)?/g, `./tosses.js?v=${tossesHash}`);
 if (larryCornerAfter !== larryCornerBefore) {
   await writeFile(larryCornerPath, larryCornerAfter);
   console.log("stamped larryCorner.js imports");
@@ -158,6 +187,7 @@ const strichAfter = strichBefore
   .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`)
   .replace(/(\.\/tally\.js)(?:\?v=[^"']*)?/g, `./tally.js?v=${tallyHash}`)
   .replace(/(\.\/visits\.js)(?:\?v=[^"']*)?/g, `./visits.js?v=${visitsHash}`)
+  .replace(/(\.\/tosses\.js)(?:\?v=[^"']*)?/g, `./tosses.js?v=${tossesHash}`)
   .replace(/(\.\/firebase\.json)(?:\?v=[^"']*)?/g, `./firebase.json?v=${firebaseHash}`);
 if (strichAfter !== strichBefore) {
   await writeFile(strichPath, strichAfter);

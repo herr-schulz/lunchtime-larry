@@ -1,6 +1,14 @@
 /** Single Larry speech-bubble — toast-like, free drag, gravity snap. */
 
 import { idleTip } from "./larryLines.js?v=cac37a42";
+import {
+  applyTrashDrop,
+  dragRelease,
+  droppedInTrash,
+  larryIsAway,
+  presentLarry,
+} from "./larryToss.js?v=6077d48e";
+import { incrementTosses } from "./tosses.js?v=6eb65288";
 import { loadVoteOptIn } from "./vote.js?v=4d6bd53e";
 
 const DOCK_KEY = "lunchtime-larry-corner-dock";
@@ -47,9 +55,69 @@ let scrollAccum = 0;
 let dockLockUntil = 0;
 let boundChrome = false;
 let textFadeTimer = 0;
+let byeTimer = 0;
 
 function prefersReducedMotion() {
   return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+}
+
+function safeStorage() {
+  try {
+    return localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function binEl() {
+  return document.querySelector("#larry-bin");
+}
+
+function showBin() {
+  const bin = binEl();
+  if (!bin) return;
+  bin.hidden = false;
+  bin.classList.remove("is-hot");
+}
+
+function hideBin() {
+  const bin = binEl();
+  if (!bin) return;
+  bin.hidden = true;
+  bin.classList.remove("is-hot");
+}
+
+/** @param {DOMRect | undefined} faceRect */
+function markBin(faceRect) {
+  const bin = binEl();
+  if (!bin || bin.hidden || !faceRect) return;
+  bin.classList.toggle("is-hot", droppedInTrash(faceRect, bin.getBoundingClientRect()));
+}
+
+function scheduleBye() {
+  const bye = document.querySelector("#larry-bye");
+  window.clearTimeout(byeTimer);
+  const wait = prefersReducedMotion() ? 1400 : 1600;
+  byeTimer = window.setTimeout(() => {
+    if (bye) bye.hidden = true;
+  }, wait);
+}
+
+function banishLarry() {
+  const bye = document.querySelector("#larry-bye");
+  applyTrashDrop({
+    root,
+    bye,
+    byeLine: bye,
+    storage: safeStorage(),
+    record: () => {
+      void incrementTosses().catch(() => {});
+    },
+  });
+  clearRootDrag();
+  clearFaceOffset();
+  hideBin();
+  scheduleBye();
 }
 
 /** @param {string | null} value */
@@ -268,6 +336,7 @@ function ensureDom() {
     event.stopPropagation();
   });
   bindLarryDrag();
+  if (larryIsAway(safeStorage())) hideAway();
   if (!boundChrome) {
     boundChrome = true;
     scrollY = Math.max(0, window.scrollY);
@@ -335,6 +404,7 @@ function clearFaceOffset() {
   face.style.transform = "";
   face.style.zIndex = "";
   face.style.transition = "";
+  face.style.margin = "";
 }
 
 function syncAsks(show) {
@@ -430,16 +500,40 @@ function bindLarryDrag() {
     if (!dragged) {
       dragged = true;
       root.classList.add("is-dragging");
-      root.style.left = `${drag.originX}px`;
-      root.style.top = `${drag.originY}px`;
-      root.style.right = "auto";
-      root.style.bottom = "auto";
-      root.style.width = `${Math.round(drag.width)}px`;
-      if (face) {
+      if (drag.fromFace && face) {
         const faceRect = face.getBoundingClientRect();
         drag.faceX = faceRect.left;
         drag.faceY = faceRect.top;
+        face.style.position = "fixed";
+        face.style.left = `${faceRect.left}px`;
+        face.style.top = `${faceRect.top}px`;
+        face.style.margin = "0";
+        face.style.zIndex = "30";
+        showBin();
+      } else {
+        root.style.left = `${drag.originX}px`;
+        root.style.top = `${drag.originY}px`;
+        root.style.right = "auto";
+        root.style.bottom = "auto";
+        root.style.width = `${Math.round(drag.width)}px`;
+        if (face) {
+          const faceRect = face.getBoundingClientRect();
+          drag.faceX = faceRect.left;
+          drag.faceY = faceRect.top;
+        }
       }
+    }
+
+    if (drag.fromFace && face) {
+      const size = face.offsetWidth || drag.height || 72;
+      const maxX = window.innerWidth - size - 4;
+      const maxY = window.innerHeight - size - 4;
+      const left = Math.min(maxX, Math.max(4, drag.faceX + dx));
+      const top = Math.min(maxY, Math.max(4, drag.faceY + dy));
+      face.style.left = `${left}px`;
+      face.style.top = `${top}px`;
+      markBin(face.getBoundingClientRect());
+      return;
     }
 
     const maxX = window.innerWidth - drag.width - 4;
@@ -469,12 +563,29 @@ function bindLarryDrag() {
     const originEdge = drag.originEdge;
     const first = root.getBoundingClientRect();
     const faceRect = face?.getBoundingClientRect();
+    const bin = binEl();
+    const trash = bin && !bin.hidden ? bin.getBoundingClientRect() : null;
+    const action = dragRelease({
+      fromFace,
+      dragged: wasDrag,
+      cancelled,
+      face: faceRect,
+      trash,
+    });
     drag = null;
     dragged = false;
     window.clearTimeout(textFadeTimer);
     root.classList.remove("is-dragging", "is-text-out");
+    hideBin();
 
-    if (cancelled || !wasDrag) {
+    if (action === "toss") {
+      banishLarry();
+      return;
+    }
+
+    clearFaceOffset();
+
+    if (action === "snap") {
       side = originSide;
       edge = originEdge;
       clearRootDrag();
@@ -508,6 +619,7 @@ function bindLarryDrag() {
 export function sayLarry(msg) {
   if (!msg?.line) return;
   ensureDom();
+  if (!presentLarry(root, safeStorage())) return;
   const next = { kicker: msg.kicker || "", line: msg.line };
   const last = history[history.length - 1];
   if (last && last.kicker === next.kicker && last.line === next.line) {
