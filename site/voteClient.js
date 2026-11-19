@@ -25,7 +25,7 @@ import {
   voteTargetIds,
   votesPath,
 } from "./vote.js?v=4d6bd53e";
-import { stateFromPresent } from "./voteMarks.js?v=e1793dc6";
+import { stateFromPresent } from "./voteMarks.js?v=1ad12450";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 const FIREBASE_VER = "11.10.0";
@@ -378,38 +378,63 @@ export function listenVotes(onChange) {
       if (!revealed) {
         let presentMap = {};
         let ownRec = null;
+        /** Last ballot we actually read. A present echo must not drop it. */
+        let heldRec = null;
         let voteUnsub = () => {};
+        /** undefined until the seat listener reports; null means no seat. */
+        let watchedSlot;
         let stopped = false;
+        const stillPresent = () =>
+          Boolean(uid) &&
+          presentMap &&
+          Object.prototype.hasOwnProperty.call(presentMap, uid);
         const emit = () => {
           if (stopped || gen !== listenGen) return;
-          onChange(stateFromPresent({ day, present: presentMap, ownRec, uid, revealed: false }));
+          const rec = ownRec || (stillPresent() ? heldRec : null);
+          onChange(stateFromPresent({ day, present: presentMap, ownRec: rec, uid, revealed: false }));
         };
         const presentHandle = onValue(
           ref(db, presentPath(day, key)),
           (snap) => {
             const val = snap.val();
             presentMap = val && typeof val === "object" ? val : {};
+            if (!stillPresent()) heldRec = null;
             emit();
           },
           () => {},
         );
         const watchSlot = (slot) => {
-          voteUnsub();
-          voteUnsub = () => {};
           if (stopped) return;
           if (typeof slot !== "string") {
+            if (watchedSlot === null) {
+              emit();
+              return;
+            }
+            voteUnsub();
+            voteUnsub = () => {};
+            watchedSlot = null;
             ownRec = null;
+            // Seat gone, but present still lists us: keep the ink until the nick drops.
+            if (!stillPresent()) heldRec = null;
             emit();
             return;
           }
+          if (slot === watchedSlot) return;
+          voteUnsub();
+          voteUnsub = () => {};
+          watchedSlot = slot;
           const handle = onValue(
             ref(db, `${dayVotesPath(key, day)}/${slot}`),
             (snap) => {
               const rec = snap.val();
               ownRec = rec && rec.uid === uid ? rec : null;
+              if (ownRec) heldRec = ownRec;
+              else if (!rec && !stillPresent()) heldRec = null;
               emit();
             },
-            () => {},
+            () => {
+              /* A denied read must not clear checks that are already drawn. */
+            },
           );
           voteUnsub = () => handle();
         };
@@ -591,9 +616,21 @@ export async function clearVote(records = {}) {
   return emptyMine();
 }
 
-export async function toggleVote(canteen, _current, records = {}) {
+/** The mine the click already drew. Null when the caller did not ink one. */
+function inkedMine(mine) {
+  if (!mine || typeof mine !== "object" || !Array.isArray(mine.picks)) return null;
+  if (mine.egal) return { picks: [], egal: true };
+  return { picks: [...mine.picks], egal: false };
+}
+
+export async function toggleVote(canteen, current, records = {}) {
   assertBallotOpen();
   assertCanteen(canteen);
+  const inked = inkedMine(current);
+  if (inked) {
+    if (!inked.picks.length) return clearVote(records);
+    return writeBallot(inked);
+  }
   const id = await ensureVoteUser();
   const key = await activeRoundKey();
   const { mine, records: ownRecords } = await loadOwnBallot(id, key, records);
@@ -755,8 +792,13 @@ export async function hasDeskClaim() {
   }
 }
 
-export async function toggleEgal(records = {}) {
+export async function toggleEgal(records = {}, current = null) {
   assertBallotOpen();
+  const inked = inkedMine(current);
+  if (inked) {
+    if (!inked.egal) return clearVote(records);
+    return writeBallot({ picks: [], egal: true });
+  }
   const id = await ensureVoteUser();
   const key = await activeRoundKey();
   const { mine, records: ownRecords } = await loadOwnBallot(id, key, records);

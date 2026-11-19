@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { heuteDabeiLine, roundNicks, winnerOf } from "../site/vote.js";
 import {
   adoptRemoteVote,
+  applyRemoteVote,
   inkMineForCanteen,
   inkVote,
   paintVoteBoard,
@@ -113,7 +114,7 @@ describe("vote click ink", () => {
     const bare = voteDocument();
     paintBoard(bare, nickOnly);
     expect(bare.querySelector('[data-vote="sodexo"]')?.classList.contains("is-drawn")).toBe(false);
-    expect(bare.querySelector("#heute-dabei")?.textContent).toMatch(/Sven/);
+    expect(bare.querySelector("#heute-dabei")?.textContent).toBe("");
 
     const kept = adoptRemoteVote(nickOnly, pending);
     paintBoard(document, kept.state);
@@ -134,9 +135,65 @@ describe("vote click ink", () => {
     expect(mark?.getAttribute("aria-pressed")).toBe("true");
     expect(heute?.textContent).toMatch(/Sven/);
 
+    const again = applyRemoteVote(adopted.state, nickOnly, null);
+    expect(again.pending).toBeNull();
+    paintBoard(document, again.state);
+    expect(mark?.classList.contains("is-drawn")).toBe(true);
+    expect(heute?.textContent).toMatch(/Sven/);
+
     release({ picks: ["sodexo"], egal: false });
     await hung;
     expect(mark?.classList.contains("is-drawn")).toBe(true);
+  });
+
+  it("draws the checks on click and does not undraw them on a nick-only update", async () => {
+    const document = voteDocument();
+    const uid = "voter00000000001";
+    let state: VoteSnap = { mine: { picks: [], egal: false }, records: {}, present: {}, uid };
+    const hung = inkVote({
+      state,
+      mine: inkMineForCanteen(state.mine, "bella23"),
+      nick: "Sven",
+      uid,
+      paint: (next) => {
+        state = next;
+        paintBoard(document, next);
+      },
+      write: () => new Promise(() => {}),
+    });
+
+    const mark = document.querySelector('[data-vote="bella23"]');
+    const heute = document.querySelector<HTMLElement>("#heute-dabei");
+    expect(mark?.classList.contains("is-drawn")).toBe(true);
+    expect(mark?.getAttribute("aria-pressed")).toBe("true");
+    expect(heute?.hidden).toBe(false);
+    expect(heute?.textContent).toMatch(/Sven/);
+
+    const nickOnly = stateFromPresent({
+      day: "2026-11-19",
+      present: { [uid]: "Sven" },
+      ownRec: null,
+      uid,
+    });
+    expect(nickOnly.mine?.picks ?? []).toEqual([]);
+    const kept = applyRemoteVote(state, nickOnly, null);
+    paintBoard(document, kept.state);
+    expect(mark?.classList.contains("is-drawn")).toBe(true);
+    expect(mark?.getAttribute("aria-pressed")).toBe("true");
+    expect(document.querySelector('[data-vote="sodexo"]')?.classList.contains("is-drawn")).toBe(
+      false,
+    );
+    expect(heute?.textContent).toMatch(/Sven/);
+
+    const left = applyRemoteVote(
+      kept.state,
+      stateFromPresent({ day: "2026-11-19", present: {}, ownRec: null, uid }),
+      null,
+    );
+    paintBoard(document, left.state);
+    expect(mark?.classList.contains("is-drawn")).toBe(false);
+    expect(heute?.textContent).toBe("");
+    void hung;
   });
 
   it("takes the checkmark back off when the write fails", async () => {

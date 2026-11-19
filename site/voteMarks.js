@@ -94,6 +94,30 @@ export function adoptRemoteVote(remote, pending) {
   };
 }
 
+/**
+ * A later snapshot can list the nick and carry an empty mine after the click
+ * ink was already accepted. Put the checks back on that snapshot.
+ * A snapshot that drops the nick, or that brings its own ballot, wins.
+ */
+export function mergeLiveVote(previous, incoming) {
+  if (!incoming) return previous ?? { records: {}, mine: emptyMine() };
+  if (!previous || showingMine(incoming.mine)) return incoming;
+  const uid = incoming.uid || previous.uid || null;
+  if (!uid || (previous.uid && previous.uid !== uid)) return incoming;
+  const present =
+    incoming.present && typeof incoming.present === "object" ? incoming.present : {};
+  const nick = present[uid];
+  if (!isValidNick(normalizeNick(nick)) || !showingMine(previous.mine)) return incoming;
+  return projectLocalVote(incoming, previous.mine, nick, uid);
+}
+
+/** Pending click ink first, then the last drawn ballot against a nick-only echo. */
+export function applyRemoteVote(previous, incoming, pending) {
+  const adopted = adoptRemoteVote(incoming, pending);
+  if (adopted.pending) return adopted;
+  return { state: mergeLiveVote(previous, adopted.state), pending: null };
+}
+
 /** Names from `present`, checkmarks from the caller's own ballot. One snapshot, no empty mine. */
 export function stateFromPresent({ day, present, ownRec, uid, revealed = false }) {
   const people = present && typeof present === "object" ? present : {};
@@ -103,6 +127,9 @@ export function stateFromPresent({ day, present, ownRec, uid, revealed = false }
   const own = selfId && ownRec?.uid === selfId ? ownRec : null;
   for (const [id, nick] of Object.entries(people)) {
     if (!UID_RE.test(id) || !isValidNick(nick)) continue;
+    // Present arrives before the seat ballot. Listing ourselves then draws the
+    // name at the top and leaves the checkmarks off.
+    if (selfId && id === selfId && !own) continue;
     const self = Boolean(own) && id === selfId;
     const row = {
       uid: id,

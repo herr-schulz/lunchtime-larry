@@ -33,6 +33,17 @@ export function adoptRemoteVote(
   pending: VotePending | null | undefined,
 ): { state: VoteSnap; pending: VotePending | null };
 
+export function mergeLiveVote(
+  previous: VoteSnap | null | undefined,
+  incoming: VoteSnap | null | undefined,
+): VoteSnap;
+
+export function applyRemoteVote(
+  previous: VoteSnap | null | undefined,
+  incoming: VoteSnap | null | undefined,
+  pending: VotePending | null | undefined,
+): { state: VoteSnap; pending: VotePending | null };
+
 export function stateFromPresent(opts: {
   day?: string;
   present?: Record<string, string> | null;
