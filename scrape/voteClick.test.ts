@@ -221,3 +221,65 @@ describe("vote click ink", () => {
     expect(document.querySelector("#heute-dabei")?.textContent).toBe("");
   });
 });
+
+describe("auch dabei pill", () => {
+  function egalDocument() {
+    const { document } = parseHTML(`<!doctype html><body>
+      <button type="button" class="dabei-pill" id="egal-vote" aria-pressed="false">
+        <svg class="vote-check"><circle class="vote-check-ring" /><path class="vote-check-tick" /></svg>
+        <span class="dabei-label">auch dabei?</span>
+      </button>
+      <section class="slip" data-canteen="sodexo">
+        <button type="button" class="vote-mark" data-vote="sodexo" aria-pressed="false">
+          <span class="vote-nicks"></span>
+          <svg class="vote-check"><circle class="vote-check-ring" /><path class="vote-check-tick" /></svg>
+        </button>
+      </section>
+      <button type="button" class="vote-mark" id="market-vote" data-vote="wochenmarkt" hidden>
+        <span class="vote-nicks"></span>
+        <svg class="vote-check"><circle class="vote-check-ring" /><path class="vote-check-tick" /></svg>
+      </button>
+    </body>`);
+    return document;
+  }
+
+  const shown = {
+    open: true,
+    show: true,
+    showMarket: true,
+    reveal: false,
+    result: { status: "empty" as const },
+  };
+
+  it("hides the pill after a canteen vote and leaves the checkmark ink", () => {
+    const document = egalDocument();
+    const egal = document.querySelector<HTMLElement>("#egal-vote");
+    const mark = document.querySelector('[data-vote="sodexo"]');
+
+    paintVoteBoard(document, { mine: { picks: [], egal: false }, records: {} }, shown);
+    expect(egal?.hidden).toBe(false);
+    expect(egal?.textContent).toMatch(/ohne Vote dabei/);
+    expect(mark?.classList.contains("is-drawn")).toBe(false);
+
+    paintVoteBoard(
+      document,
+      {
+        mine: { picks: ["sodexo"], egal: false },
+        records: { a: { uid: "voter00000000001", nick: "Sven", canteen: "sodexo", at: 1 } },
+      },
+      shown,
+    );
+    expect(egal?.hidden).toBe(true);
+    expect(mark?.classList.contains("is-drawn")).toBe(true);
+    expect(mark?.getAttribute("aria-pressed")).toBe("true");
+
+    paintVoteBoard(document, { mine: { picks: ["wochenmarkt"], egal: false }, records: {} }, shown);
+    expect(egal?.hidden).toBe(false);
+    expect(mark?.classList.contains("is-drawn")).toBe(false);
+
+    paintVoteBoard(document, { mine: { picks: [], egal: true }, records: {} }, shown);
+    expect(egal?.hidden).toBe(false);
+    expect(egal?.classList.contains("is-drawn")).toBe(true);
+    expect(mark?.classList.contains("is-drawn")).toBe(false);
+  });
+});

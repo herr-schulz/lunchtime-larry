@@ -1,4 +1,5 @@
 import {
+  CANTEEN_IDS,
   MARKET_ID,
   ballotPayload,
   countVotes,
@@ -249,7 +250,8 @@ export function paintVoteBoard(root, votes, { open, show, showMarket, reveal, re
   const egalVote = scope.querySelector("#egal-vote");
   if (egalVote) {
     const pressed = Boolean(votes?.mine?.egal);
-    egalVote.hidden = !show;
+    const canteenVote = CANTEEN_IDS.some((id) => mineHasPick(votes?.mine, id));
+    egalVote.hidden = !show || canteenVote;
     egalVote.disabled = !open;
     egalVote.classList.toggle("is-on", pressed);
     egalVote.setAttribute("aria-pressed", String(pressed));
