@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-labelledby="t d">
   <title id="t">Larry mit Tablett</title>
-  <desc id="d">LL-FLAG-1-a7c3e9f2</desc>
+  <desc id="d">Die Beschreibung ist kein Fundstück. Unter dem Tablett liegt die Schrift, um eine Leerstelle verrückt.</desc>
   <rect width="320" height="200" rx="16" fill="#f2e2c4"/>
   <ellipse cx="160" cy="176" rx="96" ry="10" fill="#241910" opacity=".12"/>
   <ellipse cx="160" cy="118" rx="64" ry="48" fill="#241910"/>
@@ -16,4 +16,7 @@
   <rect x="104" y="128" width="112" height="10" rx="5" fill="#c9a46a"/>
   <ellipse cx="160" cy="124" rx="34" ry="8" fill="#f2e2c4"/>
   <circle cx="160" cy="121" r="9" fill="#d98b3a"/>
+  <g id="unter-dem-tablett" display="none" aria-hidden="true">
+    <path d="M83 90 73 67 107 110 113 102 110 82 104 115 86 65 65 66" fill="none"/>
+  </g>
 </svg>

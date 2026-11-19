@@ -38,7 +38,23 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=7a172f5d" />
+    <link rel="stylesheet" href="./styles.css?v=1cc616ed" />
+    <style>
+      #strich-funde .strich-laurel {
+        list-style: none;
+        margin: 0.35rem 0 0;
+        padding: 0.15rem 0 0.15rem 0.9rem;
+        border-left: 4px solid var(--mustard);
+      }
+      #strich-funde .strich-laurel li {
+        margin: 0;
+        padding: 0.35rem 0;
+      }
+      #strich-funde .strich-laurel strong {
+        font-family: var(--font-display);
+        font-weight: 560;
+      }
+    </style>
   </head>
   <body class="page-strich">
     <div class="page-shell">
@@ -72,6 +88,7 @@
       </section>
       <section id="strich" hidden></section>
       <section id="strich-weeks" class="strich-block" hidden></section>
+      <section id="strich-funde" class="strich-block" hidden></section>
       <details class="strich-legal">
         <summary>Was gespeichert wird</summary>
         <p>
@@ -99,6 +116,6 @@
       </a>
     </footer>
     </div>
-    <script src="./strichliste.js?v=0a058128" type="module"></script>
+    <script src="./strichliste.js?v=16214ed8" type="module"></script>
   </body>
 </html>

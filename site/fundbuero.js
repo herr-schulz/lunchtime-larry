@@ -1,8 +1,9 @@
 import config from "./firebase.json" with { type: "json" };
+import { isValidNick, loadNick, normalizeNick, saveNick } from "./vote.js";
 
 const SLOTS = ["1", "2", "3", "4"];
 const FLAG_RE = /^[A-Za-z0-9_-]{8,64}$/;
-const NICK_KEY = "larry.hunt.nick";
+const LEGACY_NICK_KEY = "larry.hunt.nick";
 
 const form = document.querySelector("#hunt-form");
 const nickInput = document.querySelector("#hunt-nick");
@@ -17,6 +18,9 @@ let db = null;
 let sdk = null;
 let mine = {};
 let suggested4 = "";
+const marked = new Set();
+let creditBusy = false;
+let creditDone = false;
 
 function say(text, tone = "") {
   statusEl.textContent = text;
@@ -24,19 +28,19 @@ function say(text, tone = "") {
   else delete statusEl.dataset.tone;
 }
 
-function loadNick() {
-  try {
-    return localStorage.getItem(NICK_KEY) || "";
-  } catch {
-    return "";
-  }
+function rememberNick(value) {
+  const nick = saveNick(value);
+  if (nick) nickInput.value = nick;
+  return nick;
 }
 
-function saveNick(value) {
+function storedNick() {
+  const current = loadNick();
+  if (current) return current;
   try {
-    localStorage.setItem(NICK_KEY, value);
+    return rememberNick(localStorage.getItem(LEGACY_NICK_KEY) || "");
   } catch {
-    /* private mode */
+    return "";
   }
 }
 
@@ -80,12 +84,29 @@ function shortUid(id) {
   return `${id.slice(0, 6)}…`;
 }
 
+/** RTDB turns the numeric slot keys into an array. Read them as slots either way. */
+function slotValue(slots, n) {
+  if (Array.isArray(slots)) return slots[Number(n)];
+  if (slots && typeof slots === "object") return slots[n];
+  return undefined;
+}
+
+function slipsFrom(value) {
+  const out = {};
+  for (const n of SLOTS) {
+    const slip = slotValue(value, n);
+    if (typeof slip === "string" && slip) out[n] = slip;
+  }
+  return out;
+}
+
+function slotCount(slots) {
+  return SLOTS.filter((n) => slotValue(slots, n) === true).length;
+}
+
 function paintBoard(all) {
   const rows = Object.entries(all || {})
-    .map(([id, flags]) => ({
-      id,
-      count: Object.keys(flags && typeof flags === "object" ? flags : {}).filter((k) => SLOTS.includes(k)).length,
-    }))
+    .map(([id, slots]) => ({ id, count: slotCount(slots) }))
     .filter((row) => row.count > 0)
     .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id));
   boardEl.removeAttribute("aria-busy");
@@ -95,13 +116,14 @@ function paintBoard(all) {
     boardEl.replaceChildren(li);
     return;
   }
+  const nick = loadNick();
   boardEl.replaceChildren(
     ...rows.map((row) => {
       const li = document.createElement("li");
       const who = document.createElement("span");
       who.className = "hunt-uid";
       const isMe = row.id === uid;
-      who.textContent = isMe ? `${shortUid(row.id)} (du${loadNick() ? `, ${loadNick()}` : ""})` : shortUid(row.id);
+      who.textContent = isMe ? `${shortUid(row.id)} (du${nick ? `, ${nick}` : ""})` : shortUid(row.id);
       const count = document.createElement("span");
       count.textContent = `${row.count} / 4`;
       if (isMe) li.className = "me";
@@ -111,14 +133,22 @@ function paintBoard(all) {
   );
 }
 
+function solved() {
+  return SLOTS.every((n) => typeof mine[n] === "string" && mine[n]);
+}
+
 async function refreshHint() {
-  const found = SLOTS.filter((n) => mine[n]);
-  if (found.length < 3 || mine["4"]) {
+  if (mine["1"] && !mine["2"]) {
+    hintEl.hidden = false;
+    hintEl.textContent = "Das Paket trägt denselben Namen wie in den Regeln. Es ist keine Klarschrift.";
+    return;
+  }
+  const [f1, f2, f3] = [mine["1"], mine["2"], mine["3"]];
+  if (!f1 || !f2 || !f3 || mine["4"]) {
     hintEl.hidden = true;
     return;
   }
   hintEl.hidden = false;
-  const [f1, f2, f3] = [mine["1"], mine["2"], mine["3"]];
   if (f1 && f2 && f3 && crypto?.subtle) {
     suggested4 = await derivedFlag4(f1, f2, f3);
     hintEl.textContent = `Fundstück 4 ist kein Fund, sondern eine Rechnung: die ersten 16 Hex-Zeichen von SHA-256 über „1|2|3“ (die drei Fundstücke, mit senkrechtem Strich verbunden). Vorschlag für dein Feld: ${suggested4}`;
@@ -129,19 +159,63 @@ async function refreshHint() {
   }
 }
 
-async function listen() {
+async function markSlot(n) {
+  if (marked.has(n) || typeof mine[n] !== "string" || !mine[n]) return;
+  marked.add(n);
+  const { ref, set } = sdk;
+  try {
+    await set(ref(db, `huntBoard/${uid}/${n}`), true);
+  } catch {
+    marked.delete(n);
+  }
+}
+
+async function recordCredit() {
+  if (creditDone || creditBusy || !uid || !solved()) return;
+  const nick = loadNick();
+  if (!isValidNick(nick)) {
+    say("Alle vier stimmen. Trag den Spitznamen von der Tafel ein, dann steht er auf der Strichliste.", "ok");
+    return;
+  }
+  creditBusy = true;
+  const { get, ref, set } = sdk;
+  try {
+    const existing = await get(ref(db, `funde/${uid}`));
+    if (existing.exists()) {
+      creditDone = true;
+      return;
+    }
+    await set(ref(db, `funde/${uid}`), { nick, at: Date.now() });
+    creditDone = true;
+    say("Alle vier sind abgegeben. Dein Spitzname steht auf der Strichliste.", "ok");
+  } catch {
+    /* already recorded, or the rules declined */
+  } finally {
+    creditBusy = false;
+  }
+}
+
+function listen() {
   const { onValue, ref } = sdk;
   onValue(
-    ref(db, "hunt"),
+    ref(db, `hunt/${uid}`),
     (snap) => {
-      const all = snap.val() || {};
-      paintBoard(all);
-      const own = all[uid];
-      mine = own && typeof own === "object" ? { ...own } : {};
+      mine = slipsFrom(snap.val());
       for (const n of SLOTS) {
-        if (mine[n] && !inputs[n].value) inputs[n].value = mine[n];
+        if (typeof mine[n] === "string" && mine[n] && !inputs[n].value) inputs[n].value = mine[n];
       }
       refreshHint();
+      for (const n of SLOTS) markSlot(n);
+      recordCredit();
+    },
+    () => {
+      say("Deine Fundstücke sind gerade nicht erreichbar.", "bad");
+    },
+  );
+  onValue(
+    ref(db, "huntBoard"),
+    (snap) => {
+      paintBoard(snap.val() || {});
     },
     () => {
       boardEl.removeAttribute("aria-busy");
@@ -156,11 +230,12 @@ form.addEventListener("submit", async (event) => {
     say("Einen Moment, Larry meldet dich noch an.", "bad");
     return;
   }
-  const nick = nickInput.value.trim();
-  if (nick) saveNick(nick);
+  const typed = normalizeNick(nickInput.value);
+  if (isValidNick(typed)) rememberNick(typed);
   const todo = SLOTS.map((n) => [n, inputs[n].value.trim()]).filter(([n, v]) => v && v !== mine[n]);
   if (!todo.length) {
-    say("Nichts Neues zum Abgeben.");
+    if (solved()) await recordCredit();
+    else say("Nichts Neues zum Abgeben.");
     return;
   }
   const bad = todo.find(([, v]) => !FLAG_RE.test(v));
@@ -177,6 +252,12 @@ form.addEventListener("submit", async (event) => {
     try {
       await set(ref(db, `hunt/${uid}/${n}`), value);
       okSlots.push(n);
+      try {
+        await set(ref(db, `huntBoard/${uid}/${n}`), true);
+        marked.add(n);
+      } catch {
+        /* the slip is kept; the count can follow on the next read */
+      }
     } catch {
       failed.push(n);
     }
@@ -191,7 +272,7 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-nickInput.value = loadNick();
+nickInput.value = storedNick();
 startFirebase()
   .then(listen)
   .catch(() => {
