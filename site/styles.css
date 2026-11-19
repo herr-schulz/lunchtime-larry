@@ -955,6 +955,10 @@ h1 {
   gap: var(--escape-gap);
 }
 
+.escape-wrap .escape-link[hidden] {
+  display: none;
+}
+
 .escape-link {
   position: relative;
   display: flex;

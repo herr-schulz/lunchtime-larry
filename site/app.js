@@ -79,13 +79,13 @@ import {
   heuteDabeiLine,
 } from "./vote.js?v=4d6bd53e";
 import {
-  adoptRemoteVote,
+  applyRemoteVote,
   inkMineForCanteen,
   inkMineForEgal,
   inkVote,
   paintVoteBoard,
   projectLocalVote,
-} from "./voteMarks.js?v=e1793dc6";
+} from "./voteMarks.js?v=1ad12450";
 import {
   ensureVoteUser,
   listenVotes,
@@ -95,7 +95,7 @@ import {
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=05be3772";
+} from "./voteClient.js?v=c672fbf1";
 import {
   isStaleShell,
   reloadFresh,
@@ -852,7 +852,15 @@ function syncDevPhaseLabel() {
   return `Phase · ${override} · Demo-Stimmen`;
 }
 
+/** Wer isst was stays off the board until this browser is in a round. */
+function syncEatLink() {
+  const link = document.querySelector("#eat-link");
+  if (!link) return;
+  link.hidden = !loadRoundCode();
+}
+
 function syncNickButton() {
+  syncEatLink();
   if (introAgain) introAgain.hidden = false;
   if (!nickEdit) return;
   if (!loadVoteOptIn()) {
@@ -1036,7 +1044,7 @@ function rememberEatAsk() {
 }
 
 function maybeAskEat(mine) {
-  if (!mine?.picks?.length) return;
+  if (!loadRoundCode() || !mine?.picks?.length) return;
   try {
     if (localStorage.getItem(EAT_ASK_KEY) === berlinDate()) return;
   } catch {
@@ -1070,7 +1078,7 @@ async function handleEgal() {
   const records = voteState.records;
   const mine = inkMineForEgal(voteState.mine);
   try {
-    await commitBallot(mine, () => toggleEgal(records));
+    await commitBallot(mine, () => toggleEgal(records, mine));
   } catch (err) {
     console.warn(err);
     /* Egal is presence, not a seat fight — stay quiet on write/rules blips. */
@@ -1242,7 +1250,7 @@ function startVotes({ force = false } = {}) {
   if (votesListening && !force) return;
   votesListening = true;
   const onVotes = (next) => {
-    const adopted = adoptRemoteVote(next, pendingVote);
+    const adopted = applyRemoteVote(voteState, next, pendingVote);
     pendingVote = adopted.pending;
     voteState = adopted.state;
     applyVoteUi();
