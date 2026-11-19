@@ -30,7 +30,7 @@ import {
   listAllFavorites,
   toggleLikeSet,
 } from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=955974d9";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=23bb1c7f";
 import {
   favoritePoint,
   favoriteToday,

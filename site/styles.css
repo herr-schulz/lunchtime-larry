@@ -3209,8 +3209,14 @@ body:not(.page-alternatives) .colophon {
   .larry-bubble,
   .larry-bubble::after,
   .larry-kicker,
-  .larry-line {
+  .larry-line,
+  .larry-bin,
+  .larry-bye {
     transition: none !important;
+  }
+
+  .larry-bye.is-live {
+    animation: none;
   }
 
   .aufruf-stamp.is-inking .aufruf-ink {
@@ -3303,18 +3309,41 @@ body:not(.page-alternatives) .colophon {
 }
 
 .aufruf-stamp {
-  --aufruf-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px) + 1.35rem);
-  position: relative;
-  z-index: 1;
-  align-self: flex-end;
+  --aufruf-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  z-index: 18;
+  right: max(
+    calc(var(--page-gutter) + env(safe-area-inset-right, 0px)),
+    calc((100vw - min(100vw, var(--page-max))) / 2)
+  );
+  bottom: var(--aufruf-bottom);
+  left: auto;
   width: max-content;
-  max-width: calc(100% - var(--page-gutter) * 2);
-  /* Padding keeps the rotated ink inside the box, so the page end cannot crop it. */
-  padding: 1.5rem 1.15rem 1.85rem 1rem;
-  margin: 0.15rem calc(var(--page-gutter) + env(safe-area-inset-right, 0px)) calc(1.35rem + env(safe-area-inset-bottom, 0px)) auto;
+  max-width: calc(100vw - (var(--page-gutter) + env(safe-area-inset-right, 0px)) * 2);
+  margin: 0;
+  padding: 0.85rem 0.7rem 1rem;
   text-decoration: none;
   line-height: 1;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.aufruf-stamp.is-showing {
   pointer-events: auto;
+  visibility: visible;
+}
+
+body:has(.aufruf-stamp) .page-shell {
+  padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+body:has(.larry-corner.is-live:not(.is-left):not(.is-top)) .aufruf-stamp {
+  --aufruf-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px) + 5.4rem);
+}
+
+body:has(#larry-bin:not([hidden])) .aufruf-stamp {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .aufruf-stamp.is-armed:not(.is-inking):not(.is-set) .aufruf-ink {
@@ -3374,7 +3403,7 @@ body:not(.page-alternatives) .colophon {
 }
 
 .aufruf-count {
-  font-size: 1.05rem;
+  font-size: clamp(0.92rem, 3.6vw, 1.2rem);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
 }
@@ -3384,7 +3413,7 @@ body:not(.page-alternatives) .colophon {
 }
 
 .aufruf-label {
-  font-size: 0.72rem;
+  font-size: clamp(0.62rem, 2.4vw, 0.78rem);
 }
 
 .aufruf-pixel {
@@ -3395,19 +3424,85 @@ body:not(.page-alternatives) .colophon {
   pointer-events: none;
 }
 
-/* Once the margin can hold the stamp, hang it beside the Tafel instead of the page end. */
-@media (min-width: calc(1180px + 14rem)) {
-  .aufruf-stamp {
-    position: fixed;
-    z-index: 21;
-    right: auto;
-    bottom: var(--aufruf-bottom);
-    left: calc(50% + var(--page-max) / 2 + 0.75rem);
-    margin: 0;
-  }
+.larry-bin {
+  position: fixed;
+  z-index: 19;
+  left: 50%;
+  bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: clamp(10.5rem, 52vw, 14rem);
+  margin: 0;
+  padding: 0.55rem 0.85rem;
+  border: 1.5px dashed var(--board);
+  border-radius: 999px;
+  background: var(--ticket);
+  color: var(--board);
+  box-shadow: 0 10px 24px var(--shadow-lift);
+  pointer-events: none;
+}
 
-  body:has(.larry-corner.is-live:not(.is-left):not(.is-top)) .aufruf-stamp {
-    --aufruf-bottom: calc(var(--page-gutter) + env(safe-area-inset-bottom, 0px) + 6.1rem);
+.larry-bin.is-hot {
+  border-style: solid;
+  color: var(--stamp);
+  background: color-mix(in srgb, var(--stamp) 10%, var(--ticket));
+}
+
+.larry-bin-svg {
+  display: block;
+  flex: 0 0 auto;
+  width: clamp(1.55rem, 6vw, 1.9rem);
+  height: auto;
+}
+
+.larry-bin-label {
+  font-family: var(--font-display);
+  font-size: clamp(0.68rem, 2.6vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.larry-bye {
+  position: fixed;
+  z-index: 26;
+  left: 50%;
+  bottom: calc(6.4rem + env(safe-area-inset-bottom, 0px));
+  translate: -50% 0;
+  width: max-content;
+  max-width: min(16rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border: 1.5px solid var(--board);
+  border-radius: 1rem;
+  background: var(--ticket);
+  color: var(--board);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 3.6vw, 1.12rem);
+  line-height: 1.25;
+  text-align: center;
+  box-shadow: 0 10px 24px var(--shadow-lift);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .larry-bye.is-live {
+    animation: larry-bye-in 0.28s var(--ease-out-expo) both;
+  }
+}
+
+@keyframes larry-bye-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

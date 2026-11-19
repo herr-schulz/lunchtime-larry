@@ -18,6 +18,8 @@ const SHELL = [
   "./locations.js",
   "./larryCorner.js",
   "./larryLines.js",
+  "./larryToss.js",
+  "./tosses.js",
   "./calendar.js",
   "./dom.js",
   "./menuFetch.js",
