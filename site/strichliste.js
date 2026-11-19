@@ -680,9 +680,73 @@ const root = document.querySelector("#strich");
 const code = loadRoundCode();
 const weeksRoot = document.querySelector("#strich-weeks");
 
+function paintFunde(rows) {
+  const mount = document.querySelector("#strich-funde");
+  if (!mount) return;
+  if (!rows.length) {
+    mount.hidden = true;
+    mount.replaceChildren();
+    return;
+  }
+  mount.hidden = false;
+  mount.replaceChildren(node("h2", "strich-kicker", "Fundbüro"));
+  mount.append(node("p", "strich-note", "Wer alle vier Fundstücke abgegeben hat."));
+  const list = node("ul", "strich-laurel");
+  for (const row of rows) {
+    const item = node("li");
+    const line = node("p");
+    line.append(node("strong", "", row.nick));
+    line.append(document.createTextNode(" hat die Jagd beendet."));
+    item.append(line);
+    list.append(item);
+  }
+  mount.append(list);
+}
+
+/** Names only. The slips themselves stay on the owning uid. */
+function watchFunde() {
+  const mount = document.querySelector("#strich-funde");
+  Promise.all([
+    import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js"),
+  ])
+    .then(([{ getApp }, { getDatabase, onValue, ref }]) => {
+      onValue(
+        ref(getDatabase(getApp()), "funde"),
+        (snap) => {
+          const all = snap.val() || {};
+          const rows = Object.entries(all)
+            .map(([id, row]) => ({
+              id,
+              nick: typeof row?.nick === "string" ? row.nick.trim() : "",
+              at: typeof row?.at === "number" ? row.at : 0,
+            }))
+            .filter((row) => row.nick)
+            .sort((a, b) => a.at - b.at || a.nick.localeCompare(b.nick, "de") || a.id.localeCompare(b.id));
+          paintFunde(rows);
+        },
+        () => {
+          if (mount) mount.hidden = true;
+        },
+      );
+    })
+    .catch(() => {
+      if (mount) mount.hidden = true;
+    });
+}
+
 async function bootStrich() {
+  try {
+    await ensureVoteUser();
+    watchFunde();
+  } catch {
+    if (code && root) {
+      root.hidden = false;
+      root.replaceChildren(node("p", "strich-note", "Die Liste ist gerade nicht erreichbar."));
+    }
+    return;
+  }
   if (!code) return;
-  await ensureVoteUser();
   const desk = isDesk(loadNick(), code, await hasDeskClaim());
   if (weeksRoot) {
     weeksRoot.hidden = false;

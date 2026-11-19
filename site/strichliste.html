@@ -39,6 +39,22 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css?v=8b6a74f0" />
+    <style>
+      #strich-funde .strich-laurel {
+        list-style: none;
+        margin: 0.35rem 0 0;
+        padding: 0.15rem 0 0.15rem 0.9rem;
+        border-left: 4px solid var(--mustard);
+      }
+      #strich-funde .strich-laurel li {
+        margin: 0;
+        padding: 0.35rem 0;
+      }
+      #strich-funde .strich-laurel strong {
+        font-family: var(--font-display);
+        font-weight: 560;
+      }
+    </style>
   </head>
   <body class="page-strich">
     <div class="page-shell">
@@ -72,13 +88,15 @@
       </section>
       <section id="strich" hidden></section>
       <section id="strich-weeks" class="strich-block" hidden></section>
+      <section id="strich-funde" class="strich-block" hidden></section>
       <details class="strich-legal">
         <summary>Was gespeichert wird</summary>
         <p>
           Gespeichert wird der Name, den du zum Abstimmen selbst einträgst, und die gewählte Kantine.
           Die Zettel vom Tag werden danach gelöscht, die Summen bleiben. Keine Adresse, kein Cookie,
           kein Geräteprofil. Für Wer isst was bleiben in der Runde das eigene Hauptgericht und die
-          Tipps auf die anderen. Daraus steht hier, wer eine Woche gewonnen hat.
+          Tipps auf die anderen.           Daraus steht hier, wer eine Woche gewonnen hat.
+          Wer im Fundbüro alle vier Fundstücke abgibt, steht hier mit dem Spitznamen von der Tafel.
         </p>
         <p>
           Die Besuche zählt GoatCounter. Dieselbe Seite zählt acht Stunden lang einmal.
@@ -98,6 +116,6 @@
       </a>
     </footer>
     </div>
-    <script src="./strichliste.js?v=80412b07" type="module"></script>
+    <script src="./strichliste.js?v=c66506ad" type="module"></script>
   </body>
 </html>

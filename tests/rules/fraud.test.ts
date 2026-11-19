@@ -5,7 +5,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { dayBounds, nextIso } from "../../scripts/vote-calendar.mjs";
 import { berlinDate } from "../../site/vote.js";
 
@@ -14,6 +14,17 @@ const CODE = "a".repeat(64);
 const ALICE = "alice000000000000000000000AA";
 const BOB = "bob00000000000000000000000BB";
 const MALLORY = "mallory0000000000000000000MM";
+
+/**
+ * Emulator stand-ins for vault/1–4. These are not the live fundstücke.
+ * Do not submit them on the real Fundbüro.
+ */
+const FIXTURE_FLAGS = {
+  1: "flag-one-token",
+  2: "flag-two-token",
+  3: "flag-three-tok",
+  4: "flag-four-token",
+} as const;
 
 const today = berlinDate(new Date());
 const tomorrow = nextIso(today);
@@ -87,10 +98,10 @@ beforeEach(async () => {
       [`calendar/${tomorrow}`]: dayBounds(tomorrow),
       "calendar/2099-01-01": dayBounds("2099-01-01"),
       "meta/voteDay": today,
-      "vault/1": "flag-one-token",
-      "vault/2": "flag-two-token",
-      "vault/3": "flag-three-tok",
-      "vault/4": "flag-four-token",
+      "vault/1": FIXTURE_FLAGS[1],
+      "vault/2": FIXTURE_FLAGS[2],
+      "vault/3": FIXTURE_FLAGS[3],
+      "vault/4": FIXTURE_FLAGS[4],
       "config/features": { scoreSource: "scores", vetoOverride: false, rev: "rev-token", epoch: "2026-02-30" },
       ...claim(ALICE, 0, "Alice"),
       ...claim(BOB, 1, "Bob"),
@@ -222,12 +233,10 @@ describe("directory, tallies, decoys, vault", () => {
     );
   });
 
-  it("keeps vault secret and accepts only real flags", async () => {
+  it("keeps the vault unreadable", async () => {
     await assertFails(db(ALICE).ref("vault").get());
     await assertFails(db(ALICE).ref("vault/1").get());
-    await assertFails(db(ALICE).ref(`hunt/${ALICE}/1`).set("wrong-flag"));
-    await assertSucceeds(db(ALICE).ref(`hunt/${ALICE}/1`).set("flag-one-token"));
-    await assertSucceeds(db(BOB).ref("hunt").get());
+    await assertFails(db().ref("vault/1").get());
   });
 
   it("lets a user read and delete only their own move ticket", async () => {
@@ -238,6 +247,76 @@ describe("directory, tallies, decoys, vault", () => {
     await assertFails(db(BOB).ref(`moves/${ALICE}`).get());
     await assertFails(db(ALICE).ref(`moves/${ALICE}`).set({ code: "hijackedxx" }));
     await assertSucceeds(db(ALICE).ref(`moves/${ALICE}`).remove());
+  });
+});
+
+describe("hunt slips stay with the owner", () => {
+  it("rejects a wrong value and hides stored strings from another uid", async () => {
+    await assertFails(db(ALICE).ref(`hunt/${ALICE}/1`).set("wrong-flag"));
+    await assertFails(db(BOB).ref(`hunt/${ALICE}/1`).set(FIXTURE_FLAGS[1]));
+    await assertSucceeds(db(ALICE).ref(`hunt/${ALICE}/1`).set(FIXTURE_FLAGS[1]));
+    await assertSucceeds(db(ALICE).ref(`hunt/${ALICE}/1`).set(FIXTURE_FLAGS[1]));
+    await assertFails(db(ALICE).ref(`hunt/${ALICE}/1`).set("flag-one-other"));
+    await assertFails(db(BOB).ref("hunt").get());
+    await assertFails(db(BOB).ref(`hunt/${ALICE}`).get());
+    await assertFails(db(BOB).ref(`hunt/${ALICE}/1`).get());
+    await assertFails(db().ref(`hunt/${ALICE}/1`).get());
+    const own = await assertSucceeds(db(ALICE).ref(`hunt/${ALICE}`).get());
+    expect(own.child("1").val()).toBe(FIXTURE_FLAGS[1]);
+    expect(own.child("2").val()).toBeNull();
+    await assertFails(db(ALICE).ref(`huntBoard/${ALICE}/1`).set(FIXTURE_FLAGS[1]));
+    await assertFails(db(ALICE).ref(`huntBoard/${ALICE}/2`).set(true));
+    await assertSucceeds(db(ALICE).ref(`huntBoard/${ALICE}/1`).set(true));
+    const board = await assertSucceeds(db(BOB).ref("huntBoard").get());
+    expect(board.child(ALICE).child("1").val()).toBe(true);
+    expect(board.child(ALICE).child("2").val()).toBeNull();
+    expect(JSON.stringify(board.val())).not.toContain(FIXTURE_FLAGS[1]);
+    await assertFails(db().ref("huntBoard").get());
+  });
+
+  it("opens paket only after the first slip sticks", async () => {
+    await assertFails(db(ALICE).ref("paket").get());
+    await assertFails(db(ALICE).ref("paket").set({ box: "sealed" }));
+    await assertSucceeds(db(ALICE).ref(`hunt/${ALICE}/1`).set(FIXTURE_FLAGS[1]));
+    await assertSucceeds(db(ALICE).ref("paket").get());
+    await assertFails(db(BOB).ref("paket").get());
+    await assertFails(db(ALICE).ref("paket").set({ box: "sealed" }));
+  });
+
+  it("completes all four fixture flags and records the strichliste credit", async () => {
+    await assertFails(
+      db(ALICE).ref(`funde/${ALICE}`).set({ nick: "Alice", at: Date.now() }),
+    );
+    for (const n of ["1", "2", "3", "4"] as const) {
+      await assertFails(db(ALICE).ref(`hunt/${ALICE}/${n}`).set("wrong-flag"));
+      await assertSucceeds(db(ALICE).ref(`hunt/${ALICE}/${n}`).set(FIXTURE_FLAGS[n]));
+    }
+    await assertFails(db(BOB).ref(`hunt/${ALICE}/2`).get());
+    await assertFails(db(BOB).ref(`hunt/${ALICE}/3`).get());
+    await assertFails(db(BOB).ref(`hunt/${ALICE}/4`).get());
+    const own = await assertSucceeds(db(ALICE).ref(`hunt/${ALICE}`).get());
+    for (const n of ["1", "2", "3", "4"] as const) {
+      expect(own.child(n).val()).toBe(FIXTURE_FLAGS[n]);
+    }
+    await assertFails(
+      db(BOB).ref(`funde/${ALICE}`).set({ nick: "Bob", at: Date.now() }),
+    );
+    await assertFails(
+      db(ALICE).ref(`funde/${ALICE}`).set({ nick: "!!!", at: Date.now() }),
+    );
+    await assertSucceeds(
+      db(ALICE).ref(`funde/${ALICE}`).set({ nick: "Alice", at: Date.now() }),
+    );
+    await assertFails(
+      db(ALICE).ref(`funde/${ALICE}`).set({ nick: "Alice", at: Date.now() }),
+    );
+    await assertFails(
+      db(BOB).ref(`funde/${BOB}`).set({ nick: "Bob", at: Date.now() }),
+    );
+    const credit = await assertSucceeds(db(BOB).ref(`funde/${ALICE}`).get());
+    expect(credit.val().nick).toBe("Alice");
+    expect(JSON.stringify(credit.val())).not.toContain("flag-");
+    await assertFails(db().ref(`funde/${ALICE}`).get());
   });
 });
 

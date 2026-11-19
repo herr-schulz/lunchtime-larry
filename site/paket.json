@@ -1,0 +1,5 @@
+{
+  "name": "A256GCM",
+  "note": "Schlüssel sind die rohen SHA-256-Bytes von Fundstück 1, nicht die Hexschrift. Die ersten 12 Bytes der Kiste sind die Nonce, der Rest ist Text und Tag.",
+  "box": "2GRoivkG7t8xdLHRbQpU1WiN2kfqbBQe490whVEKmSSWXHpYvPGBnlEoJHOzPYCkmhLVyQJEKOrasnDg6vMjDwbPewFRd1WssbhmXw8FVhhV9r0WuT7uBlTwFAhXFhAQLHw80hSI2k0BQlbW+Z7zmDs5iY3oNc9vjO10o7V+DsK0ZiXhgmaJfoD3UuJozJocrzrMGu/YsrlDAJFQm+Q/Uw6U6UNZmN29TRn00n4w1dy6w6Vhzqckten5CuMGWyDMAgpN1nbX6CYm7R3M7rL1EWgJD5uIyHgeXzynPq1l9UvejRmyqbvAXQJNBtLNXve37t9EouJ/Nee/"
+}
