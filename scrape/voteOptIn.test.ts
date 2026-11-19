@@ -156,6 +156,27 @@ describe("round migration", () => {
   });
 });
 
+describe("Wer isst was stays inside a round", () => {
+  it("hides the dish-stamp link until a round is stored and leaves the rest of the board", () => {
+    const html = readFileSync("site/index.html", "utf8");
+    const { document } = parseHTML(html);
+    const eat = document.querySelector("#eat-link");
+    expect(eat?.textContent).toMatch(/Wer isst was\?/);
+    expect(eat?.hasAttribute("hidden")).toBe(true);
+    expect(document.querySelector("#dice-open")?.hasAttribute("hidden")).toBe(false);
+    expect(document.querySelector("#escape-link")?.hasAttribute("hidden")).toBe(false);
+    expect(document.querySelector("#board")).toBeTruthy();
+    const app = readFileSync("site/app.js", "utf8");
+    expect(app).toMatch(/function syncEatLink\(\) \{\s*const link = document\.querySelector\("#eat-link"\);/);
+    expect(app).toMatch(/link\.hidden = !loadRoundCode\(\)/);
+    expect(app).toMatch(/function syncNickButton\(\) \{\s*syncEatLink\(\)/);
+    const css = readFileSync("site/styles.css", "utf8");
+    expect(css).toMatch(/\.escape-wrap \.escape-link\[hidden\] \{\s*display: none;/);
+    const eatPage = readFileSync("site/eatPage.js", "utf8");
+    expect(eatPage).toMatch(/if \(!probe && !loadRoundCode\(\)\)/);
+  });
+});
+
 describe("listenVotes stays behind the opt-in flag", () => {
   it("does not start the ballot listener before Mitstimmen", () => {
     const app = readFileSync("site/app.js", "utf8");
