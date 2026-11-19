@@ -24,6 +24,16 @@
       ".read": "auth != null && root.child('hunt/' + auth.uid + '/1').exists()",
       ".write": false
     },
+    "tosses": {
+      "n": {
+        ".read": true,
+        ".write": "auth != null && newData.isNumber() && newData.val() % 1 == 0 && newData.val() >= 1 && newData.val() <= 1000000 && ((!data.exists() && newData.val() == 1) || (data.isNumber() && newData.val() == data.val() + 1))"
+      },
+      "$other": {
+        ".read": false,
+        ".write": false
+      }
+    },
     "hunt": {
       "$uid": {
         ".read": "auth != null && auth.uid == $uid && $uid.matches(/^[A-Za-z0-9]{16,128}$/)",

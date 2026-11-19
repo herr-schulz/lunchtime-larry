@@ -10,7 +10,8 @@ import {
   votePhase,
   voteRecords,
 } from "./vote.js?v=4d6bd53e";
-import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=4504ad9a";
+import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=8dbdfa1e";
+import { readTosses } from "./tosses.js?v=6eb65288";
 import { pastWeeks } from "./eat.js?v=4c1eats5";
 import {
   BAR_FIELDS,
@@ -384,12 +385,29 @@ function paintGroups(board) {
   return block;
 }
 
-function paintVisits(root, counts, source) {
+function paintToss(n) {
+  const block = node("div", "strich-toss");
+  block.append(node("h2", "strich-kicker", "Im Eimer"));
+  block.append(node("p", "strich-lead", String(n)));
+  block.append(
+    node(
+      "p",
+      "strich-note",
+      n === 1
+        ? "Einmal ist Larry in den Eimer gewandert. Die Zahl hat keinen Namen."
+        : `So oft ist Larry in den Eimer gewandert. Die Zahl hat keinen Namen.`,
+    ),
+  );
+  return block;
+}
+
+function paintVisits(root, counts, source, tosses) {
   root.removeAttribute("aria-busy");
   root.replaceChildren(node("h2", "strich-kicker", "Besuche"));
   const any = Object.values(counts).some((value) => value);
   if (!any) {
     root.append(node("p", "strich-note", "Die Besuchszahl ist gerade nicht erreichbar."));
+    if (typeof tosses === "number") root.append(paintToss(tosses));
     return;
   }
   const figures = node("div", "strich-figures");
@@ -434,6 +452,7 @@ function paintVisits(root, counts, source) {
     list.append(line);
   }
   root.append(list);
+  if (typeof tosses === "number") root.append(paintToss(tosses));
 }
 
 function monthTitle(key) {
@@ -620,8 +639,8 @@ async function loadBoard(code, desk) {
 
 const visitsRoot = document.querySelector("#strich-visits");
 if (visitsRoot) {
-  loadVisits()
-    .then(({ counts, source }) => paintVisits(visitsRoot, counts, source))
+  Promise.all([loadVisits(), readTosses().catch(() => null)])
+    .then(([{ counts, source }, tosses]) => paintVisits(visitsRoot, counts, source, tosses))
     .catch(() => {
       visitsRoot.removeAttribute("aria-busy");
       visitsRoot.replaceChildren(

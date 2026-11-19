@@ -17,14 +17,14 @@ import {
   loadNick,
   loadRoundCode,
   votePhase,
-} from "./vote.js?v=857e7e26";
+} from "./vote.js?v=4d6bd53e";
 import {
   ensureVoteUser,
   listenEats,
   listenVotes,
   savePlate,
   syncBadge,
-} from "./voteClient.js?v=4c1eats1";
+} from "./voteClient.js?v=c672fbf1";
 
 const STEP_KEY = "lunchtime-larry-eat-step";
 const DIET = { vegan: "vegan", veggie: "veggie", meat: "Fleisch", fish: "Fisch" };
@@ -270,6 +270,13 @@ function renderWeek() {
 }
 
 function render() {
+  if (!probe && !loadRoundCode()) {
+    if (board) board.hidden = true;
+    if (rail) rail.hidden = true;
+    if (week) week.hidden = true;
+    if (lede) lede.textContent = "Das Spiel gibt es in der Runde.";
+    return;
+  }
   if (kicker) {
     const day = menuDay();
     kicker.textContent = `Arabellapark · ${WEEKDAYS[day] || ""}`.replace(/ · $/, "");
@@ -426,6 +433,7 @@ function endDrag(event) {
 }
 
 function maybeExplain() {
+  if (!probe && !loadRoundCode()) return;
   if (!explain || explain.open || step !== 1 || closed || !mains.length) return;
   explain.showModal();
 }
