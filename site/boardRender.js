@@ -1,8 +1,8 @@
 /** Pure HTML builders for the canteen board (no DOM writes). */
 
-import { html, safeUrl } from "./dom.js?v=6b123156";
-import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=952ff298";
-import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=9db8d9ec";
+import { html, safeUrl } from "./dom.js?v=d78812b6";
+import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=b4c8150a";
+import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=16f9871b";
 
 const DIET = {
   vegan: "vegan",

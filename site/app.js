@@ -8,19 +8,19 @@ import {
   isMenuWeekFresh,
   todayKey,
   watchBerlinMidnight,
-} from "./calendar.js?v=cd46c84a";
-import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=d6d5734e";
-import { html, setHtml } from "./dom.js?v=6b123156";
-import { pickMainDish, pickSpot } from "./dice.js?v=ca08ab4d";
+} from "./calendar.js?v=9f6472f6";
+import { bindBoardGestures as wireBoardGestures } from "./boardGestures.js?v=4f974005";
+import { html, setHtml } from "./dom.js?v=d78812b6";
+import { pickMainDish, pickSpot } from "./dice.js?v=d68df4b5";
 import {
   berlinWeekMonday,
   canteenEntries,
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=a71ad46d";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=10e8b96c";
-import { applyPenMark } from "./icons.js?v=952ff298";
+} from "./diceReel.js?v=abf5b839";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=0d3c22fc";
+import { applyPenMark } from "./icons.js?v=b4c8150a";
 import {
   alarmLabel,
   dishKey,
@@ -29,8 +29,8 @@ import {
   isLiked,
   listAllFavorites,
   toggleLikeSet,
-} from "./likes.js?v=9db8d9ec";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=23bb1c7f";
+} from "./likes.js?v=16f9871b";
+import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=9451d7b6";
 import {
   favoritePoint,
   favoriteToday,
@@ -44,10 +44,10 @@ import {
   voteStuffed,
   weekStaleHitsNote,
   winnerTie,
-} from "./larryLines.js?v=cac37a42";
-import { LOCATIONS } from "./locations.js?v=2dcdf871";
-import { loadMenu } from "./menuFetch.js?v=99f0e614";
-import { watchSkin } from "./skinGuard.js?v=eb686083";
+} from "./larryLines.js?v=e093dc99";
+import { LOCATIONS } from "./locations.js?v=e681f2b4";
+import { loadMenu } from "./menuFetch.js?v=64fd5683";
+import { watchSkin } from "./skinGuard.js?v=61550f5d";
 import {
   berlinWeekday,
   isVoteDay,
@@ -77,7 +77,7 @@ import {
   votePhase,
   winnerOf,
   heuteDabeiLine,
-} from "./vote.js?v=4d6bd53e";
+} from "./vote.js?v=9cf92e86";
 import {
   applyRemoteVote,
   inkMineForCanteen,
@@ -85,7 +85,7 @@ import {
   inkVote,
   paintVoteBoard,
   projectLocalVote,
-} from "./voteMarks.js?v=1ad12450";
+} from "./voteMarks.js?v=25abc17a";
 import {
   ensureVoteUser,
   listenVotes,
@@ -95,19 +95,19 @@ import {
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=c672fbf1";
+} from "./voteClient.js?v=ce2d0e0b";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=774f715c";
+} from "./updateShell.js?v=d1786c73";
 import {
   berlinAt,
   demoVotes,
   mountDevPreview,
-} from "./devPreview.js?v=dc1f260e";
+} from "./devPreview.js?v=11924659";
 
 const LIKES_KEY = "lunchtime-larry-likes";
 const WEEKEND_NOTE_KEY = "lunchtime-larry-weekend-note";

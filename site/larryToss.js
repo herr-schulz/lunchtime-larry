@@ -1,6 +1,6 @@
 /** Throw Larry in the bin. He stays gone until the next Europe/Berlin day. */
 
-import { berlinClock, berlinDate } from "./vote.js?v=4d6bd53e";
+import { berlinClock, berlinDate } from "./vote.js?v=9cf92e86";
 
 export const AWAY_KEY = "lunchtime-larry-away";
 
@@ -46,6 +46,52 @@ export function awayStamp(storage) {
  */
 export function larryIsAway(storage, now = Date.now()) {
   return awayStamp(storage) > now;
+}
+
+export const LARRY_WHERE_LABEL = "Wo ist Larry?";
+
+/** No separate page. He stays in the bin until the next Berlin day. */
+export const LARRY_WHERE_NOTE = "Larry ist bis morgen im Eimer.";
+
+/**
+ * Footer link while the away stamp is still in the future.
+ * @param {Pick<Storage, "getItem"> | null | undefined} storage
+ * @param {number} [now]
+ */
+export function larryWhereLink(storage, now = Date.now()) {
+  return {
+    show: larryIsAway(storage, now),
+    label: LARRY_WHERE_LABEL,
+    note: LARRY_WHERE_NOTE,
+  };
+}
+
+/**
+ * @param {{ hidden: boolean, title?: string } | null | undefined} link
+ * @param {Pick<Storage, "getItem"> | null | undefined} storage
+ * @param {number} [now]
+ */
+export function applyLarryWhere(link, storage, now = Date.now()) {
+  const state = larryWhereLink(storage, now);
+  if (link) {
+    link.hidden = !state.show;
+    link.title = state.note;
+  }
+  return state;
+}
+
+/**
+ * Reuse the goodbye line. There is nowhere else to send him.
+ * @param {{ hidden: boolean, textContent: string, classList?: { add: (name: string) => void } } | null | undefined} bye
+ * @param {string} [note]
+ */
+export function showLarryWhere(bye, note = LARRY_WHERE_NOTE) {
+  if (bye) {
+    bye.textContent = note;
+    bye.hidden = false;
+    bye.classList?.add("is-live");
+  }
+  return note;
 }
 
 /**

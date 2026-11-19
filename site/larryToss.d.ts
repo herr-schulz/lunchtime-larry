@@ -10,6 +10,32 @@ export function larryIsAway(
   now?: number,
 ): boolean;
 
+export const LARRY_WHERE_LABEL: string;
+export const LARRY_WHERE_NOTE: string;
+
+export function larryWhereLink(
+  storage: Pick<Storage, "getItem"> | null | undefined,
+  now?: number,
+): { show: boolean; label: string; note: string };
+
+export function applyLarryWhere(
+  link: { hidden: boolean; title?: string } | null | undefined,
+  storage: Pick<Storage, "getItem"> | null | undefined,
+  now?: number,
+): { show: boolean; label: string; note: string };
+
+export function showLarryWhere(
+  bye:
+    | {
+        hidden: boolean;
+        textContent: string;
+        classList?: { add: (name: string) => void };
+      }
+    | null
+    | undefined,
+  note?: string,
+): string;
+
 export function rememberAway(
   storage: Pick<Storage, "setItem"> | null | undefined,
   now?: Date,

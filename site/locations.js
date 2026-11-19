@@ -1,5 +1,5 @@
 /** Lunch-Locations ab Elektrstraße 6 · Arabellapark */
-import { html, safeUrl, setHtml } from "./dom.js?v=6b123156";
+import { html, safeUrl, setHtml } from "./dom.js?v=d78812b6";
 
 export const LOCATIONS = [
   {
