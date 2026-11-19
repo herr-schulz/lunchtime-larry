@@ -3,13 +3,18 @@ import { parseHTML } from "linkedom";
 import { describe, expect, it } from "vitest";
 import { berlinDate } from "../site/vote.js";
 import {
+  LARRY_WHERE_LABEL,
+  LARRY_WHERE_NOTE,
   TOSS_LINES,
+  applyLarryWhere,
   applyTrashDrop,
   dragRelease,
   droppedInTrash,
   larryIsAway,
   nextBerlinMidnight,
   presentLarry,
+  rememberAway,
+  showLarryWhere,
   tossLine,
 } from "../site/larryToss.js";
 
@@ -100,6 +105,53 @@ describe("Larry trash drop", () => {
     const spring = nextBerlinMidnight(new Date("2026-03-29T01:30:00+01:00"));
     expect(berlinDate(new Date(spring))).toBe("2026-03-30");
     expect(berlinDate(new Date(spring - 1500))).toBe("2026-03-29");
+  });
+});
+
+describe("Wo ist Larry link", () => {
+  it("is in the footer only while he is in the bin", () => {
+    const html = readFileSync("site/index.html", "utf8");
+    const { document } = parseHTML(html);
+    const footer = document.querySelector("footer.colophon");
+    const link = footer?.querySelector("#larry-where") as HTMLAnchorElement | null;
+    const bye = document.querySelector("#larry-bye") as HTMLElement | null;
+    if (!link || !bye) throw new Error("where");
+
+    expect(link.textContent?.trim()).toBe("Wo ist Larry?");
+    expect(link.textContent?.trim()).toBe(LARRY_WHERE_LABEL);
+    expect(link.hasAttribute("hidden")).toBe(true);
+    expect(link.getAttribute("href")).toBe("#larry-bye");
+    expect(link.getAttribute("href")).not.toMatch(/fundbuero/i);
+    expect(LARRY_WHERE_NOTE).toBe("Larry ist bis morgen im Eimer.");
+    expect(LARRY_WHERE_NOTE).not.toMatch(/fundbuero|vault/i);
+    expect(footer?.contains(link)).toBe(true);
+
+    const storage = memory();
+    const home = applyLarryWhere(link, storage, Date.parse("2026-11-19T15:00:00+01:00"));
+    expect(home.show).toBe(false);
+    expect(link.hidden).toBe(true);
+    expect(link.textContent?.trim()).toBe("Wo ist Larry?");
+
+    const now = new Date("2026-11-19T15:04:00+01:00");
+    rememberAway(storage, now);
+    const tossed = applyLarryWhere(link, storage, now.getTime() + 60_000);
+    expect(tossed.show).toBe(true);
+    expect(link.hidden).toBe(false);
+    expect(link.title).toBe(LARRY_WHERE_NOTE);
+    expect(showLarryWhere(bye)).toBe(LARRY_WHERE_NOTE);
+    expect(bye.textContent).toBe("Larry ist bis morgen im Eimer.");
+    expect(bye.hidden).toBe(false);
+
+    const morning = Date.parse("2026-11-20T08:15:00+01:00");
+    const back = applyLarryWhere(link, storage, morning);
+    expect(back.show).toBe(false);
+    expect(link.hidden).toBe(true);
+    expect(larryIsAway(storage, morning)).toBe(false);
+
+    const corner = readFileSync("site/larryCorner.js", "utf8");
+    expect(corner).toContain("applyLarryWhere");
+    expect(corner).toContain("showLarryWhere");
+    expect(corner).toContain("bindLarryWhere");
   });
 });
 

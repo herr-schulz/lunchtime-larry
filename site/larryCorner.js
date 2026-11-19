@@ -1,15 +1,17 @@
 /** Single Larry speech-bubble — toast-like, free drag, gravity snap. */
 
-import { idleTip } from "./larryLines.js?v=cac37a42";
+import { idleTip } from "./larryLines.js?v=e093dc99";
 import {
+  applyLarryWhere,
   applyTrashDrop,
   dragRelease,
   droppedInTrash,
   larryIsAway,
   presentLarry,
-} from "./larryToss.js?v=6077d48e";
+  showLarryWhere,
+} from "./larryToss.js?v=62f2b517";
 import { incrementTosses } from "./tosses.js?v=6eb65288";
-import { loadVoteOptIn } from "./vote.js?v=4d6bd53e";
+import { loadVoteOptIn } from "./vote.js?v=9cf92e86";
 
 const DOCK_KEY = "lunchtime-larry-corner-dock";
 const SIDE_KEY = "lunchtime-larry-corner-side";
@@ -103,6 +105,33 @@ function scheduleBye() {
   }, wait);
 }
 
+function syncLarryWhere() {
+  applyLarryWhere(document.querySelector("#larry-where"), safeStorage());
+}
+
+function onLarryWhere(event) {
+  if (!larryIsAway(safeStorage())) {
+    event.preventDefault();
+    syncLarryWhere();
+    return;
+  }
+  const bye = document.querySelector("#larry-bye");
+  showLarryWhere(bye);
+  window.clearTimeout(byeTimer);
+  const wait = prefersReducedMotion() ? 2800 : 4200;
+  byeTimer = window.setTimeout(() => {
+    if (bye) bye.hidden = true;
+  }, wait);
+}
+
+function bindLarryWhere() {
+  const link = document.querySelector("#larry-where");
+  syncLarryWhere();
+  if (!link || link.dataset.bound === "1") return;
+  link.dataset.bound = "1";
+  link.addEventListener("click", onLarryWhere);
+}
+
 function banishLarry() {
   const bye = document.querySelector("#larry-bye");
   applyTrashDrop({
@@ -118,6 +147,7 @@ function banishLarry() {
   clearFaceOffset();
   hideBin();
   scheduleBye();
+  syncLarryWhere();
 }
 
 /** @param {string | null} value */
@@ -337,6 +367,7 @@ function ensureDom() {
   });
   bindLarryDrag();
   if (larryIsAway(safeStorage())) hideAway();
+  bindLarryWhere();
   if (!boundChrome) {
     boundChrome = true;
     scrollY = Math.max(0, window.scrollY);

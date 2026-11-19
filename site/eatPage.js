@@ -1,5 +1,5 @@
 import CANTEENS from "./canteens.json" with { type: "json" };
-import { escapeHtml, html, setHtml } from "./dom.js?v=6b123156";
+import { escapeHtml, html, setHtml } from "./dom.js?v=d78812b6";
 import {
   gameMains,
   isPlateId,
@@ -9,7 +9,7 @@ import {
   weekSheetDays,
 } from "./eat.js?v=4c1eats1";
 import { joinDishSides, phraseDish } from "./likes.js?v=9db8d9ec";
-import { loadMenu } from "./menuFetch.js?v=99f0e614";
+import { loadMenu } from "./menuFetch.js?v=64fd5683";
 import {
   berlinDate,
   berlinWeekday,

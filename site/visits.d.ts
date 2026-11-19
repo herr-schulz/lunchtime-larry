@@ -23,14 +23,14 @@ export function readTotalCount(
   ) => Promise<{ ok: boolean; json: () => Promise<{ count?: unknown }> }>,
 ): Promise<string>;
 export function stampFrame(viewWidth: number): {
-  position: "fixed";
-  flow: false;
+  position: "relative";
+  flow: true;
   maxWidth: number;
 };
 export function stampInFlow(position: string): boolean;
-export function stampVisibleAt(metrics: { scrollY?: number; mastheadBottom?: number }): boolean;
+export function stampVisibleAt(metrics?: { scrollY?: number; mastheadBottom?: number }): boolean;
 export function applyStampPin(
   stamp: HTMLElement,
   metrics: { viewWidth: number; scrollY?: number; mastheadBottom?: number },
-): { position: "fixed"; flow: false; maxWidth: number; showing: boolean };
+): { position: "relative"; flow: true; maxWidth: number; showing: boolean };
 export function mountVisits(root?: ParentNode): void;

@@ -88,54 +88,40 @@ function reducedMotion() {
 }
 
 /**
- * Fixed to the viewport. Width cap follows the screen so a narrow phone
- * and a wide monitor do not share one box.
- * `flow: false` — fixed is out of normal flow.
+ * In the footer, in normal flow. Width cap still follows the screen.
+ * Not fixed, not sticky: the count scrolls away with the footer.
  * @param {number} viewWidth
  */
 export function stampFrame(viewWidth) {
   const width = Number.isFinite(viewWidth) ? viewWidth : 0;
   const gutter = 16;
   const maxWidth = Math.max(72, Math.round(width - gutter * 2));
-  return { position: "fixed", flow: false, maxWidth };
+  return { position: "relative", flow: true, maxWidth };
 }
 
-/** Relative and static stay in flow. Fixed does not. */
+/** Static and relative stay in the footer. Fixed and sticky pin to the viewport. */
 export function stampInFlow(position) {
-  return position === "static" || position === "relative" || position === "sticky" || position === "";
+  return position === "static" || position === "relative" || position === "";
 }
 
-/**
- * Hidden while the masthead (the top of the board) is still on screen.
- * Once it has scrolled away the stamp is shown, and because it is fixed it
- * stays put for the rest of the scroll.
- * @param {{ scrollY?: number, mastheadBottom?: number }} metrics
- */
-export function stampVisibleAt(metrics) {
-  const scrollY = metrics?.scrollY ?? 0;
-  const mastheadBottom = metrics?.mastheadBottom ?? 0;
-  if (mastheadBottom > 0 && scrollY < 48) return false;
-  return mastheadBottom <= 0;
+/** The count lives in the footer row. Scrolling does not show or hide it. */
+export function stampVisibleAt(_metrics) {
+  return true;
 }
 
 /**
  * @param {HTMLElement} stamp
- * @param {{ viewWidth: number, scrollY?: number, mastheadBottom?: number }} metrics
+ * @param {{ viewWidth: number }} metrics
  */
 export function applyStampPin(stamp, metrics) {
   const frame = stampFrame(metrics.viewWidth);
+  const showing = stampVisibleAt(metrics);
   stamp.style.position = frame.position;
   stamp.style.maxWidth = `${frame.maxWidth}px`;
   stamp.dataset.flow = frame.flow ? "in" : "out";
-  const showing = stampVisibleAt(metrics);
-  stamp.classList.toggle("is-showing", showing);
-  if (showing) {
-    stamp.setAttribute("aria-hidden", "false");
-    stamp.removeAttribute("tabindex");
-  } else {
-    stamp.setAttribute("aria-hidden", "true");
-    stamp.setAttribute("tabindex", "-1");
-  }
+  stamp.classList.remove("is-showing");
+  stamp.removeAttribute("aria-hidden");
+  stamp.removeAttribute("tabindex");
   return { ...frame, showing };
 }
 
@@ -161,27 +147,17 @@ function armStamp(stamp) {
 
 function pinMetrics(stamp) {
   const view = stamp.ownerDocument?.defaultView;
-  const mast = stamp.ownerDocument?.querySelector?.(".masthead");
-  return {
-    viewWidth: view?.innerWidth || 0,
-    scrollY: view?.scrollY || 0,
-    mastheadBottom: mast?.getBoundingClientRect?.().bottom ?? 0,
-  };
+  return { viewWidth: view?.innerWidth || 0 };
 }
 
-/** Ink once, the first time the pinned stamp is actually on screen. */
+/** Place the stamp in the footer, then ink once when that row is on screen. */
 function watchStamp(stamp) {
-  let inked = false;
-  const sync = () => {
-    const showing = applyStampPin(stamp, pinMetrics(stamp)).showing;
-    if (!showing || inked) return;
-    inked = true;
-    armStamp(stamp);
-  };
-  sync();
+  applyStampPin(stamp, pinMetrics(stamp));
+  armStamp(stamp);
   const view = stamp.ownerDocument?.defaultView;
-  view?.addEventListener("scroll", sync, { passive: true });
-  view?.addEventListener("resize", sync);
+  view?.addEventListener("resize", () => {
+    applyStampPin(stamp, pinMetrics(stamp));
+  });
 }
 
 export function mountVisits(root = document) {

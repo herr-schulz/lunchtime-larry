@@ -7,7 +7,7 @@ import {
   isValidNick,
   normalizeNick,
   picksFromRecord,
-} from "./vote.js?v=4d6bd53e";
+} from "./vote.js?v=9cf92e86";
 
 export const TALLY_FIELDS = ["stmuv", "sodexo", "bella23", "wochenmarkt", "egal", "second", "n"];
 export const NICK_FIELDS = ["stmuv", "sodexo", "bella23", "wochenmarkt", "egal"];

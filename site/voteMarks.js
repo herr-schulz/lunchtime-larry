@@ -11,7 +11,7 @@ import {
   nicksFor,
   normalizeNick,
   roundNicks,
-} from "./vote.js?v=4d6bd53e";
+} from "./vote.js?v=9cf92e86";
 
 const LOCAL_UID = "local";
 const UID_RE = /^[A-Za-z0-9]{16,128}$/;

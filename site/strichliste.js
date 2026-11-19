@@ -9,8 +9,8 @@ import {
   roundKeyFor,
   votePhase,
   voteRecords,
-} from "./vote.js?v=4d6bd53e";
-import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=8dbdfa1e";
+} from "./vote.js?v=9cf92e86";
+import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=66ea366b";
 import { readTosses } from "./tosses.js?v=6eb65288";
 import { pastWeeks } from "./eat.js?v=4c1eats5";
 import {
@@ -32,7 +32,7 @@ import {
   sumTallies,
   thursdayMarket,
   winsLine,
-} from "./tally.js?v=d8bad0b8";
+} from "./tally.js?v=903bf68a";
 import {
   ensureVoteUser,
   hasDeskClaim,

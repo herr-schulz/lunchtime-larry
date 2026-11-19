@@ -24,8 +24,8 @@ import {
   voteRecords,
   voteTargetIds,
   votesPath,
-} from "./vote.js?v=4d6bd53e";
-import { stateFromPresent } from "./voteMarks.js?v=1ad12450";
+} from "./vote.js?v=9cf92e86";
+import { stateFromPresent } from "./voteMarks.js?v=25abc17a";
 import config from "./firebase.json?v=8c4496a6" with { type: "json" };
 
 const FIREBASE_VER = "11.10.0";
