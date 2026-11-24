@@ -1,24 +1,17 @@
 import {
-  berlinClock,
   berlinDate,
-  firstRecordsByUid,
-  isEgalRecord,
   loadNick,
   loadRoundCode,
-  picksFromRecord,
   roundKeyFor,
   votePhase,
-  voteRecords,
 } from "./vote.js?v=9cf92e86";
 import { countDigits, counterUrl, readCountAt, readLocalAufrufe } from "./visits.js?v=66ea366b";
 import { readTosses } from "./tosses.js?v=6eb65288";
-import { pastWeeks } from "./eat.js?v=4c1eats5";
+import { pointsBoardText, publicDayTallies, publicWinner } from "./lottery.js?v=57fbf601";
 import {
   BAR_FIELDS,
   TALLY_NAMES,
   dayLabel,
-  emptyNick,
-  foldDay,
   hourBands,
   isDesk,
   leadingDays,
@@ -36,10 +29,10 @@ import {
 import {
   ensureVoteUser,
   hasDeskClaim,
-  listenEats,
+  listenLottery,
   loadDirectory,
-  loadHistory,
-} from "./voteClient.js?v=4c1eats1";
+  loadRoundDays,
+} from "./voteClient.js?v=57fbf601";
 
 const RANGES = [
   ["days", "Tage"],
@@ -189,23 +182,6 @@ function paintPeople(nicks) {
   return block;
 }
 
-function clockLabel(at) {
-  if (typeof at !== "number" || !Number.isFinite(at)) return "";
-  const { hour, minute } = berlinClock(new Date(at));
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
-function personLines(raw) {
-  return firstRecordsByUid(voteRecords(raw)).map((rec) => {
-    const where = isEgalRecord(rec)
-      ? "Egal"
-      : picksFromRecord(rec)
-          .map((id) => TALLY_NAMES[id] || id)
-          .join(" und ") || "Keine Kantine";
-    return { nick: String(rec.nick || "Ohne Namen"), where, when: clockLabel(rec.at) };
-  });
-}
-
 function monthDays(days, today) {
   const end = shiftIso(today, -1);
   const [year, month, last] = end.split("-").map(Number);
@@ -281,17 +257,22 @@ function paintToday(board) {
     block.append(node("h2", "strich-kicker", "Heute"));
     block.append(node("p", "strich-lead", "Die Auszählung kommt um 12 Uhr."));
     block.append(
-      node("p", "strich-note", "Bis dahin bleiben die Stimmen bei den Zetteln. Danach steht hier, wer welche Kantine gewählt hat."),
+      node(
+        "p",
+        "strich-note",
+        "Bis dahin bleiben die Stimmen bei den Zetteln. Danach stehen hier nur die Summen, ohne Namen.",
+      ),
     );
     return block;
   }
   if (board.phase === "reveal") {
-    const people = personLines(board.live);
-    const tally = foldDay(voteRecords(board.live));
+    const tally = board.archive?.days?.[board.today] || null;
     block.append(node("h2", "strich-kicker", `Heute, ${dayLabel(board.today)}`));
     block.append(legend());
-    if (!tally.n) {
-      block.append(node("p", "strich-note", "Nach 12 Uhr hat in dieser Runde noch niemand gewählt."));
+    if (!tally?.n) {
+      block.append(
+        node("p", "strich-note", "Die Summe für heute steht hier, sobald sie geschrieben ist. Ohne Namen und ohne Gericht."),
+      );
       return block;
     }
     block.append(node("p", "strich-lead", peopleWord(tally.n)));
@@ -299,14 +280,7 @@ function paintToday(board) {
     bar.classList.add("is-hero");
     block.append(bar);
     block.append(node("p", "strich-facts", breakdown(tally)));
-    const list = node("ul", "strich-people");
-    for (const person of people) {
-      const line = node("li", "strich-person");
-      line.append(node("span", "strich-person-name", person.nick));
-      line.append(node("span", "strich-person-picks", person.when ? `${person.where} · ${person.when}` : person.where));
-      list.append(line);
-    }
-    block.append(list);
+    block.append(node("p", "strich-note", "Nur die Summen. Kein Name, keine einzelne Kantine, kein Gericht."));
     return block;
   }
   const days = board.archive?.days || {};
@@ -326,7 +300,7 @@ function paintToday(board) {
   block.append(bar);
   block.append(node("p", "strich-facts", breakdown(days[iso])));
   block.append(
-    node("p", "strich-note", "Namen und Uhrzeiten gibt es nur am Wahltag nach 12 Uhr. Dieser Tag ist schon zusammengezählt."),
+    node("p", "strich-note", "Nur die Summen. Kein Name, keine Uhrzeit, kein Gericht."),
   );
   return block;
 }
@@ -552,7 +526,12 @@ function paint(root, board) {
       }
       const slice = rowsAsDays(ranges[id]);
       facts.textContent = factsText(slice);
-      hoursMount.replaceChildren(paintHours(sumTallies(slice)));
+      const summed = sumTallies(slice);
+      const hasHours = Object.keys(summed).some(
+        (key) => /^h(?:[0-9]|1[0-9]|2[0-3])$/.test(key) && summed[key],
+      );
+      if (hasHours) hoursMount.replaceChildren(paintHours(summed));
+      else hoursMount.replaceChildren();
     };
     for (const [id, label] of RANGES) {
       const button = node("button", "strich-tab", label);
@@ -573,59 +552,13 @@ function paint(root, board) {
   if (board.desk) root.append(paintGroups(board));
 }
 
-/** history/$day/$uid → archive shape { days, nicks } for the strichliste painters. */
-function archiveFromHistory(history) {
-  const days = {};
-  const nicks = {};
-  for (const [day, people] of Object.entries(history || {})) {
-    if (!people || typeof people !== "object") continue;
-    const records = {};
-    let slot = 0;
-    for (const [uid, row] of Object.entries(people)) {
-      if (!row?.canteen) continue;
-      records[String(slot++)] = {
-        uid,
-        nick: row.nick || uid.slice(0, 6),
-        canteen: row.canteen,
-        ...(row.second ? { second: row.second } : {}),
-        ...(row.canteen === "egal" ? { egal: true } : {}),
-        at: 0,
-      };
-      const nick = String(row.nick || "").trim() || uid.slice(0, 6);
-      const bucket = nicks[nick] || { ...emptyNick(), days: {} };
-      if (row.canteen === "egal") bucket.egal += 1;
-      else if (Object.hasOwn(bucket, row.canteen)) bucket[row.canteen] += 1;
-      if (row.second && Object.hasOwn(bucket, row.second)) bucket[row.second] += 1;
-      bucket.days[day] = true;
-      nicks[nick] = bucket;
-    }
-    days[day] = foldDay(records);
-  }
-  return { days, nicks };
-}
-
 async function loadBoard(code, desk) {
   const today = berlinDate();
   const phase = votePhase();
   await ensureVoteUser();
   const key = await roundKeyFor(code);
-  const history = await loadHistory(key);
-  const archive = archiveFromHistory(history);
-  let live = null;
-  if ((phase === "reveal" || phase === "locked") && history?.[today]) {
-    const records = {};
-    let slot = 0;
-    for (const [uid, row] of Object.entries(history[today])) {
-      records[String(slot++)] = {
-        uid,
-        nick: row.nick || uid.slice(0, 6),
-        canteen: row.canteen,
-        ...(row.second ? { second: row.second } : {}),
-        at: 0,
-      };
-    }
-    live = records;
-  }
+  const days = publicDayTallies(await loadRoundDays(key));
+  const archive = { days, nicks: {} };
   let directory = null;
   if (desk) {
     try {
@@ -634,7 +567,7 @@ async function loadBoard(code, desk) {
       directory = null;
     }
   }
-  return { archive, live, directory, today, phase, code, desk, key };
+  return { archive, live: null, directory, today, phase, code, desk, key };
 }
 
 const visitsRoot = document.querySelector("#strich-visits");
@@ -650,17 +583,6 @@ if (visitsRoot) {
     });
 }
 
-const WEEK_MONTHS = ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."];
-
-function weekWhen(monday, friday) {
-  const part = (iso, withMonth) => {
-    const [, month, day] = iso.split("-").map(Number);
-    return withMonth ? `${day}. ${WEEK_MONTHS[month - 1]}` : `${day}.`;
-  };
-  const sameMonth = monday.slice(0, 7) === friday.slice(0, 7);
-  return sameMonth ? `${part(monday, false)}–${part(friday, true)}` : `${part(monday, true)} – ${part(friday, true)}`;
-}
-
 function winnerLine(leaders) {
   if (!leaders.length) return "Niemand hat einen Punkt geholt.";
   if (leaders.length === 1) return `Gewonnen hat ${leaders[0]}.`;
@@ -668,31 +590,24 @@ function winnerLine(leaders) {
   return `Gleichstand zwischen ${leaders.slice(0, -1).join(", ")} und ${leaders.at(-1)}.`;
 }
 
-function paintWeeks(mount, tree) {
-  mount.replaceChildren(node("h2", "strich-kicker", "Wer isst was"));
+function paintWeeks(mount, points, winner) {
+  mount.replaceChildren(node("h2", "strich-kicker", "Larrys Lunch Lottery"));
   mount.append(
     node(
       "p",
       "strich-note",
-      "Abgeschlossene Wochen dieser Runde. Ab Samstag steht fest, wer gewonnen hat.",
+      "Nick und Punkte. Kein Gericht, keine Kantine. Ab Samstag schreibt der Server das Veto.",
     ),
   );
-  const weeks = pastWeeks(tree);
-  if (!weeks.length) {
-    mount.append(node("p", "strich-note", "Noch keine abgeschlossene Woche mit einem Gericht."));
+  const names = publicWinner(winner);
+  if (names.length) mount.append(node("p", "", winnerLine(names)));
+  else mount.append(node("p", "strich-note", "Vor Samstag steht kein Gewinner."));
+  const line = pointsBoardText(points);
+  if (!line) {
+    mount.append(node("p", "strich-note", "Noch niemand in der Lottery."));
     return;
   }
-  const list = node("ul", "strich-weeks");
-  for (const week of weeks) {
-    const item = node("li", "strich-week");
-    const head = node("p", "");
-    head.append(node("strong", "", weekWhen(week.monday, week.friday)));
-    head.append(document.createTextNode(` · ${winnerLine(week.leaders)}`));
-    item.append(head);
-    item.append(node("p", "", week.rows.map((row) => `${row.nick} ${row.points}`).join(" · ")));
-    list.append(item);
-  }
-  mount.append(list);
+  mount.append(node("p", "lottery-points", line));
 }
 
 const root = document.querySelector("#strich");
@@ -769,7 +684,7 @@ async function bootStrich() {
   const desk = isDesk(loadNick(), code, await hasDeskClaim());
   if (weeksRoot) {
     weeksRoot.hidden = false;
-    listenEats((tree) => paintWeeks(weeksRoot, tree || {}));
+    listenLottery(({ points, winner }) => paintWeeks(weeksRoot, points, winner));
   }
   if (root) {
     root.hidden = false;

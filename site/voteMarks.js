@@ -218,6 +218,42 @@ function paintMark(mark, { show, open, mine, nickList }) {
   }
 }
 
+/** Names from the round, a dot only when that uid is connected. No canteen. */
+export function paintHeuteDabei(el, { result, records, online, reveal }) {
+  if (!el) return;
+  const people = [];
+  const seen = new Set();
+  for (const rec of Object.values(records || {})) {
+    if (!rec || typeof rec !== "object") continue;
+    const nick = normalizeNick(rec.nick);
+    const key = nick.toLocaleLowerCase("de-DE");
+    if (!isValidNick(nick) || seen.has(key)) continue;
+    seen.add(key);
+    people.push({ uid: String(rec.uid || ""), nick });
+  }
+  const lead = Boolean(reveal && result?.status === "lead" && result.name);
+  const tie = Boolean(reveal && result?.status === "tie");
+  if (!people.length && !lead && !tie) {
+    el.replaceChildren();
+    el.hidden = true;
+    return;
+  }
+  const head = lead ? `Heute ${result.name}` : tie ? "Heute unentschieden" : "Heute dabei";
+  const doc = el.ownerDocument;
+  el.hidden = false;
+  el.replaceChildren();
+  el.append(doc.createTextNode(head));
+  for (const person of people) {
+    el.append(doc.createTextNode(` · ${person.nick}`));
+    if (person.uid && online?.[person.uid] === true) {
+      const dot = doc.createElement("span");
+      dot.className = "live-dot";
+      dot.setAttribute("aria-hidden", "true");
+      el.append(dot);
+    }
+  }
+}
+
 export function paintVoteBoard(root, votes, { open, show, showMarket, reveal, result }) {
   const scope = root;
   if (!scope?.querySelectorAll) return;

@@ -104,7 +104,7 @@ describe("voting welcome", () => {
     expect(text).toMatch(/über den Zetteln/);
     expect(app).toMatch(/copyWelcomeCode/);
     expect(app).toMatch(/navigator\.clipboard\.writeText/);
-    expect(app).toMatch(/roundNicks\(votes\.records\)/);
+    expect(app).toMatch(/paintHeuteDabei\(heuteDabei/);
     expect(document.querySelector("#heute-dabei")?.tagName).toBe("BUTTON");
     expect(document.querySelector("#welcome-dialog button[value='ok']")?.textContent).toBe(
       "Alles klar",
@@ -138,7 +138,7 @@ describe("vote phases sit on a round", () => {
     expect(app).toMatch(
       /if \(!reveal \|\| !loadVoteOptIn\(\) \|\| !loadRoundCode\(\)\) return/,
     );
-    expect(app).toMatch(/heuteDabeiLine/);
+    expect(app).toMatch(/paintHeuteDabei/);
     expect(app).toMatch(/showRevealDialog\(result\.name\)/);
   });
 });

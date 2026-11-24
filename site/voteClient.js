@@ -37,9 +37,11 @@ let uid = null;
 let unsub = null;
 let eatUnsub = null;
 let presentUnsub = null;
+let lotteryUnsub = null;
 let listenGen = 0;
 let eatGen = 0;
 let presentGen = 0;
+let lotteryGen = 0;
 let purgeOnce = null;
 let featuresCache = null;
 let serverOffset = 0;
@@ -92,7 +94,7 @@ async function firebase() {
   const [
     { initializeApp },
     { getAuth, onAuthStateChanged, signInAnonymously },
-    { getDatabase, get, onValue, ref, remove, set, update },
+    { getDatabase, get, onDisconnect, onValue, ref, remove, set, update },
     appCheckMod,
   ] = await Promise.all([
     import(`${base}/firebase-app.js`),
@@ -128,7 +130,19 @@ async function firebase() {
   } catch {
     serverOffset = 0;
   }
-  return { auth, db, get, onAuthStateChanged, onValue, ref, remove, set, signInAnonymously, update };
+  return {
+    auth,
+    db,
+    get,
+    onAuthStateChanged,
+    onDisconnect,
+    onValue,
+    ref,
+    remove,
+    set,
+    signInAnonymously,
+    update,
+  };
 }
 
 function ensureApp() {
@@ -333,6 +347,9 @@ export function stopListening() {
   unsub = null;
   presentUnsub?.();
   presentUnsub = null;
+  lotteryGen += 1;
+  lotteryUnsub?.();
+  lotteryUnsub = null;
 }
 
 function emptyVoteState(day) {
@@ -344,13 +361,15 @@ function emptyVoteState(day) {
     mine: emptyMine(),
     uid,
     revealed: false,
+    online: {},
   };
 }
 
 /**
- * Before lock the day tree is sealed, so names come from `present` and our
- * checkmarks from the live seat ballot. One emit keeps the nick and the marks
- * together. After lock the whole day is readable.
+ * Names come from `present`. Checkmarks come from this seat's own ballot.
+ * The day tree stays sealed before and after the lock, so another canteen
+ * never arrives. After the lock the public counts stay empty: one own vote
+ * is not the room's result.
  */
 export function listenVotes(onChange) {
   unsub?.();
@@ -362,7 +381,7 @@ export function listenVotes(onChange) {
   const day = berlinDate(now);
   const empty = emptyVoteState(day);
   ensureApp()
-    .then(async ({ db, get, onValue, ref }) => {
+    .then(async ({ db, get, onDisconnect, onValue, ref, remove, set }) => {
       if (gen !== listenGen) return;
       await purgeStaleVotes();
       if (gen !== listenGen) return;
@@ -375,126 +394,143 @@ export function listenVotes(onChange) {
       const lockAt = Number(cal.l) || 0;
       const revealed = lockAt > 0 && serverNow() >= lockAt;
 
-      if (!revealed) {
-        let presentMap = {};
-        let ownRec = null;
-        /** Last ballot we actually read. A present echo must not drop it. */
-        let heldRec = null;
-        let voteUnsub = () => {};
-        /** undefined until the seat listener reports; null means no seat. */
-        let watchedSlot;
-        let stopped = false;
-        const stillPresent = () =>
-          Boolean(uid) &&
-          presentMap &&
-          Object.prototype.hasOwnProperty.call(presentMap, uid);
-        const emit = () => {
-          if (stopped || gen !== listenGen) return;
-          const rec = ownRec || (stillPresent() ? heldRec : null);
-          onChange(stateFromPresent({ day, present: presentMap, ownRec: rec, uid, revealed: false }));
-        };
-        const presentHandle = onValue(
-          ref(db, presentPath(day, key)),
-          (snap) => {
-            const val = snap.val();
-            presentMap = val && typeof val === "object" ? val : {};
-            if (!stillPresent()) heldRec = null;
-            emit();
-          },
-          () => {},
-        );
-        const watchSlot = (slot) => {
-          if (stopped) return;
-          if (typeof slot !== "string") {
-            if (watchedSlot === null) {
-              emit();
-              return;
-            }
-            voteUnsub();
-            voteUnsub = () => {};
-            watchedSlot = null;
-            ownRec = null;
-            // Seat gone, but present still lists us: keep the ink until the nick drops.
-            if (!stillPresent()) heldRec = null;
-            emit();
-            return;
-          }
-          if (slot === watchedSlot) return;
-          voteUnsub();
-          voteUnsub = () => {};
-          watchedSlot = slot;
-          const handle = onValue(
-            ref(db, `${dayVotesPath(key, day)}/${slot}`),
-            (snap) => {
-              const rec = snap.val();
-              ownRec = rec && rec.uid === uid ? rec : null;
-              if (ownRec) heldRec = ownRec;
-              else if (!rec && !stillPresent()) heldRec = null;
-              emit();
-            },
-            () => {
-              /* A denied read must not clear checks that are already drawn. */
-            },
-          );
-          voteUnsub = () => handle();
-        };
-        let seatHandle = () => {};
-        if (uid) {
-          const handle = onValue(
-            ref(db, `${seatsPath(day, key)}/${uid}`),
-            (snap) => watchSlot(snap.val()),
-            () => {},
-          );
-          seatHandle = () => handle();
-        }
-        const stop = () => {
-          if (stopped) return;
-          stopped = true;
-          presentHandle();
-          seatHandle();
-          voteUnsub();
-        };
-        const waitMs = Math.max(0, lockAt - serverNow()) + 50;
-        if (lockAt > serverNow()) {
-          setTimeout(() => {
-            if (gen !== listenGen) return;
-            listenVotes(onChange);
-          }, waitMs);
-        }
-        if (gen !== listenGen) {
-          stop();
+      let presentMap = {};
+      let ownRec = null;
+      /** Last ballot we actually read. A present echo must not drop it. */
+      let heldRec = null;
+      let online = {};
+      let voteUnsub = () => {};
+      /** undefined until the seat listener reports; null means no seat. */
+      let watchedSlot;
+      let stopped = false;
+      let seated = false;
+      let connected = false;
+      const liveNode = uid ? ref(db, `live/${key}/${uid}`) : null;
+      const pushLive = () => {
+        if (stopped || !liveNode) return;
+        if (!connected || !seated) {
+          if (connected) remove(liveNode).catch(() => {});
           return;
         }
-        presentUnsub = stop;
-        unsub = stop;
-        return;
-      }
-
-      const handle = onValue(
-        ref(db, dayVotesPath(key, day)),
+        onDisconnect(liveNode)
+          .remove()
+          .then(() => {
+            if (!stopped && connected && seated) return set(liveNode, true);
+          })
+          .catch(() => {});
+      };
+      const stillPresent = () =>
+        Boolean(uid) && presentMap && Object.prototype.hasOwnProperty.call(presentMap, uid);
+      const emit = () => {
+        if (stopped || gen !== listenGen) return;
+        const rec = ownRec || (stillPresent() ? heldRec : null);
+        const state = stateFromPresent({ day, present: presentMap, ownRec: rec, uid, revealed });
+        if (revealed) state.counts = countVotes({});
+        state.online = online;
+        onChange(state);
+      };
+      const presentHandle = onValue(
+        ref(db, presentPath(day, key)),
         (snap) => {
-          const records = voteRecords(snap.val());
-          onChange({
-            day,
-            records,
-            present: Object.fromEntries(
-              Object.values(records).map((rec) => [rec.uid, rec.nick]),
-            ),
-            counts: countVotes(records),
-            mine: mineFromRecord(
-              uid ? Object.values(records).find((rec) => rec?.uid === uid) : null,
-            ),
-            uid,
-            revealed: true,
-          });
+          const val = snap.val();
+          presentMap = val && typeof val === "object" ? val : {};
+          if (!stillPresent()) heldRec = null;
+          emit();
         },
         () => {},
       );
+      const liveHandle = onValue(
+        ref(db, `live/${key}`),
+        (snap) => {
+          const val = snap.val();
+          const next = {};
+          if (val && typeof val === "object") {
+            for (const [id, flag] of Object.entries(val)) {
+              if (flag === true && UID_RE.test(id)) next[id] = true;
+            }
+          }
+          online = next;
+          emit();
+        },
+        () => {},
+      );
+      const connectedHandle = onValue(
+        ref(db, ".info/connected"),
+        (snap) => {
+          connected = snap.val() === true;
+          pushLive();
+        },
+        () => {},
+      );
+      const watchSlot = (slot) => {
+        if (stopped) return;
+        seated = typeof slot === "string";
+        pushLive();
+        if (typeof slot !== "string") {
+          if (watchedSlot === null) {
+            emit();
+            return;
+          }
+          voteUnsub();
+          voteUnsub = () => {};
+          watchedSlot = null;
+          ownRec = null;
+          // Seat gone, but present still lists us: keep the ink until the nick drops.
+          if (!stillPresent()) heldRec = null;
+          emit();
+          return;
+        }
+        if (slot === watchedSlot) return;
+        voteUnsub();
+        voteUnsub = () => {};
+        watchedSlot = slot;
+        const handle = onValue(
+          ref(db, `${dayVotesPath(key, day)}/${slot}`),
+          (snap) => {
+            const rec = snap.val();
+            ownRec = rec && rec.uid === uid ? rec : null;
+            if (ownRec) heldRec = ownRec;
+            else if (!rec && !stillPresent()) heldRec = null;
+            emit();
+          },
+          () => {
+            /* A denied read must not clear checks that are already drawn. */
+          },
+        );
+        voteUnsub = () => handle();
+      };
+      let seatHandle = () => {};
+      if (uid) {
+        const handle = onValue(
+          ref(db, `${seatsPath(day, key)}/${uid}`),
+          (snap) => watchSlot(snap.val()),
+          () => {},
+        );
+        seatHandle = () => handle();
+      }
+      const stop = () => {
+        if (stopped) return;
+        stopped = true;
+        presentHandle();
+        liveHandle();
+        connectedHandle();
+        seatHandle();
+        voteUnsub();
+        if (liveNode && connected) remove(liveNode).catch(() => {});
+      };
+      const waitMs = Math.max(0, lockAt - serverNow()) + 50;
+      if (lockAt > serverNow()) {
+        setTimeout(() => {
+          if (gen !== listenGen) return;
+          listenVotes(onChange);
+        }, waitMs);
+      }
       if (gen !== listenGen) {
-        handle();
+        stop();
         return;
       }
-      unsub = () => handle();
+      presentUnsub = stop;
+      unsub = stop;
     })
     .catch(() => {});
   return () => unsub?.();
@@ -672,7 +708,7 @@ export async function savePlate(dish, guesses) {
   return payload;
 }
 
-/** Past days fully; today only own sheet until lock, then the whole day. */
+/** Own sheet for today. Other people's dishes stay unread, before and after the lock. */
 export function listenEats(onChange) {
   eatUnsub?.();
   eatUnsub = null;
@@ -683,93 +719,101 @@ export function listenEats(onChange) {
     return () => {};
   }
   ensureApp()
-    .then(async ({ db, get, onValue, ref }) => {
+    .then(async ({ db, onValue, ref }) => {
       if (gen !== eatGen) return;
       await ensureVoteUser();
-      const key = await activeRoundKey();
-      const day = berlinDate();
-      const cal = (await get(ref(db, `calendar/${day}`))).val() || {};
-      const lockAt = Number(cal.l) || 0;
-      const revealed = lockAt > 0 && serverNow() >= lockAt;
-      const tree = {};
-
-      const publish = () => onChange({ ...tree });
-
-      for (let i = 1; i <= 14; i += 1) {
-        const [y, m, d] = day.split("-").map(Number);
-        const iso = new Date(Date.UTC(y, m - 1, d - i)).toISOString().slice(0, 10);
-        try {
-          const snap = await get(ref(db, `eats/${key}/${iso}`));
-          if (snap.exists()) tree[iso] = snap.val();
-        } catch {
-          /* day still locked or empty */
-        }
-      }
-
-      if (revealed) {
-        const handle = onValue(
-          ref(db, `eats/${key}/${day}`),
-          (snap) => {
-            tree[day] = snap.val() || {};
-            publish();
-          },
-          () => {},
-        );
-        if (gen !== eatGen) {
-          handle();
-          return;
-        }
-        eatUnsub = () => handle();
-        publish();
+      if (!uid) {
+        onChange({});
         return;
       }
-
-      if (uid) {
-        const handle = onValue(
-          ref(db, `eats/${key}/${day}/${uid}`),
-          (snap) => {
-            const sheet = snap.val();
-            tree[day] = sheet ? { [uid]: sheet } : {};
-            publish();
-          },
-          () => {},
-        );
-        const waitMs = Math.max(0, lockAt - serverNow()) + 50;
-        if (lockAt > serverNow()) {
-          setTimeout(() => {
-            if (gen !== eatGen) return;
-            listenEats(onChange);
-          }, waitMs);
-        }
-        if (gen !== eatGen) {
-          handle();
-          return;
-        }
-        eatUnsub = () => handle();
+      const key = await activeRoundKey();
+      const day = berlinDate();
+      const tree = {};
+      const publish = () => {
+        if (gen !== eatGen) return;
+        onChange({ ...tree });
+      };
+      const handle = onValue(
+        ref(db, `eats/${key}/${day}/${uid}`),
+        (snap) => {
+          const sheet = snap.val();
+          tree[day] = sheet ? { [uid]: sheet } : {};
+          publish();
+        },
+        () => publish(),
+      );
+      if (gen !== eatGen) {
+        handle();
+        return;
       }
+      eatUnsub = () => handle();
       publish();
     })
     .catch(() => onChange({}));
   return () => eatUnsub?.();
 }
 
-export async function loadHistory(key) {
+/** Server points and the weekend crown. Not the private scores node. */
+export function listenLottery(onChange) {
+  lotteryUnsub?.();
+  lotteryUnsub = null;
+  const gen = ++lotteryGen;
+  const code = loadRoundCode();
+  if (!code) {
+    onChange({ points: {}, winner: null });
+    return () => {};
+  }
+  ensureApp()
+    .then(async ({ db, onValue, ref }) => {
+      if (gen !== lotteryGen) return;
+      await ensureVoteUser();
+      const key = await activeRoundKey();
+      let points = {};
+      let winner = null;
+      const publish = () => {
+        if (gen !== lotteryGen) return;
+        onChange({ points, winner });
+      };
+      const pointsHandle = onValue(
+        ref(db, `tallies/rounds/${key}/points`),
+        (snap) => {
+          points = snap.val() || {};
+          publish();
+        },
+        () => publish(),
+      );
+      const winnerHandle = onValue(
+        ref(db, `tallies/rounds/${key}/winner`),
+        (snap) => {
+          winner = snap.val() || null;
+          publish();
+        },
+        () => publish(),
+      );
+      if (gen !== lotteryGen) {
+        pointsHandle();
+        winnerHandle();
+        return;
+      }
+      lotteryUnsub = () => {
+        pointsHandle();
+        winnerHandle();
+      };
+    })
+    .catch(() => onChange({ points: {}, winner: null }));
+  return () => lotteryUnsub?.();
+}
+
+/** Canteen sums the server already folded. Not the ballots. */
+export async function loadRoundDays(key) {
   await ensureVoteUser();
   const round = key || (await activeRoundKey());
   const { db, get, ref } = await ensureApp();
-  const keep = berlinDate();
-  const out = {};
-  await Promise.all(
-    recentIsoDays(keep, 120).map(async (day) => {
-      try {
-        const snap = await get(ref(db, `history/${round}/${day}`));
-        if (snap.exists()) out[day] = snap.val();
-      } catch {
-        /* day still locked or empty */
-      }
-    }),
-  );
-  return out;
+  try {
+    return (await get(ref(db, `tallies/rounds/${round}/days`))).val() || {};
+  } catch {
+    return {};
+  }
 }
 
 export async function loadDirectory() {

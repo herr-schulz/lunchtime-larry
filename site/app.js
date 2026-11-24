@@ -67,7 +67,6 @@ import {
   MARKET_NAME,
   normalizeNick,
   normalizeRoundCode,
-  roundNicks,
   saveIntroSeen,
   saveNick,
   saveRoundCode,
@@ -76,26 +75,27 @@ import {
   clearNowOverride,
   votePhase,
   winnerOf,
-  heuteDabeiLine,
 } from "./vote.js?v=9cf92e86";
 import {
   applyRemoteVote,
   inkMineForCanteen,
   inkMineForEgal,
   inkVote,
+  paintHeuteDabei,
   paintVoteBoard,
   projectLocalVote,
-} from "./voteMarks.js?v=25abc17a";
+} from "./voteMarks.js?v=57fbf601";
+import { publicPoints } from "./lottery.js?v=57fbf601";
 import {
   ensureVoteUser,
+  listenLottery,
   listenVotes,
   loadFeatures,
-  readBadge,
   requestVeto,
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=ce2d0e0b";
+} from "./voteClient.js?v=57fbf601";
 import {
   isStaleShell,
   reloadFresh,
@@ -681,11 +681,18 @@ function syncVoteChrome() {
     }
   }
   if (heuteDabei) {
-    const names = roundNicks(votes.records);
     const reveal = show && phase === "reveal";
-    const text = show ? heuteDabeiLine(result, names, reveal) : "";
-    heuteDabei.hidden = !text;
-    heuteDabei.textContent = text;
+    if (!show) {
+      heuteDabei.hidden = true;
+      heuteDabei.replaceChildren();
+    } else {
+      paintHeuteDabei(heuteDabei, {
+        result,
+        records: votes.records,
+        online: votes.online,
+        reveal,
+      });
+    }
     heuteDabei.classList.toggle("is-result", Boolean(reveal && result.status === "lead"));
     heuteDabei.classList.toggle("is-replay", Boolean(reveal && result.status === "lead"));
   }
@@ -1262,15 +1269,21 @@ function startVotes({ force = false } = {}) {
       /* offline or missing database */
     }
     listenVotes(onVotes);
+    listenLottery(({ points }) => {
+      const badge = document.querySelector("#score-badge");
+      if (!badge || !loadRoundCode()) return;
+      const row = publicPoints(points).find((item) => item.uid === voteState.uid);
+      if (!row) {
+        badge.hidden = true;
+        badge.textContent = "";
+        return;
+      }
+      badge.hidden = false;
+      badge.textContent = `Woche · ${row.points}`;
+    });
     loadFeatures()
       .then(async (features) => {
         if (features?.vetoOverride) await requestVeto("feature");
-        const badge = document.querySelector("#score-badge");
-        if (!badge || !loadRoundCode()) return;
-        const row = await readBadge();
-        if (!row || typeof row.points !== "number") return;
-        badge.hidden = false;
-        badge.textContent = `Woche · ${row.points}`;
       })
       .catch(() => {});
   };
