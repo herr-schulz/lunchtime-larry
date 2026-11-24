@@ -158,16 +158,25 @@ describe("Wo ist Larry link", () => {
 describe("toss counter rules", () => {
   const rules = JSON.parse(readFileSync("database.rules.json", "utf8")).rules as {
     vault: { ".read": boolean; ".write": boolean };
-    votes: { $key: { $child: { ".read": string; ".write": string } } };
+    votes: {
+      $key: {
+        $child: {
+          ".read"?: string;
+          ".write": string;
+          $slot: { ".read": string };
+        };
+      };
+    };
     tosses: { n: { ".read": boolean; ".write": string }; $other: { ".read": boolean; ".write": boolean } };
   };
 
   it("increments a public count and leaves the vault and the ballots closed", () => {
     expect(rules.vault[".read"]).toBe(false);
     expect(rules.vault[".write"]).toBe(false);
-    expect(rules.votes.$key.$child[".read"]).toMatch(/auth != null/);
+    expect(rules.votes.$key.$child[".read"]).toBeUndefined();
+    expect(rules.votes.$key.$child.$slot[".read"]).toMatch(/auth != null/);
+    expect(rules.votes.$key.$child.$slot[".read"]).toMatch(/auth\.uid/);
     expect(rules.votes.$key.$child[".write"]).toMatch(/auth != null/);
-    expect(rules.votes.$key.$child[".read"]).not.toBe(true);
     expect(rules.tosses.n[".read"]).toBe(true);
     expect(rules.tosses.n[".write"]).toMatch(/auth != null/);
     expect(rules.tosses.n[".write"]).toMatch(/newData\.val\(\) == data\.val\(\) \+ 1/);

@@ -168,20 +168,48 @@ describe("votes: one seat, present, history, reserved nick", () => {
   });
 });
 
-describe("peek until lock, then reveal", () => {
+describe("peek until lock, then stay shut", () => {
   it("hides foreign ballots and eats before lock", async () => {
     await assertFails(db(MALLORY).ref(`votes/${CODE}/${today}`).get());
     await assertFails(db(MALLORY).ref(`eats/${CODE}/${today}`).get());
-    await assertSucceeds(db(ALICE).ref(`votes/${CODE}/${today}/0`).get());
-    await assertSucceeds(db(ALICE).ref(`present/${CODE}/${today}`).get());
+    await assertFails(db(MALLORY).ref(`votes/${CODE}/${yesterday}`).get());
+    await assertFails(db(MALLORY).ref(`eats/${CODE}/${yesterday}`).get());
+    await assertFails(db(MALLORY).ref(`history/${CODE}/${yesterday}`).get());
+    await assertFails(db(MALLORY).ref(`history/${CODE}/${yesterday}/${BOB}`).get());
+    const ownHist = await assertSucceeds(db(BOB).ref(`history/${CODE}/${yesterday}/${BOB}`).get());
+    expect(ownHist.val().canteen).toBe("stmuv");
+    expect(ownHist.val().nick).toBe("Bob");
+    await assertFails(db(MALLORY).ref(`votes/${CODE}/${today}/0`).get());
+    await assertFails(db(MALLORY).ref(eatsPath(BOB)).get());
+    const own = await assertSucceeds(db(ALICE).ref(`votes/${CODE}/${today}/0`).get());
+    expect(own.val().canteen).toBe("stmuv");
+    expect(own.val().uid).toBe(ALICE);
+    const present = await assertSucceeds(db(MALLORY).ref(`present/${CODE}/${today}`).get());
+    expect(present.val()[ALICE]).toBe("Alice");
+    expect(present.val()[BOB]).toBe("Bob");
+    expect(JSON.stringify(present.val())).not.toMatch(/stmuv|sodexo|bella23|wochenmarkt/);
   });
 
-  it("reveals everything after lock and freezes writes", async () => {
+  it("hides foreign canteens and dishes after lock and freezes writes", async () => {
     await env.withSecurityRulesDisabled((ctx) =>
       ctx.database().ref(`calendar/${today}`).set(lockedDay(today)),
     );
-    await assertSucceeds(db(MALLORY).ref(`votes/${CODE}/${today}`).get());
-    await assertSucceeds(db(MALLORY).ref(`eats/${CODE}/${today}`).get());
+    await assertFails(db(MALLORY).ref(`votes/${CODE}/${today}`).get());
+    await assertFails(db(MALLORY).ref(`votes/${CODE}/${today}/0`).get());
+    await assertFails(db(MALLORY).ref(`votes/${CODE}/${today}/1`).get());
+    await assertFails(db(MALLORY).ref(`eats/${CODE}/${today}`).get());
+    await assertFails(db(MALLORY).ref(eatsPath(BOB)).get());
+    await assertFails(db(MALLORY).ref(`history/${CODE}/${today}`).get());
+    await assertFails(db(MALLORY).ref(`history/${CODE}/${today}/${ALICE}`).get());
+    const ownVote = await assertSucceeds(db(ALICE).ref(`votes/${CODE}/${today}/0`).get());
+    expect(ownVote.val().canteen).toBe("stmuv");
+    expect(ownVote.val().nick).toBe("Alice");
+    const ownEat = await assertSucceeds(db(BOB).ref(eatsPath(BOB)).get());
+    expect(ownEat.val().dish).toBe("sodexo:pasta");
+    await assertFails(db(ALICE).ref(eatsPath(BOB)).get());
+    const present = await assertSucceeds(db(MALLORY).ref(`present/${CODE}/${today}`).get());
+    expect(present.val()[BOB]).toBe("Bob");
+    expect(JSON.stringify(present.val())).not.toMatch(/pasta|braten|stmuv|sodexo/);
     await assertFails(
       db(MALLORY).ref().update({
         [`rounds/${CODE}/names/mallory`]: MALLORY,
@@ -189,6 +217,8 @@ describe("peek until lock, then reveal", () => {
       }),
     );
     await assertFails(db(BOB).ref(eatsPath(BOB)).set(sheet(BOB, "Bob", "stmuv:other")));
+    await assertFails(db(MALLORY).ref(eatsPath(ALICE)).set(sheet(ALICE, "Alice", "bella23:lachs")));
+    await assertFails(db(MALLORY).ref(eatsPath(BOB)).set(sheet(BOB, "Bob", "stmuv:forged")));
   });
 });
 
@@ -215,22 +245,55 @@ describe("directory, tallies, decoys, vault", () => {
     await assertSucceeds(db(ALICE, { desk: true }).ref("tallies/directory").get());
   });
 
-  it("rejects writes to legacy tallies", async () => {
+  it("rejects writes to legacy tallies and the public point board", async () => {
     await assertFails(db(ALICE).ref(`tallies/rounds/${CODE}/days/${yesterday}`).set({ n: 1 }));
     await assertFails(db(ALICE).ref(`tallies/rounds/${CODE}/nicks/Alice`).set({ stmuv: 1 }));
+    await assertFails(
+      db(MALLORY).ref(`tallies/rounds/${CODE}/points`).set({ [MALLORY]: { nick: "Mo", points: 9 } }),
+    );
+    await assertFails(
+      db(MALLORY).ref(`tallies/rounds/${CODE}/points/${MALLORY}`).set({ nick: "Mo", points: 9, dish: "stmuv:braten" }),
+    );
+    await assertFails(db(MALLORY).ref(`tallies/rounds/${CODE}/winner`).set({ week: today, names: { Mo: true } }));
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx.database().ref(`tallies/rounds/${CODE}/points/${ALICE}`).set({ nick: "Alice", points: 2 }),
+    );
+    const board = await assertSucceeds(db(MALLORY).ref(`tallies/rounds/${CODE}/points`).get());
+    expect(board.val()[ALICE]).toEqual({ nick: "Alice", points: 2 });
+    expect(JSON.stringify(board.val())).not.toMatch(/braten|canteen|dish/);
   });
 
-  it("allows own scores and veto once", async () => {
+  it("allows own scores and veto once, and ignores a claimed score", async () => {
     await assertSucceeds(
       db(ALICE).ref(`scores/${CODE}/${ALICE}`).set({ points: 3, week: today }),
     );
     await assertFails(db(ALICE).ref(`scores/${CODE}/${BOB}`).set({ points: 9, week: today }));
+    await assertFails(db(MALLORY).ref(`scores/${CODE}/${ALICE}`).get());
+    await assertFails(
+      db(ALICE).ref(`ops/veto/${CODE}/${ALICE}`).set({ at: Date.now(), reason: "test", points: 200 }),
+    );
     await assertSucceeds(
       db(ALICE).ref(`ops/veto/${CODE}/${ALICE}`).set({ at: Date.now(), reason: "test" }),
     );
     await assertFails(
       db(ALICE).ref(`ops/veto/${CODE}/${ALICE}`).set({ at: Date.now(), reason: "again" }),
     );
+    await assertFails(db(MALLORY).ref(`ops/veto/${CODE}/${ALICE}`).get());
+  });
+
+  it("marks a seated uid online and nothing else", async () => {
+    await assertFails(db().ref(`live/${CODE}`).get());
+    await assertFails(db(MALLORY).ref(`live/${CODE}/${MALLORY}`).set(true));
+    await assertFails(db(MALLORY).ref(`live/${CODE}/${ALICE}`).set(true));
+    await assertFails(db(ALICE).ref(`live/${CODE}/${ALICE}`).set("stmuv"));
+    await assertFails(db(ALICE).ref(`live/${CODE}/${ALICE}`).set({ canteen: "stmuv" }));
+    await assertSucceeds(db(ALICE).ref(`live/${CODE}/${ALICE}`).set(true));
+    const live = await assertSucceeds(db(BOB).ref(`live/${CODE}`).get());
+    expect(live.val()).toEqual({ [ALICE]: true });
+    expect(JSON.stringify(live.val())).not.toMatch(/stmuv|sodexo|dish|nick/);
+    await assertSucceeds(db(ALICE).ref(`live/${CODE}/${ALICE}`).remove());
+    const gone = await assertSucceeds(db(BOB).ref(`live/${CODE}/${ALICE}`).get());
+    expect(gone.val()).toBeNull();
   });
 
   it("keeps the vault unreadable", async () => {

@@ -8,6 +8,7 @@ export type VoteSnap = {
   mine?: VoteMine;
   uid?: string | null;
   revealed?: boolean;
+  online?: Record<string, boolean>;
 };
 
 export type VotePending = {
@@ -67,6 +68,16 @@ export function inkVote(opts: {
   paint: (state: VoteSnap, pending: VotePending | null) => void;
   write: () => Promise<VoteMine> | VoteMine;
 }): Promise<{ saved: VoteMine }>;
+
+export function paintHeuteDabei(
+  el: HTMLElement | null | undefined,
+  opts: {
+    result?: { status?: string; id?: string; name?: string } | null;
+    records?: VoteRecords | null;
+    online?: Record<string, boolean> | null;
+    reveal?: boolean;
+  },
+): void;
 
 export function paintVoteBoard(
   root: ParentNode,

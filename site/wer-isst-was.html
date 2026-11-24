@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://www.gstatic.com/recaptcha/ https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.google.com https://gc.zgo.at https://lunchtime-larry.goatcounter.com https://herr-schulz.github.io wss://*.firebaseio.com wss://*.firebasedatabase.app; frame-src https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'self'; require-trusted-types-for 'script'; trusted-types larry" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Wer isst was? — Lunchtime Larry</title>
+    <title>Larrys Lunch Lottery — Lunchtime Larry</title>
     <meta name="description" content="Dein Hauptgericht zuerst. Dann die Namen der Runde, als Stempel auf die Teller." />
     <meta property="og:title" content="Wer isst was? — Lunchtime Larry" />
     <meta property="og:description" content="Dein Hauptgericht zuerst. Dann die Namen der Runde." />
@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=7e1stamp3" />
+    <link rel="stylesheet" href="./styles.css?v=57fbf601" />
   </head>
   <body class="page-eat">
     <div class="page-shell">
@@ -48,14 +48,20 @@
       </header>
 
       <div class="alt-intro">
-        <p class="page-title">Wer isst was?</p>
+        <p class="page-title">Larrys Lunch Lottery</p>
         <p class="lede" id="eat-lede">Einen Moment.</p>
       </div>
+
+      <section id="lottery-closed" class="lottery-closed" hidden>
+        <p class="closed-sign">Geschlossen</p>
+        <p class="lottery-announcer">Willkommen bei Larrys Lunch Lottery! Jeden Tag gibt es eine neue Lunch Lottery! Die Regeln sind einfach! 1. Wähle das Gericht, welches du heute am liebsten essen möchtest! 2. Tippe, was deine Kollegen essen wollen! Ziehe dafür den Stempel auf ein beliebiges Gericht! 3. Für jeden richtigen Tipp erhältst du einen Punkt! Der Gewinner erhält ein Veto für den nächsten Kantinenbesuch!</p>
+        <p class="lottery-join">Die nächste Lottery läuft am nächsten Werktag bis 11:55 (Europe/Berlin). Mitmachen heißt, auf dem Wochenplan einen Sitz nehmen, solange die Abstimmung offen ist, und hier vor 11:55 das eigene Gericht setzen und die Stempel ziehen. Nach 11:55 ist zu.</p>
+      </section>
 
       <div class="eat-rail" id="eat-rail" data-rail hidden></div>
       <main class="board" id="board" hidden></main>
       <p class="week-line" id="week-line" hidden></p>
-      <p class="week-note">Das Veto sagt ihr euch am Tisch.</p>
+      <p class="week-note">Ab Samstag steht hier, wer das Veto hat.</p>
       <p class="eat-note" id="eat-note" hidden></p>
 
       <footer class="colophon alt-footer">
@@ -77,18 +83,13 @@
           decoding="async"
         />
         <p class="weekend-kicker">Arabellapark</p>
-        <h2>Wer isst was?</h2>
-        <ol class="intro-points">
-          <li>Such dir dein Hauptgericht. Dein Name stempelt sich darauf.</li>
-          <li>Dann ziehst du die Namen der Runde auf die Gerichte.</li>
-          <li>Richtig gibt einen Punkt, falsch kostet nichts. Wer kein Gericht setzt, gibt keinen.</li>
-        </ol>
-        <p class="eat-prize">Ab Samstag steht fest, wer die Woche gewonnen hat. Der Preis ist ein Veto: in der nächsten Woche sagt der Sieger an einem Tag, wohin es geht.</p>
+        <h2>Larrys Lunch Lottery</h2>
+        <p class="lottery-announcer">Willkommen bei Larrys Lunch Lottery! Jeden Tag gibt es eine neue Lunch Lottery! Die Regeln sind einfach! 1. Wähle das Gericht, welches du heute am liebsten essen möchtest! 2. Tippe, was deine Kollegen essen wollen! Ziehe dafür den Stempel auf ein beliebiges Gericht! 3. Für jeden richtigen Tipp erhältst du einen Punkt! Der Gewinner erhält ein Veto für den nächsten Kantinenbesuch!</p>
         <menu>
           <button type="submit" value="ok">Alles klar</button>
         </menu>
       </form>
     </dialog>
-    <script src="./eatPage.js?v=336041a1" type="module"></script>
+    <script src="./eatPage.js?v=57fbf601" type="module"></script>
   </body>
 </html>

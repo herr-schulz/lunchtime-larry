@@ -4,11 +4,13 @@ import {
   gameMains,
   isPlateId,
   playableMembers,
-  pointsForWeek,
-  weekLine,
-  weekSheetDays,
 } from "./eat.js?v=4c1eats1";
 import { joinDishSides, phraseDish } from "./likes.js?v=9db8d9ec";
+import {
+  LOTTERY_NEEDS_ROUND,
+  pointsBoardText,
+  publicWinner,
+} from "./lottery.js?v=57fbf601";
 import { loadMenu } from "./menuFetch.js?v=64fd5683";
 import {
   berlinDate,
@@ -21,10 +23,10 @@ import {
 import {
   ensureVoteUser,
   listenEats,
+  listenLottery,
   listenVotes,
   savePlate,
-  syncBadge,
-} from "./voteClient.js?v=c672fbf1";
+} from "./voteClient.js?v=57fbf601";
 
 const STEP_KEY = "lunchtime-larry-eat-step";
 const DIET = { vegan: "vegan", veggie: "veggie", meat: "Fleisch", fish: "Fisch" };
@@ -37,6 +39,7 @@ const board = document.querySelector("#board");
 const week = document.querySelector("#week-line");
 const note = document.querySelector("#eat-note");
 const kicker = document.querySelector("#eat-kicker");
+const closedBlock = document.querySelector("#lottery-closed");
 
 const WEEKDAYS = {
   monday: "Montag",
@@ -59,6 +62,9 @@ let placed = {};
 let pendingAt = 0;
 let mains = [];
 let closed = false;
+let online = {};
+let lotteryPoints = {};
+let lotteryWinner = null;
 let dragging = null;
 let justDragged = false;
 const inked = new Set();
@@ -131,18 +137,21 @@ function readyToSave() {
 }
 
 function ledeText() {
-  if (closed && votePhase() === "closed") return "Am Wochenende ruht das Spiel. Die Woche steht unten.";
-  if (closed) return "Tipps und Gerichte sind zu. Die Auswertung steht.";
+  if (closed) return "";
   if (!mains.length) return "Heute nichts auf dem Zettel.";
   if (step < 3) return "Such dir dein Hauptgericht.";
   if (!members().length) return "Heute ist sonst niemand in der Runde.";
   return "Zieh die Namen auf die Gerichte.";
 }
 
+function liveDot(uid) {
+  return uid && online[uid] === true ? html`<i class="live-dot" aria-hidden="true"></i>` : "";
+}
+
 function inkStampHtml(name, { fresh = false, uid = "" } = {}) {
   const tilt = tiltFor(name);
   const who = uid ? html` data-uid="${uid}" data-name="${name}"` : "";
-  return html`<span class="name-stamp${uid ? "" : " is-self"}${fresh ? " is-inking" : ""}" style="--tilt:${tilt}deg"${who}>${name}</span>`;
+  return html`<span class="name-stamp${uid ? "" : " is-self"}${fresh ? " is-inking" : ""}" style="--tilt:${tilt}deg"${who}>${name}${liveDot(uid)}</span>`;
 }
 
 function handStampHtml(name, { uid = "" } = {}) {
@@ -150,7 +159,7 @@ function handStampHtml(name, { uid = "" } = {}) {
   const label = name.toLocaleUpperCase("de-DE");
   const width = Math.max(78, Math.min(168, Math.round(label.length * 9.2 + 30)));
   const cx = width / 2;
-  return html`<span class="hand-stamp" style="--tilt:${tilt}deg" data-uid="${uid}" data-name="${name}" role="img" aria-label="${name}"><svg class="hand-stamp-svg" viewBox="0 0 ${width} 122" aria-hidden="true">
+  return html`<span class="hand-stamp" style="--tilt:${tilt}deg" data-uid="${uid}" data-name="${name}" role="img" aria-label="${name}">${liveDot(uid)}<svg class="hand-stamp-svg" viewBox="0 0 ${width} 122" aria-hidden="true">
     <ellipse cx="${cx}" cy="27" rx="15.5" ry="18" fill="#e8c7a4"/>
     <ellipse cx="${cx}" cy="27" rx="15.5" ry="18" fill="none" stroke="#c4966c" stroke-width="1"/>
     <ellipse cx="${cx - 5}" cy="19" rx="5.5" ry="6.5" fill="#f8efe4" opacity="0.75"/>
@@ -244,37 +253,27 @@ function renderRail() {
   );
 }
 
-function treeForScore() {
-  if (!myUid || !isPlateId(mineDish)) return eatsTree;
-  const day = berlinDate();
-  return {
-    ...eatsTree,
-    [day]: {
-      ...(eatsTree[day] || {}),
-      [myUid]: { uid: myUid, nick: shownNick(), dish: mineDish, guesses: placed },
-    },
-  };
-}
-
 function renderWeek() {
-  const rows = pointsForWeek(treeForScore(), weekSheetDays());
-  const line = weekLine(rows);
+  const line = pointsBoardText(lotteryPoints);
+  const winners = publicWinner(lotteryWinner);
+  const bits = [];
+  if (line) bits.push(`Diese Woche · ${line}`);
+  if (winners.length === 1) bits.push(`Veto · ${winners[0]}`);
+  else if (winners.length > 1) bits.push(`Veto · ${winners.join(" · ")}`);
+  const text = bits.join(" · ");
   if (!week) return;
-  week.hidden = !line;
-  week.textContent = line;
-  const mine = rows.find((row) => row.uid === myUid);
-  if (mine && !probe) {
-    const monday = weekSheetDays()[0];
-    syncBadge(mine.points, monday).catch(() => {});
-  }
+  week.hidden = !text;
+  week.textContent = text;
 }
 
 function render() {
-  if (!probe && !loadRoundCode()) {
+  const inRound = probe || Boolean(loadRoundCode());
+  if (closedBlock) closedBlock.hidden = !(inRound && closed);
+  if (!inRound) {
     if (board) board.hidden = true;
     if (rail) rail.hidden = true;
     if (week) week.hidden = true;
-    if (lede) lede.textContent = "Das Spiel gibt es in der Runde.";
+    if (lede) lede.textContent = LOTTERY_NEEDS_ROUND;
     return;
   }
   if (kicker) {
@@ -335,6 +334,10 @@ function seedProbe() {
       "probe-ada": { uid: "probe-ada", nick: "Ada", dish: adaDish, guesses: {} },
     };
   }
+  lotteryPoints = {
+    "probe-ada": { nick: "Ada", points: 1 },
+    "probe-kim": { nick: "Kim", points: 0 },
+  };
 }
 
 async function persist() {
@@ -518,8 +521,16 @@ document.addEventListener("pointercancel", (event) => {
 
 function onVotes(next) {
   records = next?.records || {};
+  online = next?.online && typeof next.online === "object" ? next.online : {};
   closed = votePhase() !== "open" || next?.revealed === true;
+  if (closed && explain?.open) explain.close();
   if (!dragging) render();
+}
+
+function onLottery(next) {
+  lotteryPoints = next?.points || {};
+  lotteryWinner = next?.winner || null;
+  if (!dragging) renderWeek();
 }
 
 function onEats(tree) {
@@ -549,6 +560,7 @@ if (probe) {
   }
   listenVotes(onVotes);
   listenEats(onEats);
+  listenLottery(onLottery);
 }
 
 try {
