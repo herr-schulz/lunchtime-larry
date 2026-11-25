@@ -1,16 +1,17 @@
 import type { SafeHtml } from "./dom.js";
+import type { GlossContext } from "./words.js";
 
 export function formatDishName(
   name: string,
   canteenId?: string,
-  gloss?: { lang?: string; words?: Record<string, { en?: string; ru?: string; fa?: string; ar?: string }> },
+  gloss?: GlossContext,
 ): SafeHtml;
 export function dishRow(
   dish: { name: string; diet?: string; category?: string; price?: string },
   index: number,
   likes: Set<string>,
   canteenId?: string,
-  gloss?: { lang?: string; words?: Record<string, { en?: string; ru?: string; fa?: string; ar?: string }> },
+  gloss?: GlossContext,
 ): SafeHtml;
 
 export function boardHtml(opts: {

@@ -49,7 +49,7 @@ export function dishRow(dish, index, likes, canteenId, gloss) {
  * @param {boolean} opts.votingOpen
  * @param {boolean} [opts.showVotes]
  * @param {boolean} [opts.weekStale]
- * @param {{ lang?: string, words?: Record<string, { en?: string, ru?: string, fa?: string, ar?: string }> }} [opts.gloss]
+ * @param {{ lang?: string, learn?: boolean, words?: Record<string, { en?: string, ru?: string, fa?: string, ar?: string }> }} [opts.gloss]
  */
 export function boardHtml({
   block,
@@ -166,7 +166,7 @@ function favSheetHtml(saved, canteens, emptyHint, gloss) {
  * @param {Record<string, { name: string }> | null | undefined} opts.canteens
  * @param {boolean} [opts.weekStale]
  * @param {{ kicker?: string, line?: string } | null} [opts.staleNote]
- * @param {{ lang?: string, words?: Record<string, { en?: string, ru?: string, fa?: string, ar?: string }> }} [opts.gloss]
+ * @param {{ lang?: string, learn?: boolean, words?: Record<string, { en?: string, ru?: string, fa?: string, ar?: string }> }} [opts.gloss]
  */
 export function hitsHtml({
   items,

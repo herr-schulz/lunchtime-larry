@@ -1,5 +1,6 @@
 import type { DayBlock } from "./dice.js";
 import type { SafeHtml } from "./dom.js";
+import type { GlossContext } from "./words.js";
 
 export const REEL_COPIES: 3;
 export const OVERSHOOT_PX: 2;
@@ -49,7 +50,7 @@ export function spotEntries(
 export function reelMarkup(
   entries: ReadonlyArray<{ label: string; kind?: string }> | null | undefined,
   copies?: number,
-  gloss?: { lang?: string; words?: Record<string, { en?: string }> } | null,
+  gloss?: GlossContext | null,
 ): SafeHtml;
 
 export function reelTranslateY(opts: {

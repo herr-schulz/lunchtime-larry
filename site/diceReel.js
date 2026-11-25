@@ -159,7 +159,7 @@ export function planSpin({
  * @param {(entry: { label: string, hint?: string, kind?: string, key?: string, canteenId?: string }) => void} [opts.onShow]
  * @param {boolean} [opts.showStale]
  * @param {boolean} [opts.modes]
- * @param {() => { lang?: string, words?: Record<string, object> } | null | undefined} [opts.getGloss]
+ * @param {() => { lang?: string, learn?: boolean, words?: Record<string, object> } | null | undefined} [opts.getGloss]
  */
 export function mountDice({
   openButton,

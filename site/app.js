@@ -18,8 +18,8 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=2c89dacd";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=b7c71977";
+} from "./diceReel.js?v=f1b03e58";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=908df58d";
 import { applyPenMark } from "./icons.js?v=b4c8150a";
 import {
   alarmLabel,
