@@ -18,18 +18,19 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=abf5b839";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=0d3c22fc";
+} from "./diceReel.js?v=cd41fc59";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=6a602557";
 import { applyPenMark } from "./icons.js?v=b4c8150a";
 import {
   alarmLabel,
   dishKey,
-  displayDishName,
   findLikedDishes,
   isLiked,
   listAllFavorites,
+  phraseDish,
   toggleLikeSet,
 } from "./likes.js?v=16f9871b";
+import { paintMasthead, plainWords, readLang, writeLang } from "./words.js?v=15c0153e";
 import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=9451d7b6";
 import {
   favoritePoint,
@@ -47,7 +48,7 @@ import {
 } from "./larryLines.js?v=e093dc99";
 import { LOCATIONS } from "./locations.js?v=e681f2b4";
 import { loadMenu } from "./menuFetch.js?v=64fd5683";
-import { watchSkin } from "./skinGuard.js?v=61550f5d";
+import { watchSkin } from "./skinGuard.js?v=b968160f";
 import {
   berlinWeekday,
   isVoteDay,
@@ -102,7 +103,7 @@ import {
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=3262ed48";
+} from "./updateShell.js?v=da36d154";
 import {
   berlinAt,
   demoVotes,
@@ -344,7 +345,7 @@ function renderHits(data, day) {
     return;
   }
   const sheetOpen = hits.classList.contains("is-sheet-open");
-  const trusted = hitsHtml({ items: found, saved, sheetOpen, canteens: CANTEENS });
+  const trusted = hitsHtml({ items: found, saved, sheetOpen, canteens: CANTEENS, gloss: glossNow() });
   const markup = String(trusted);
   const changed = hits.hidden || lastHitsMarkup !== markup;
   lastHitsMarkup = markup;
@@ -381,7 +382,7 @@ function unlikeFavorite(name, canteen) {
   saveLikes();
   syncDishHearts();
   if (menuData) renderHits(menuData, currentDay);
-  sayLarry(unlikeAck(alarmLabel(name, { canteen })));
+    sayLarry(unlikeAck(plainWords(alarmLabel(name, { canteen }), glossNow())));
 }
 
 function chromeOffset() {
@@ -499,6 +500,7 @@ function renderDay(data, day) {
       votingOpen: votingOpen(),
       showVotes: showVoteMarks(),
       weekStale,
+      gloss: glossNow(),
     }),
   );
   renderHits(data, day);
@@ -1290,8 +1292,14 @@ function startVotes({ force = false } = {}) {
   boot();
 }
 
+function glossNow() {
+  return { lang: readLang(), words: menuData?.words || {} };
+}
+
 function applyLikeState(dish, on) {
-  const shown = displayDishName(dish.dataset.name || "");
+  const name = dish.dataset.name || "";
+  const canteen = dish.closest("[data-canteen]")?.dataset.canteen;
+  const shown = plainWords(phraseDish(name, { canteen }).spoken, glossNow());
   dish.classList.toggle("is-liked", on);
   dish.setAttribute("aria-pressed", String(on));
   dish.setAttribute("aria-label", on ? `${shown}, Favorit` : shown);
@@ -1320,14 +1328,14 @@ function toggleDishLike(data, dish) {
   renderHits(data, currentDay);
   if (on && !wasLiked) {
     const key = dishKey(name);
-    const label = alarmLabel(name, { canteen });
+    const label = plainWords(alarmLabel(name, { canteen }), glossNow());
     justLikedKey = key;
     sayLarry(likeAck(label));
     window.setTimeout(() => {
       if (justLikedKey === key) justLikedKey = "";
     }, 800);
   } else if (wasLiked && !on) {
-    sayLarry(unlikeAck(alarmLabel(name, { canteen })));
+    sayLarry(unlikeAck(plainWords(alarmLabel(name, { canteen }), glossNow())));
   }
 }
 
@@ -1348,7 +1356,7 @@ function maybeAnnounceFavoriteOnMenu(data, day) {
         : names.length > 2
           ? `${names.slice(0, -1).join(", ")} und ${names.at(-1)}`
           : names[0] || "der Kantine";
-    sayLarry(favoriteToday(item.label, place));
+    sayLarry(favoriteToday(plainWords(item.label, glossNow()), place));
     return;
   }
 }
@@ -1413,8 +1421,41 @@ function registerServiceWorker() {
     });
 }
 
+function syncLangSwitch() {
+  const lang = readLang();
+  for (const button of document.querySelectorAll(".lang-switch [data-lang]")) {
+    button.setAttribute("aria-checked", String(button.dataset.lang === lang));
+  }
+}
+
+function applyLang(lang) {
+  writeLang(lang);
+  syncLangSwitch();
+  if (!document.documentElement.classList.contains("is-hacktime")) {
+    paintMasthead(document.querySelector(".masthead h1"));
+  }
+  if (menuData) renderDay(menuData, currentDay);
+  diceUi?.repaint?.();
+}
+
+function bindLangSwitch() {
+  const box = document.querySelector(".lang-switch");
+  syncLangSwitch();
+  if (!document.documentElement.classList.contains("is-hacktime")) {
+    paintMasthead(document.querySelector(".masthead h1"));
+  }
+  box?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-lang]");
+    if (!button || button.dataset.lang === readLang()) return;
+    applyLang(button.dataset.lang);
+  });
+}
+
+let diceUi = null;
+
 try {
   watchSkin();
+  bindLangSwitch();
   bindLarryCorner();
   bindHits();
   bindUpdateBanner();
@@ -1438,11 +1479,12 @@ try {
   bindBoardGestures(data);
   bindNickUi();
   bindMascotEgg();
-  mountDice({
+  diceUi = mountDice({
     openButton: document.querySelector("#dice-open"),
     dialog: document.querySelector("#dice-dialog"),
     modes: true,
     showStale: isStaleMenuWeek(data.weekStart, berlinWeekMonday()),
+    getGloss: glossNow,
     getEntries(mode) {
       const block = data.days?.[todayKey()];
       return mode === "canteen" ? canteenEntries(block, CANTEENS) : dishEntries(block, CANTEENS);

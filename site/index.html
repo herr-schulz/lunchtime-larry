@@ -35,7 +35,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=98e9c262" />
+    <link rel="stylesheet" href="./styles.css?v=bf2da370" />
   </head>
   <body>
     <div class="page-shell">
@@ -51,8 +51,17 @@
           height="96"
         />
         <div class="masthead-copy">
-          <p class="kicker">Arabellapark · KW <span id="kw">—</span></p>
-          <h1>Lunchtime Larry</h1>
+          <div class="masthead-top">
+            <p class="kicker">Arabellapark · KW <span id="kw">—</span></p>
+            <div class="lang-switch" role="radiogroup" aria-label="Sprache">
+              <button type="button" role="radio" data-lang="de" aria-checked="true" aria-label="Deutsch">DE</button>
+              <button type="button" role="radio" data-lang="en" aria-checked="false" aria-label="Englisch">EN</button>
+              <button type="button" role="radio" data-lang="ru" aria-checked="false" aria-label="Russisch">RU</button>
+              <button type="button" role="radio" data-lang="fa" aria-checked="false" aria-label="Persisch">FA</button>
+              <button type="button" role="radio" data-lang="ar" aria-checked="false" aria-label="Arabisch">AR</button>
+            </div>
+          </div>
+          <h1 lang="de">Lunchtime Larry</h1>
           <p class="lede">Drei Kantinen. Eine Woche. <span class="lede-keep">Kein Azure.</span></p>
         </div>
       </div>
@@ -557,7 +566,7 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=48b02f6d" type="module"></script>
+    <script src="./app.js?v=b7c6e259" type="module"></script>
     </div>
     <script src="./visits.js?v=66ea366b" type="module"></script>
   </body>

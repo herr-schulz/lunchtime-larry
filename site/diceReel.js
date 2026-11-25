@@ -1,6 +1,7 @@
 import { listReelDishes } from "./dice.js?v=d68df4b5";
 import { html, setHtml } from "./dom.js?v=d78812b6";
 import { dishKey, phraseDish } from "./likes.js?v=16f9871b";
+import { plainWords, renderWords } from "./words.js?v=15c0153e";
 import { berlinDate } from "./vote.js?v=9cf92e86";
 
 export const REEL_COPIES = 3;
@@ -91,15 +92,16 @@ export function spotEntries(locations) {
   }));
 }
 
-export function reelMarkup(entries, copies = REEL_COPIES) {
+export function reelMarkup(entries, copies = REEL_COPIES, gloss) {
   if (!entries?.length) {
     return html`<div class="reel-row is-empty"><span class="reel-label">Nichts auf dem Zettel.</span></div>`;
   }
   const rows = [];
   for (let copy = 0; copy < copies; copy += 1) {
     entries.forEach((entry, index) => {
+      const label = entry.kind === "dish" && gloss ? renderWords(entry.label, gloss) : entry.label;
       rows.push(
-        html`<div class="reel-row" data-copy="${copy}" data-index="${index}"><span class="reel-label">${entry.label}</span></div>`,
+        html`<div class="reel-row" data-copy="${copy}" data-index="${index}"><span class="reel-label">${label}</span></div>`,
       );
     });
   }
@@ -157,6 +159,7 @@ export function planSpin({
  * @param {(entry: { label: string, hint?: string, kind?: string, key?: string, canteenId?: string }) => void} [opts.onShow]
  * @param {boolean} [opts.showStale]
  * @param {boolean} [opts.modes]
+ * @param {() => { lang?: string, words?: Record<string, object> } | null | undefined} [opts.getGloss]
  */
 export function mountDice({
   openButton,
@@ -166,6 +169,7 @@ export function mountDice({
   onShow,
   showStale = false,
   modes = false,
+  getGloss,
 }) {
   if (!openButton || !dialog) return;
   const strip = dialog.querySelector(".reel-strip");
@@ -199,9 +203,13 @@ export function mountDice({
     return rowHeight;
   }
 
+  function glossNow() {
+    return typeof getGloss === "function" ? getGloss() : undefined;
+  }
+
   function paint(parkIndex = 0) {
     const entries = getEntries(mode) ?? [];
-    setHtml(strip, reelMarkup(entries));
+    setHtml(strip, reelMarkup(entries, REEL_COPIES, glossNow()));
     const y = reelTranslateY({
       length: entries.length,
       index: parkIndex,
@@ -222,7 +230,9 @@ export function mountDice({
       hint.textContent = "";
     }
     if (live) {
-      live.textContent = entry.hint ? `${entry.label}. ${entry.hint}.` : entry.label;
+      const gloss = glossNow();
+      const spoken = entry.kind === "dish" && gloss ? plainWords(entry.label, gloss) : entry.label;
+      live.textContent = entry.hint ? `${spoken}. ${entry.hint}.` : spoken;
     }
     go.hidden = true;
     if (again) again.hidden = false;
@@ -356,4 +366,10 @@ export function mountDice({
     spinning = false;
     shakeMag = null;
   });
+
+  return {
+    repaint() {
+      if (dialog.open && !spinning && !last) paint(0);
+    },
+  };
 }

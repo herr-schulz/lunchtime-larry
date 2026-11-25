@@ -3,6 +3,8 @@
  * Hacktime Harry with a Matrix rain backdrop. Cosmetic only.
  */
 
+import { brandName, paintMasthead, readLang } from "./words.js?v=15c0153e";
+
 const EXPECTED = {
   paper: [242, 226, 196],
   ink: [28, 20, 14],
@@ -106,9 +108,17 @@ function applyCopy(hacked) {
   rememberCopy();
   const { title, lede, mascot } = brandNodes();
   document.title = hacked ? TITLE_HACK : saved.title || TITLE_NORMAL;
-  if (title) title.textContent = hacked ? NAME_HACK : saved.h1;
+  if (title) {
+    if (hacked) {
+      title.textContent = NAME_HACK;
+      title.lang = "de";
+      title.removeAttribute("dir");
+    } else {
+      paintMasthead(title);
+    }
+  }
   paintLede(lede, hacked);
-  if (mascot) mascot.alt = hacked ? NAME_HACK : saved.alt;
+  if (mascot) mascot.alt = hacked ? NAME_HACK : brandName(readLang());
 }
 
 function ensureCanvas() {

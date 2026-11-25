@@ -80,6 +80,8 @@ jobs:
       - run: npm run scrape
         if: steps.gate.outputs.needed == 'true'
         id: scrape
+        env:
+          MYMEMORY_KEY: ${{ secrets.MYMEMORY_KEY }}
 
       - id: ready
         if: always()

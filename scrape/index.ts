@@ -1,6 +1,7 @@
 import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import { launchBrowser, newScrapingPage, screenshot } from "./browser.ts";
 import { formatIsoDateTime, weekStartBerlin, weekdayDates } from "./lib.ts";
+import { fillGlossary, sanitizeWords } from "./glossary.ts";
 import { assessSource, menuHasHoles } from "./sanity.ts";
 import { scrapeBella23 } from "./sources/bella23.ts";
 import { scrapeSodexo } from "./sources/sodexo.ts";
@@ -148,6 +149,13 @@ async function main() {
       id,
       dishes: mergedDishes[id][day],
     }));
+  }
+
+  try {
+    menu.words = await fillGlossary(menu, previous?.words);
+  } catch {
+    console.error("words skipped");
+    menu.words = sanitizeWords(previous?.words);
   }
 
   await mkdir("site/data", { recursive: true });

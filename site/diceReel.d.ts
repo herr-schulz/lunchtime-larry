@@ -47,8 +47,9 @@ export function spotEntries(
 ): ReelEntry[];
 
 export function reelMarkup(
-  entries: ReadonlyArray<{ label: string }> | null | undefined,
+  entries: ReadonlyArray<{ label: string; kind?: string }> | null | undefined,
   copies?: number,
+  gloss?: { lang?: string; words?: Record<string, { en?: string }> } | null,
 ): SafeHtml;
 
 export function reelTranslateY(opts: {

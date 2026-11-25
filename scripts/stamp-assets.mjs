@@ -39,6 +39,19 @@ const likesHash = await hashFile("likes.js");
 const voteHash = await hashFile("vote.js");
 const larryLinesHash = await hashFile("larryLines.js");
 const domHash = await hashFile("dom.js");
+
+const wordsPath = join(site, "words.js");
+if (existsSync(wordsPath)) {
+  const wordsBefore = await readFile(wordsPath, "utf8");
+  const wordsAfter = wordsBefore
+    .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
+    .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`);
+  if (wordsAfter !== wordsBefore) {
+    await writeFile(wordsPath, wordsAfter);
+    console.log("stamped words.js imports");
+  }
+}
+const wordsHash = existsSync(wordsPath) ? await hashFile("words.js") : "";
 const menuFetchHash = await hashFile("menuFetch.js");
 const firebaseHash = await hashFile("firebase.json");
 const diceHash = await hashFile("dice.js");
@@ -69,6 +82,8 @@ if (existsSync(eatPagePath)) {
   const eatBefore = await readFile(eatPagePath, "utf8");
   const eatAfter = eatBefore
     .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
+    .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
+    .replace(/(\.\/words\.js)(?:\?v=[^"']*)?/g, `./words.js?v=${wordsHash}`)
     .replace(/(\.\/menuFetch\.js)(?:\?v=[^"']*)?/g, `./menuFetch.js?v=${menuFetchHash}`);
   if (eatAfter !== eatBefore) {
     await writeFile(eatPagePath, eatAfter);
@@ -133,7 +148,8 @@ const boardRenderBefore = await readFile(boardRenderPath, "utf8");
 const boardRenderAfter = boardRenderBefore
   .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
   .replace(/(\.\/icons\.js)(?:\?v=[^"']*)?/g, `./icons.js?v=${iconsHash}`)
-  .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`);
+  .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
+  .replace(/(\.\/words\.js)(?:\?v=[^"']*)?/g, `./words.js?v=${wordsHash}`);
 if (boardRenderAfter !== boardRenderBefore) {
   await writeFile(boardRenderPath, boardRenderAfter);
   console.log("stamped boardRender.js imports");
@@ -200,6 +216,7 @@ const diceReelAfter = diceReelBefore
   .replace(/(\.\/dice\.js)(?:\?v=[^"']*)?/g, `./dice.js?v=${diceHash}`)
   .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
   .replace(/(\.\/likes\.js)(?:\?v=[^"']*)?/g, `./likes.js?v=${likesHash}`)
+  .replace(/(\.\/words\.js)(?:\?v=[^"']*)?/g, `./words.js?v=${wordsHash}`)
   .replace(/(\.\/vote\.js)(?:\?v=[^"']*)?/g, `./vote.js?v=${voteHash}`);
 if (diceReelAfter !== diceReelBefore) {
   await writeFile(diceReelPath, diceReelAfter);
@@ -220,6 +237,18 @@ if (spotDiceAfter !== spotDiceBefore) {
   console.log("stamped spotDice.js imports");
 }
 
+const skinGuardPath = join(site, "skinGuard.js");
+const skinGuardBefore = await readFile(skinGuardPath, "utf8");
+const skinGuardAfter = skinGuardBefore.replace(
+  /(\.\/words\.js)(?:\?v=[^"']*)?/g,
+  `./words.js?v=${wordsHash}`,
+);
+if (skinGuardAfter !== skinGuardBefore) {
+  await writeFile(skinGuardPath, skinGuardAfter);
+  console.log("stamped skinGuard.js imports");
+}
+const skinGuardHash = await hashFile("skinGuard.js");
+
 const updateShellHash = await hashFile("updateShell.js");
 
 const appPath = join(site, "app.js");
@@ -237,7 +266,8 @@ const appAfter = appBefore
   .replace(/(\.\/calendar\.js)(?:\?v=[^"']*)?/g, `./calendar.js?v=${calendarHash}`)
   .replace(/(\.\/dom\.js)(?:\?v=[^"']*)?/g, `./dom.js?v=${domHash}`)
   .replace(/(\.\/menuFetch\.js)(?:\?v=[^"']*)?/g, `./menuFetch.js?v=${menuFetchHash}`)
-  .replace(/(\.\/skinGuard\.js)(?:\?v=[^"']*)?/g, `./skinGuard.js?v=${await hashFile("skinGuard.js")}`)
+  .replace(/(\.\/words\.js)(?:\?v=[^"']*)?/g, `./words.js?v=${wordsHash}`)
+  .replace(/(\.\/skinGuard\.js)(?:\?v=[^"']*)?/g, `./skinGuard.js?v=${skinGuardHash}`)
   .replace(/(\.\/boardRender\.js)(?:\?v=[^"']*)?/g, `./boardRender.js?v=${boardRenderHash}`)
   .replace(/(\.\/boardGestures\.js)(?:\?v=[^"']*)?/g, `./boardGestures.js?v=${boardGesturesHash}`)
   .replace(/(\.\/dice\.js)(?:\?v=[^"']*)?/g, `./dice.js?v=${diceHash}`)

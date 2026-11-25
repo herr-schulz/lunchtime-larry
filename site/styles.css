@@ -202,6 +202,52 @@ h1 {
   line-height: 0.9;
 }
 
+.masthead h1[lang="ru"] {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.masthead h1[lang="fa"],
+.masthead h1[lang="ar"] {
+  font-family: "Noto Naskh Arabic", "Noto Nastaliq Urdu", Tahoma, sans-serif;
+  letter-spacing: 0;
+}
+
+.masthead-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.lang-switch {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.lang-switch button {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.lang-switch button[aria-checked="true"] {
+  color: var(--ink);
+  border-color: var(--stamp);
+  background: color-mix(in srgb, var(--stamp) 12%, transparent);
+}
+
 .lede {
   margin: 0;
   font-style: italic;
@@ -2054,7 +2100,7 @@ button.escape-link {
 
 .reel-label {
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-display);
@@ -2847,6 +2893,70 @@ button.escape-link {
   display: inline-block;
   max-width: 100%;
   --pen-tilt: -0.8deg;
+}
+
+.food-word {
+  position: relative;
+  display: inline-block;
+  unicode-bidi: isolate;
+  outline: none;
+}
+
+.food-word[lang="ru"],
+.food-gloss [lang="ru"] {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.food-word[lang="fa"],
+.food-word[lang="ar"],
+.food-gloss [lang="fa"],
+.food-gloss [lang="ar"] {
+  font-family: "Noto Naskh Arabic", "Noto Nastaliq Urdu", Tahoma, sans-serif;
+  letter-spacing: 0;
+}
+
+.food-word:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.food-gloss {
+  display: none;
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  top: 100%;
+  margin: 0;
+  padding-top: 1px;
+  border-top: 1px solid currentColor;
+  gap: 0.45rem;
+  align-items: baseline;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--ink-soft);
+  pointer-events: none;
+  background: transparent;
+}
+
+.food-word[dir="rtl"] > .food-gloss {
+  left: auto;
+  right: 0;
+}
+
+.food-word:hover > .food-gloss,
+.food-word:focus > .food-gloss,
+.food-word:focus-visible > .food-gloss {
+  display: flex;
+}
+
+.food-gloss-tag {
+  letter-spacing: 0.06em;
+  font-size: 0.62rem;
 }
 
 .pen-underline {
