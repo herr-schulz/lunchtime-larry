@@ -35,7 +35,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,560&family=Red+Hat+Text:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=adf1d63f" />
+    <link rel="stylesheet" href="./styles.css?v=c3be0180" />
   </head>
   <body>
     <div class="page-shell">
@@ -338,71 +338,21 @@
           <p class="settings-hint">Die Kopfzeile folgt der Sprache. Ohne Lernmodus stehen die Gerichte darin.</p>
         </fieldset>
         <label class="settings-toggle">
-          <input id="learn-toggle" type="checkbox" />
+          <input id="learn-toggle" type="checkbox" role="switch" />
+          <span class="settings-switch" aria-hidden="true"></span>
           <span>
             Lernmodus
             <span class="settings-hint">Gerichte bleiben deutsch. Die Zeile unter einem Wort zeigt die gewählte Sprache.</span>
           </span>
         </label>
         <label class="settings-toggle">
-          <input id="speak-toggle" type="checkbox" checked />
+          <input id="speak-toggle" type="checkbox" role="switch" checked />
+          <span class="settings-switch" aria-hidden="true"></span>
           <span>
             Larry spricht
             <span class="settings-hint">Die Sprechblase bleibt an. Aus, und er hält den Mund.</span>
           </span>
         </label>
-        <fieldset class="settings-block">
-          <legend>Name und Runde</legend>
-          <label>
-            Spitzname
-            <input
-              id="settings-nick"
-              maxlength="20"
-              autocomplete="nickname"
-              autocapitalize="words"
-              autocorrect="off"
-              spellcheck="false"
-              pattern="[A-Za-zÄÖÜäöüß' \-]{1,20}"
-              title="Nur Buchstaben, max. 20 Zeichen"
-            />
-          </label>
-          <label>
-            Runde
-            <span class="round-input-wrap">
-              <input
-                id="settings-round"
-                maxlength="8"
-                autocomplete="off"
-                autocapitalize="off"
-                autocorrect="off"
-                spellcheck="false"
-                title="Teamname oder Code, zwei bis 8 Zeichen."
-              />
-              <button type="button" id="settings-round-roll" class="round-roll" aria-label="Code würfeln">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect width="12" height="12" x="2" y="10" rx="2" ry="2" />
-                  <path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6" />
-                  <path d="M6 18h.01" />
-                  <path d="M10 14h.01" />
-                  <path d="M15 6h.01" />
-                  <path d="M18 9h.01" />
-                </svg>
-              </button>
-            </span>
-          </label>
-          <button type="button" id="settings-leave" class="settings-leave" hidden>Runde verlassen</button>
-        </fieldset>
         <fieldset class="settings-block">
           <legend>Favoriten</legend>
           <div id="settings-favs"></div>
@@ -649,7 +599,7 @@
         </menu>
       </form>
     </dialog>
-    <script src="./app.js?v=0f539294" type="module"></script>
+    <script src="./app.js?v=7ea5a591" type="module"></script>
     </div>
     <script src="./visits.js?v=66ea366b" type="module"></script>
   </body>

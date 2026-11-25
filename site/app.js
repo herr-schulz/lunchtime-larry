@@ -103,7 +103,7 @@ import {
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=dc16d550";
+} from "./updateShell.js?v=8d97a540";
 import {
   berlinAt,
   demoVotes,
@@ -1461,64 +1461,20 @@ function renderSettingsFavs() {
 }
 
 function fillSettings() {
-  const nick = document.querySelector("#settings-nick");
-  const round = document.querySelector("#settings-round");
   const learn = document.querySelector("#learn-toggle");
   const speak = document.querySelector("#speak-toggle");
-  const leave = document.querySelector("#settings-leave");
-  if (nick) {
-    nick.value = loadNick();
-    nick.setCustomValidity("");
-  }
-  if (round) {
-    round.value = loadRoundCode();
-    round.setCustomValidity("");
-  }
   if (learn) learn.checked = readLearn();
   if (speak) speak.checked = readSpeak();
-  if (leave) leave.hidden = !loadRoundCode();
   syncLangSwitch();
   renderSettingsFavs();
 }
 
-function saveSettingsIdentity() {
-  const nick = document.querySelector("#settings-nick");
-  const round = document.querySelector("#settings-round");
-  const nickRaw = nick?.value || "";
-  const roundRaw = round?.value || "";
-  const nickClean = normalizeNick(nickRaw);
-  const roundClean = normalizeRoundCode(roundRaw);
-  if (nickRaw.trim() && !isValidNick(nickClean)) {
-    nick?.setCustomValidity("Nur Buchstaben, max. 20 Zeichen");
-    nick?.reportValidity();
-    return false;
-  }
-  if (roundRaw.trim() && !roundClean) {
-    round?.setCustomValidity("Teamname oder Code, zwei bis 8 Zeichen.");
-    round?.reportValidity();
-    return false;
-  }
-  nick?.setCustomValidity("");
-  round?.setCustomValidity("");
-  if (isValidNick(nickClean)) saveNick(nickClean);
-  if (roundClean) saveRoundCode(roundClean);
-  syncNickButton();
-  if (loadVoteOptIn() && loadNick() && loadRoundCode()) {
-    startVotes({ force: true });
-    if (menuData) renderDay(menuData, currentDay);
-  }
-  return true;
-}
-
 function bindSettings() {
   const dialog = document.querySelector("#settings-dialog");
-  const form = document.querySelector("#settings-form");
   const open = document.querySelector("#settings-open");
   const learn = document.querySelector("#learn-toggle");
   const speak = document.querySelector("#speak-toggle");
-  const leave = document.querySelector("#settings-leave");
   const close = document.querySelector("#settings-close");
-  const roll = document.querySelector("#settings-round-roll");
   const favs = document.querySelector("#settings-favs");
   paintTitle();
   syncLangSwitch();
@@ -1542,24 +1498,11 @@ function bindSettings() {
   speak?.addEventListener("change", () => {
     writeSpeak(speak.checked);
   });
-  roll?.addEventListener("click", () => {
-    const round = document.querySelector("#settings-round");
-    if (!round) return;
-    round.value = generateRoundCode();
-    round.setCustomValidity("");
-  });
-  leave?.addEventListener("click", () => {
-    leaveRound();
-    fillSettings();
-  });
   favs?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-unlike]");
     if (!button) return;
     unlikeFavorite(button.dataset.unlike || "", button.dataset.canteen || "");
     renderSettingsFavs();
-  });
-  form?.addEventListener("submit", (event) => {
-    if (!saveSettingsIdentity()) event.preventDefault();
   });
   close?.addEventListener("click", () => {
     dialog?.close("cancel");
