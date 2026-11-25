@@ -233,6 +233,77 @@ export function recentMonths(days, today, count = 12) {
   return rows;
 }
 
+/** Sunday that starts the contribution-calendar column containing `iso`. */
+function weekSunday(iso) {
+  const { year, month, date } = parts(iso);
+  const cursor = new Date(Date.UTC(year, month - 1, date));
+  cursor.setUTCDate(cursor.getUTCDate() - cursor.getUTCDay());
+  return cursor.toISOString().slice(0, 10);
+}
+
+function monthLabel(sunday, today, isFirst) {
+  for (let d = 0; d < 7; d += 1) {
+    const iso = shiftIso(sunday, d);
+    if (iso > today) break;
+    const bit = parts(iso);
+    if (bit.date === 1) return MONTHS[bit.month - 1] || "";
+  }
+  if (!isFirst) return "";
+  const { month } = parts(sunday <= today ? sunday : today);
+  return MONTHS[month - 1] || "";
+}
+
+/** 0 is an empty day. 1–4 are the green steps, from one vote up. */
+export function voteShade(n) {
+  const count = Math.floor(Number(n) || 0);
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count === 2) return 2;
+  if (count <= 4) return 3;
+  return 4;
+}
+
+/**
+ * Trailing year in contribution-calendar columns.
+ * Each column is Sunday–Saturday. A day with no tally is an empty cell.
+ * `winner` is a canteen name only when one count is strictly ahead.
+ */
+export function yearWeeks(days, today, count = 53) {
+  const weeks = Math.max(1, Math.floor(Number(count) || 53));
+  const end = weekSunday(today);
+  const start = shiftIso(end, -7 * (weeks - 1));
+  const columns = [];
+  for (let i = 0; i < weeks; i += 1) {
+    const sunday = shiftIso(start, 7 * i);
+    const cells = [];
+    for (let d = 0; d < 7; d += 1) {
+      const iso = shiftIso(sunday, d);
+      const future = iso > today;
+      const tally = !future && days?.[iso]?.n ? days[iso] : null;
+      cells.push({
+        iso,
+        future,
+        level: voteShade(tally?.n),
+        winner: tally ? dayWinnerName(tally) : "",
+        hover: tally ? dayHoverText(iso, tally) : "",
+      });
+    }
+    columns.push({
+      key: sunday,
+      label: monthLabel(sunday, today, i === 0),
+      cells,
+    });
+  }
+  // A label is wider than its week. Two neighbouring weeks would print on top of each other.
+  for (let i = 0; i < columns.length - 1; i += 1) {
+    if (!columns[i].label || !columns[i + 1].label) continue;
+    const shifted = columns[i + 2];
+    if (shifted && !shifted.label) shifted.label = columns[i + 1].label;
+    columns[i + 1].label = "";
+  }
+  return columns;
+}
+
 export function dayLeader(tally) {
   if (!tally?.n) return null;
   let max = 0;
@@ -242,6 +313,27 @@ export function dayLeader(tally) {
   if (leaders.length !== 1) return null;
   return { id: leaders[0], count: max };
 }
+
+/** Display name when one canteen count is strictly highest. Otherwise "". */
+export function dayWinnerName(tally) {
+  const lead = dayLeader(tally);
+  return lead ? TALLY_NAMES[lead.id] || "" : "";
+}
+
+/**
+ * What the year cell says on hover. Date and the winning canteen, or that
+ * the counts do not name one. No nick, no ballot.
+ */
+export function dayHoverText(iso, tally) {
+  if (!tally?.n) return "";
+  const when = dayLabel(iso);
+  const name = dayWinnerName(tally);
+  if (!name) return `${when}: keine Kantine lag in dieser Runde vorn.`;
+  return `${when}: ${name} lag in dieser Runde vorn.`;
+}
+
+/** Left edge of the year grid. Blank rows stay in the column so Mo, Mi and Fr line up. */
+export const YEAR_ROW_LABELS = ["", "Mo", "", "Mi", "", "Fr", ""];
 
 export function leadingDays(days) {
   const wins = { stmuv: 0, sodexo: 0, bella23: 0, wochenmarkt: 0 };

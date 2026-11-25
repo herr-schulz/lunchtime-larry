@@ -16,7 +16,12 @@ import {
   recentWeeks,
   shareOf,
   thursdayMarket,
+  voteShade,
   winsLine,
+  YEAR_ROW_LABELS,
+  dayHoverText,
+  dayWinnerName,
+  yearWeeks,
 } from "../site/tally.js";
 import {
   aufrufWord,
@@ -144,6 +149,62 @@ describe("ranges", () => {
     );
   });
 
+  it("draws a year of weeks and names a canteen only when one count leads", () => {
+    const days = {
+      "2026-10-19": { stmuv: 4, sodexo: 1, bella23: 0, wochenmarkt: 0, egal: 0, second: 0, n: 4 },
+      "2026-10-22": { stmuv: 2, sodexo: 2, bella23: 0, wochenmarkt: 0, egal: 0, second: 0, n: 4 },
+      "2026-10-23": { n: 2 },
+    };
+    expect(YEAR_ROW_LABELS).toEqual(["", "Mo", "", "Mi", "", "Fr", ""]);
+    expect(voteShade(0)).toBe(0);
+    expect(voteShade(1)).toBe(1);
+    expect(voteShade(2)).toBe(2);
+    expect(voteShade(4)).toBe(3);
+    expect(voteShade(5)).toBe(4);
+    const weeks = yearWeeks(days, "2026-11-26");
+    expect(weeks).toHaveLength(53);
+    expect(weeks[0].label).toBe("Nov");
+    expect(weeks[1].label).toBe("");
+    expect(weeks[2].label).toBe("Dez");
+    expect(weeks.some((week, index) => week.label && weeks[index + 1]?.label)).toBe(false);
+    const last = weeks.at(-1);
+    expect(last?.cells.map((cell) => cell.iso)).toEqual([
+      "2026-11-22",
+      "2026-11-23",
+      "2026-11-24",
+      "2026-11-25",
+      "2026-11-26",
+      "2026-11-27",
+      "2026-11-28",
+    ]);
+    expect(last?.cells[4].future).toBe(false);
+    expect(last?.cells[5].future).toBe(true);
+    expect(last?.cells[5].hover).toBe("");
+    const cells = weeks.flatMap((week) => week.cells);
+    const monday = cells.find((cell) => cell.iso === "2026-10-19");
+    expect(monday?.level).toBe(3);
+    expect(monday?.winner).toBe("StMUV");
+    expect(monday?.hover).toBe("Mo 19.10.: StMUV lag in dieser Runde vorn.");
+    const dirty = { ...days["2026-10-19"] };
+    Object.assign(dirty, { nick: "Sven" });
+    expect(dayHoverText("2026-10-19", dirty)).toBe("Mo 19.10.: StMUV lag in dieser Runde vorn.");
+    expect(dayHoverText("2026-10-19", dirty)).not.toMatch(/Sven/);
+    const tie = cells.find((cell) => cell.iso === "2026-10-22");
+    expect(tie?.level).toBe(3);
+    expect(tie?.winner).toBe("");
+    expect(tie?.hover).toBe("Do 22.10.: keine Kantine lag in dieser Runde vorn.");
+    const countsOnly = cells.find((cell) => cell.iso === "2026-10-23");
+    expect(countsOnly?.level).toBe(2);
+    expect(dayWinnerName(days["2026-10-23"])).toBe("");
+    expect(dayHoverText("2026-10-23", days["2026-10-23"])).toBe(
+      "Fr 23.10.: keine Kantine lag in dieser Runde vorn.",
+    );
+    const purged = cells.find((cell) => cell.iso === "2026-10-20");
+    expect(purged?.level).toBe(0);
+    expect(purged?.winner).toBe("");
+    expect(purged?.hover).toBe("");
+  });
+
   it("opens the other groups only with the desk claim", () => {
     expect(isDesk("Sven", "aiteam", true)).toBe(true);
     expect(isDesk("Sven", "aiteam")).toBe(false);
@@ -205,7 +266,11 @@ describe("visit pixel", () => {
     expect(list).toContain("nicht nach Runden getrennt");
     const page = readFileSync("site/strichliste.js", "utf8");
     expect(page).toContain("Die Auszählung kommt um 12 Uhr.");
-    expect(page).toContain("Grün ist StMUV");
+    expect(page).toContain("Weniger");
+    expect(page).toContain("Mehr");
+    expect(page).toContain("yearWeeks");
+    expect(page).toContain("loadRoundDays");
+    expect(page).not.toContain("votes/");
     expect(page).toContain("hasDeskClaim");
     expect(page).toContain("isDesk(loadNick(), code, await hasDeskClaim())");
   });

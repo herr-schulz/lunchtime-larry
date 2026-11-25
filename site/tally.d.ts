@@ -27,6 +27,22 @@ export type NickCounts = {
 
 export type TallyRow = { key: string; label: string; tally: Tally | null };
 
+export type YearCell = {
+  iso: string;
+  future: boolean;
+  level: number;
+  winner: string;
+  hover: string;
+};
+
+export type YearWeek = {
+  key: string;
+  label: string;
+  cells: YearCell[];
+};
+
+export const YEAR_ROW_LABELS: readonly ["", "Mo", "", "Mi", "", "Fr", ""];
+
 export function emptyTally(): Tally;
 export function emptyNick(): Omit<NickCounts, "days">;
 export function foldDay(records: VoteRecords | null | undefined): Tally;
@@ -46,7 +62,15 @@ export function isoWeekKey(iso: string): string;
 export function recentDays(days: Record<string, Tally> | null | undefined, today: string, count?: number): TallyRow[];
 export function recentWeeks(days: Record<string, Tally> | null | undefined, today: string, count?: number): TallyRow[];
 export function recentMonths(days: Record<string, Tally> | null | undefined, today: string, count?: number): TallyRow[];
+export function voteShade(n: number): number;
+export function yearWeeks(
+  days: Record<string, Partial<Tally>> | null | undefined,
+  today: string,
+  count?: number,
+): YearWeek[];
 export function dayLeader(tally: Partial<Tally> | null | undefined): { id: string; count: number } | null;
+export function dayWinnerName(tally: Partial<Tally> | null | undefined): string;
+export function dayHoverText(iso: string, tally: Partial<Tally> | null | undefined): string;
 export function leadingDays(days: Record<string, Tally> | null | undefined): {
   wins: Record<string, number>;
   ids: string[];

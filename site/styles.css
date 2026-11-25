@@ -4180,6 +4180,118 @@ body:not(.page-alternatives) .colophon {
   margin-top: 0.2rem;
 }
 
+.strich-year {
+  --cal-empty: color-mix(in srgb, var(--ink) 12%, var(--paper));
+  --cal-1: #b7d7a8;
+  --cal-2: #6eae6a;
+  --cal-3: #3c7d4e;
+  --cal-4: #1d4d32;
+}
+
+.strich-cal-frame {
+  display: grid;
+  grid-template-columns: 1.35rem minmax(0, 1fr);
+  column-gap: 0.4rem;
+  align-items: start;
+}
+
+.strich-cal-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding-bottom: 0.25rem;
+}
+
+.strich-cal-months {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 12px;
+  gap: 3px;
+  margin: 0 0 0.3rem;
+  color: var(--ink-soft);
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.strich-cal-months span {
+  height: 0.85rem;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.strich-cal-labels {
+  display: grid;
+  grid-template-rows: repeat(7, 12px);
+  gap: 3px;
+  width: 1.35rem;
+  margin-top: 1.15rem;
+  color: var(--ink-soft);
+  font-size: 0.62rem;
+  line-height: 12px;
+}
+
+.strich-cal-weeks {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 12px;
+  gap: 3px;
+}
+
+.strich-cal-week {
+  display: grid;
+  grid-template-rows: repeat(7, 12px);
+  gap: 3px;
+}
+
+.strich-cal-cell {
+  display: block;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--cal-empty);
+}
+
+button.strich-cal-cell {
+  cursor: pointer;
+  font: inherit;
+}
+
+.strich-cal-cell.is-lv0 { background: var(--cal-empty); }
+.strich-cal-cell.is-lv1 { background: var(--cal-1); }
+.strich-cal-cell.is-lv2 { background: var(--cal-2); }
+.strich-cal-cell.is-lv3 { background: var(--cal-3); }
+.strich-cal-cell.is-lv4 { background: var(--cal-4); }
+
+button.strich-cal-cell:hover,
+button.strich-cal-cell:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.strich-cal-hover {
+  min-height: 1.35em;
+  margin: 0.55rem 0 0;
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.strich-cal-scale {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  margin-top: 0.35rem;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+}
+
+.strich-cal-scale > span:first-child,
+.strich-cal-scale > span:last-child {
+  margin-inline: 0.25rem;
+}
+
 .dabei-row {
   display: flex;
   flex-wrap: wrap;

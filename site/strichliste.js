@@ -11,21 +11,13 @@ import { pointsBoardText, publicDayTallies, publicWinner } from "./lottery.js?v=
 import {
   BAR_FIELDS,
   TALLY_NAMES,
+  YEAR_ROW_LABELS,
   dayLabel,
-  hourBands,
   isDesk,
-  leadingDays,
   peopleRows,
   personDetail,
-  recentDays,
-  recentMonths,
-  recentWeeks,
-  shareOf,
-  shiftIso,
-  sumTallies,
-  thursdayMarket,
-  winsLine,
-} from "./tally.js?v=903bf68a";
+  yearWeeks,
+} from "./tally.js?v=ba2c4fb3";
 import {
   ensureVoteUser,
   hasDeskClaim,
@@ -33,13 +25,6 @@ import {
   loadDirectory,
   loadRoundDays,
 } from "./voteClient.js?v=57fbf601";
-
-const RANGES = [
-  ["days", "Tage"],
-  ["weeks", "Wochen"],
-  ["months", "Monat"],
-  ["year", "Jahr"],
-];
 
 const VISIT_FIGURES = [
   ["total", "Gesamt", counterUrl("TOTAL")],
@@ -105,58 +90,6 @@ function segmented(tally) {
   return wrap;
 }
 
-function paintRows(list, rows) {
-  list.replaceChildren();
-  for (const row of rows) {
-    const line = node("li", "strich-row");
-    line.tabIndex = 0;
-    const when = node("span", "strich-when", row.label);
-    when.append(tip(row.tally ? breakdown(row.tally) : `${row.label}: keine Stimme.`));
-    line.append(when);
-    line.append(row.tally ? segmented(row.tally) : node("span", "strich-bar is-empty"));
-    const num = node("span", "strich-num", row.tally ? String(row.tally.n) : "—");
-    num.title = row.tally ? `${row.tally.n} ${row.tally.n === 1 ? "Person" : "Personen"}` : "Keine Stimme";
-    line.append(num);
-    list.append(line);
-  }
-}
-
-function paintHours(tally) {
-  const bands = hourBands(tally);
-  const max = Math.max(1, ...bands.shown.map((band) => band.n));
-  const block = node("section", "strich-block");
-  block.append(node("h2", "strich-kicker", "Wann abgestimmt"));
-  block.append(
-    node(
-      "p",
-      "strich-note",
-      "Jede Säule ist eine Uhrzeit. Die Zahl darüber ist, wie viele Personen in dieser Stunde abgestimmt haben.",
-    ),
-  );
-  const chart = node("div", "strich-hours");
-  for (const band of bands.shown) {
-    const col = node("div", "strich-hour");
-    col.tabIndex = 0;
-    const said = band.n
-      ? `${band.hour} Uhr: ${peopleWord(band.n)} ${band.n === 1 ? "hat" : "haben"} in dieser Stunde abgestimmt.`
-      : `${band.hour} Uhr: niemand.`;
-    col.append(node("span", "strich-hour-value", band.n ? String(band.n) : ""));
-    const track = node("span", "strich-hour-track");
-    const fill = node("span", "strich-hour-fill");
-    if (!band.n) fill.classList.add("is-zero");
-    fill.style.height = band.n ? `${(band.n / max) * 100}%` : "0";
-    track.append(fill);
-    col.append(track);
-    col.append(node("span", "strich-hour-label", String(band.hour)));
-    col.append(tip(said));
-    chart.append(col);
-  }
-  block.append(chart);
-  block.append(node("p", "strich-note", "Unter der Säule steht die Stunde, von 8 bis 15 Uhr."));
-  if (bands.rest) block.append(node("p", "strich-note", `Vor 8 und nach 15 Uhr: ${bands.rest}.`));
-  return block;
-}
-
 function paintPeople(nicks) {
   const rows = peopleRows(nicks);
   if (!rows.length) return null;
@@ -180,75 +113,6 @@ function paintPeople(nicks) {
   }
   block.append(list);
   return block;
-}
-
-function monthDays(days, today) {
-  const end = shiftIso(today, -1);
-  const [year, month, last] = end.split("-").map(Number);
-  const key = end.slice(0, 7);
-  const rows = [];
-  for (let date = 1; date <= last; date += 1) {
-    const iso = `${year}-${String(month).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
-    rows.push({ key: iso, label: String(date), tally: days?.[iso]?.n ? days[iso] : null });
-  }
-  return { key, rows };
-}
-
-function rowsAsDays(rows) {
-  const out = {};
-  for (const row of rows) if (row.tally) out[row.key] = row.tally;
-  return out;
-}
-
-function factsText(days) {
-  const total = sumTallies(days);
-  const market = thursdayMarket(days);
-  let bestHour = null;
-  for (let hour = 0; hour < 24; hour += 1) {
-    const n = total[`h${hour}`] || 0;
-    if (n && (!bestHour || n > bestHour.n)) bestHour = { hour, n };
-  }
-  let favorite = null;
-  for (const id of BAR_FIELDS) {
-    const n = total[id] || 0;
-    if (n && (!favorite || n > favorite.n)) favorite = { id, n };
-  }
-  const bits = [winsLine(leadingDays(days))];
-  if (favorite) bits.push(`${TALLY_NAMES[favorite.id]} ${favorite.n} Mal gewählt`);
-  bits.push(`Egal ${shareOf(total.egal, total.n)} %`);
-  bits.push(`zweite Kantine ${shareOf(total.second, total.n)} %`);
-  bits.push(`Markt am Donnerstag ${market.thursday}, sonst ${market.other}`);
-  if (bestHour) bits.push(`häufigste Stunde ${bestHour.hour} Uhr`);
-  return bits.join(" · ");
-}
-
-function paintStrip(rows) {
-  const max = Math.max(1, ...rows.map((row) => row.tally?.n || 0));
-  const chart = node("div", "strich-strip");
-  for (const row of rows) {
-    const col = node("div", "strich-daycol");
-    col.tabIndex = 0;
-    const stack = node("span", "strich-daystack");
-    const picks = BAR_FIELDS.reduce((sum, id) => sum + (row.tally?.[id] || 0), 0);
-    if (!row.tally?.n) stack.classList.add("is-empty");
-    else stack.style.height = `${Math.max(12, ((row.tally.n || 0) / max) * 100)}%`;
-    if (picks) {
-      for (const id of [...BAR_FIELDS].reverse()) {
-        const count = row.tally[id] || 0;
-        if (!count) continue;
-        const seg = node("span", `strich-seg is-${id}`);
-        seg.style.height = `${(count / picks) * 100}%`;
-        stack.append(seg);
-      }
-    }
-    col.append(stack);
-    const dayNo = Number(row.label);
-    const showLabel = Boolean(row.tally?.n) || (dayNo > 0 && dayNo % 5 === 0);
-    col.append(node("span", "strich-hour-label", showLabel ? row.label : ""));
-    col.append(tip(`${row.key ? dayLabel(row.key) : row.label}. ${row.tally ? breakdown(row.tally) : "Keine Stimme."}`));
-    chart.append(col);
-  }
-  return chart;
 }
 
 function paintToday(board) {
@@ -429,25 +293,6 @@ function paintVisits(root, counts, source, tosses) {
   if (typeof tosses === "number") root.append(paintToss(tosses));
 }
 
-function monthTitle(key) {
-  const names = [
-    "Januar",
-    "Februar",
-    "März",
-    "April",
-    "Mai",
-    "Juni",
-    "Juli",
-    "August",
-    "September",
-    "Oktober",
-    "November",
-    "Dezember",
-  ];
-  const [year, month] = String(key).split("-").map(Number);
-  return `${names[month - 1] || key} ${year}`;
-}
-
 async function loadVisits() {
   const slots = [...VISIT_FIGURES, ...VISIT_PAGES];
   const values = await Promise.all(slots.map(([, , url]) => readCountAt(url).catch(() => "")));
@@ -464,89 +309,85 @@ async function loadVisits() {
   }
 }
 
+function paintYear(days, today) {
+  const weeks = yearWeeks(days, today);
+  const block = node("section", "strich-block strich-year");
+  block.append(node("h2", "strich-kicker", "Jahr"));
+  block.append(
+    node(
+      "p",
+      "strich-note",
+      "Spalten sind Wochen. Mo, Mi und Fr stehen links. Ein grüner Kasten ist ein Tag mit Stimmen in dieser Runde. Die Farbe zählt die Personen, nicht die Kantine. Leer bleibt, wo keine Summe liegt.",
+    ),
+  );
+  const frame = node("div", "strich-cal-frame");
+  const scroll = node("div", "strich-cal-scroll");
+  const months = node("div", "strich-cal-months");
+  months.setAttribute("aria-hidden", "true");
+  for (const week of weeks) months.append(node("span", "", week.label));
+  const labels = node("div", "strich-cal-labels");
+  labels.setAttribute("aria-hidden", "true");
+  for (const label of YEAR_ROW_LABELS) labels.append(node("span", "", label));
+  const cols = node("div", "strich-cal-weeks");
+  cols.setAttribute("role", "group");
+  cols.setAttribute("aria-label", "Tage mit Stimmen im letzten Jahr");
+  const hover = node("p", "strich-cal-hover");
+  let current = null;
+  const show = (button, text) => {
+    current = button;
+    hover.textContent = text;
+  };
+  const hide = (button) => {
+    if (current !== button) return;
+    current = null;
+    hover.textContent = "";
+  };
+  for (const week of weeks) {
+    const col = node("div", "strich-cal-week");
+    for (const cell of week.cells) {
+      if (!cell.hover) {
+        const empty = node("span", "strich-cal-cell");
+        empty.setAttribute("aria-hidden", "true");
+        col.append(empty);
+        continue;
+      }
+      const button = node("button", `strich-cal-cell is-lv${cell.level}`);
+      button.type = "button";
+      button.setAttribute("aria-label", cell.hover);
+      button.addEventListener("mouseenter", () => show(button, cell.hover));
+      button.addEventListener("focus", () => show(button, cell.hover));
+      button.addEventListener("mouseleave", () => hide(button));
+      button.addEventListener("blur", () => hide(button));
+      col.append(button);
+    }
+    cols.append(col);
+  }
+  scroll.append(months, cols);
+  frame.append(labels, scroll);
+  const pin = () => {
+    if (scroll.scrollWidth <= scroll.clientWidth + 4) return;
+    scroll.scrollLeft = scroll.scrollWidth;
+    observer?.disconnect();
+  };
+  const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(pin) : null;
+  observer?.observe(scroll);
+  requestAnimationFrame(pin);
+  const scale = node("div", "strich-cal-scale");
+  scale.append(node("span", "", "Weniger"));
+  for (let level = 0; level <= 4; level += 1) {
+    const swatch = node("span", `strich-cal-cell is-lv${level}`);
+    swatch.setAttribute("aria-hidden", "true");
+    scale.append(swatch);
+  }
+  scale.append(node("span", "", "Mehr"));
+  block.append(frame, hover, scale);
+  return block;
+}
+
 function paint(root, board) {
   root.replaceChildren();
   root.append(paintToday(board));
-  const days = board.archive?.days || {};
-  const any = Object.values(days).some((day) => day?.n);
-  if (any) {
-    const today = board.today;
-    const month = monthDays(days, today);
-    const year = shiftIso(today, -1).slice(0, 4);
-    const ranges = {
-      days: recentDays(days, today, 14),
-      weeks: recentWeeks(days, today, 8),
-      months: month.rows,
-      year: recentMonths(days, today, 12).filter((row) => row.key.startsWith(year)),
-    };
-    const block = node("section", "strich-block");
-    block.append(node("h2", "strich-kicker", "Verlauf"));
-    block.append(legend());
-    block.append(
-      node(
-        "p",
-        "strich-note",
-        "Grün ist StMUV, gelb Dave B, rot Bella 23, grau der Markt. Die Zahl am Zeilenende ist die Personenzahl.",
-      ),
-    );
-    const tabs = node("div", "strich-range");
-    tabs.setAttribute("role", "tablist");
-    tabs.setAttribute("aria-label", "Zeitraum");
-    const host = node("div", "strich-host");
-    const facts = node("p", "strich-facts");
-    const hoursMount = node("div");
-    const show = (id) => {
-      for (const other of tabs.querySelectorAll(".strich-tab")) {
-        other.setAttribute("aria-selected", other.dataset.range === id ? "true" : "false");
-      }
-      host.replaceChildren();
-      if (id === "months") {
-        host.append(node("p", "strich-note", `Jeder Strich ist ein Tag im ${monthTitle(month.key)}.`));
-        const strip = paintStrip(ranges.months);
-        host.append(strip);
-        const first = ranges.months.findIndex((row) => row.tally?.n);
-        if (first > 0) {
-          const go = () => {
-            const col = strip.children[first];
-            if (!col || strip.scrollWidth <= strip.clientWidth + 4) return;
-            strip.scrollLeft = Math.max(0, col.offsetLeft - 8);
-          };
-          requestAnimationFrame(go);
-          if (typeof ResizeObserver !== "undefined") new ResizeObserver(go).observe(strip);
-        }
-      } else if (id === "year") {
-        host.append(node("p", "strich-note", `Jeder Balken ist ein Monat im Jahr ${year}.`));
-        const list = node("ol", "strich-rows");
-        paintRows(list, ranges.year);
-        host.append(list);
-      } else {
-        const list = node("ol", "strich-rows");
-        paintRows(list, ranges[id]);
-        host.append(list);
-      }
-      const slice = rowsAsDays(ranges[id]);
-      facts.textContent = factsText(slice);
-      const summed = sumTallies(slice);
-      const hasHours = Object.keys(summed).some(
-        (key) => /^h(?:[0-9]|1[0-9]|2[0-3])$/.test(key) && summed[key],
-      );
-      if (hasHours) hoursMount.replaceChildren(paintHours(summed));
-      else hoursMount.replaceChildren();
-    };
-    for (const [id, label] of RANGES) {
-      const button = node("button", "strich-tab", label);
-      button.type = "button";
-      button.dataset.range = id;
-      button.setAttribute("role", "tab");
-      button.addEventListener("click", () => show(id));
-      tabs.append(button);
-    }
-    block.append(tabs, host, facts);
-    root.append(block, hoursMount);
-    show("days");
-  } else {
-    root.append(node("p", "strich-note", "Abgeschlossene Tage erscheinen hier ab dem nächsten Werktag."));
-  }
+  root.append(paintYear(board.archive?.days || {}, board.today));
   const people = paintPeople(board.archive?.nicks);
   if (people) root.append(people);
   if (board.desk) root.append(paintGroups(board));
