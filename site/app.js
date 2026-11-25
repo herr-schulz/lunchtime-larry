@@ -84,7 +84,7 @@ import {
   paintHeuteDabei,
   paintVoteBoard,
   projectLocalVote,
-} from "./voteMarks.js?v=57fbf601";
+} from "./voteMarks.js?v=8dec05e5";
 import { publicPoints } from "./lottery.js?v=57fbf601";
 import {
   ensureVoteUser,
@@ -95,14 +95,14 @@ import {
   stopListening,
   toggleEgal,
   toggleVote,
-} from "./voteClient.js?v=57fbf601";
+} from "./voteClient.js?v=60292d8c";
 import {
   isStaleShell,
   reloadFresh,
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=d1786c73";
+} from "./updateShell.js?v=3262ed48";
 import {
   berlinAt,
   demoVotes,
@@ -1060,7 +1060,7 @@ function maybeAskEat(mine) {
   rememberEatAsk();
   sayLarry({
     kicker: "Kurz",
-    line: "Hast du Lust, Wer isst was zu spielen?",
+    line: "Hast du Lust, Larrys Lunch Lottery zu spielen?",
     choices: true,
   });
 }

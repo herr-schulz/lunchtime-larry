@@ -1,5 +1,5 @@
 /** Stamped from version.json so a cached app.js can notice a newer deploy. */
-export const SHELL_BUILD = "57";
+export const SHELL_BUILD = "58";
 
 export function cacheNameFor(build) {
   return `larry-shell-v${build}`;

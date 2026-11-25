@@ -208,8 +208,8 @@ describe("server tally", () => {
 
 describe("shell", () => {
   it("bumps the shell cache with the tally", () => {
-    expect(readFileSync("site/version.json", "utf8")).toContain('"build": "57"');
-    expect(readFileSync("site/sw.js", "utf8")).toContain("larry-shell-v57");
-    expect(readFileSync("site/updateShell.js", "utf8")).toContain('SHELL_BUILD = "57"');
+    expect(readFileSync("site/version.json", "utf8")).toContain('"build": "58"');
+    expect(readFileSync("site/sw.js", "utf8")).toContain("larry-shell-v58");
+    expect(readFileSync("site/updateShell.js", "utf8")).toContain('SHELL_BUILD = "58"');
   });
 });
