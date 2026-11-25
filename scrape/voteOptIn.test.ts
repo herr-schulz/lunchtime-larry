@@ -156,12 +156,12 @@ describe("round migration", () => {
   });
 });
 
-describe("Wer isst was stays inside a round", () => {
+describe("Larrys Lunch Lottery stays inside a round", () => {
   it("hides the dish-stamp link until a round is stored and leaves the rest of the board", () => {
     const html = readFileSync("site/index.html", "utf8");
     const { document } = parseHTML(html);
     const eat = document.querySelector("#eat-link");
-    expect(eat?.textContent).toMatch(/Wer isst was\?/);
+    expect(eat?.textContent).toMatch(/Larrys Lunch Lottery/);
     expect(eat?.hasAttribute("hidden")).toBe(true);
     expect(document.querySelector("#dice-open")?.hasAttribute("hidden")).toBe(false);
     expect(document.querySelector("#escape-link")?.hasAttribute("hidden")).toBe(false);

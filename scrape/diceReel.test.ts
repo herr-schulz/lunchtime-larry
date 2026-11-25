@@ -135,7 +135,7 @@ describe("dice markup", () => {
     const wrap = document.querySelector("#escape-wrap");
     const kids = [...(wrap?.children ?? [])].map((node) => node.id);
     expect(kids).toEqual(["eat-link", "dice-open", "escape-link"]);
-    expect(document.querySelector("#eat-link")?.textContent).toMatch(/Wer isst was\?/);
+    expect(document.querySelector("#eat-link")?.textContent).toMatch(/Larrys Lunch Lottery/);
     expect(document.querySelector("#egal-vote")?.textContent).toMatch(/auch dabei\?/);
     expect(document.querySelector("#egal-vote")?.closest(".dabei-row")).toBeTruthy();
     expect(document.querySelector("#egal-vote .vote-check")).toBeTruthy();
