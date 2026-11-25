@@ -3,7 +3,7 @@
  * Hacktime Harry with a Matrix rain backdrop. Cosmetic only.
  */
 
-import { brandName, paintMasthead, readLang } from "./words.js?v=15c0153e";
+import { brandName, paintMasthead, readLang } from "./words.js?v=c0e9c9cb";
 
 const EXPECTED = {
   paper: [242, 226, 196],

@@ -6,7 +6,7 @@ import {
   playableMembers,
 } from "./eat.js?v=4c1eats1";
 import { phraseDish } from "./likes.js?v=16f9871b";
-import { readLang, renderSides, renderWords } from "./words.js?v=15c0153e";
+import { readLang, readLearn, renderSides, renderWords } from "./words.js?v=c0e9c9cb";
 import {
   LOTTERY_NEEDS_ROUND,
   pointsBoardText,
@@ -182,7 +182,7 @@ function handStampHtml(name, { uid = "" } = {}) {
 
 function dishHtml(row) {
   const phrase = phraseDish(row.dish.name, { canteen: row.canteenId });
-  const gloss = { lang: readLang(), words: menuWords };
+  const gloss = { lang: readLang(), learn: readLearn(), words: menuWords };
   const sides = phrase.sides?.length ? renderSides(phrase.sides, gloss) : "";
   const diet =
     row.dish.diet && DIET[row.dish.diet]

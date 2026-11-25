@@ -3,7 +3,7 @@
 import { html, safeUrl } from "./dom.js?v=d78812b6";
 import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=b4c8150a";
 import { dishKey, isLiked, parkedFavorites, phraseDish } from "./likes.js?v=16f9871b";
-import { plainWords, renderSides, renderWords } from "./words.js?v=15c0153e";
+import { plainWords, renderSides, renderWords } from "./words.js?v=c0e9c9cb";
 
 const DIET = {
   vegan: "vegan",

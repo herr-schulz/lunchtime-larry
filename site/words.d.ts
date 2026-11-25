@@ -17,6 +17,7 @@ export type GlossRow = {
 
 export type GlossContext = {
   lang?: string;
+  learn?: boolean;
   words?: Record<string, GlossRow | undefined> | null;
 };
 
@@ -34,5 +35,7 @@ export function renderWords(text: string, gloss?: GlossContext | null): SafeHtml
 export function renderSides(sides: string[] | null | undefined, gloss?: GlossContext | null): SafeHtml;
 export function readLang(): string;
 export function writeLang(lang: string): void;
+export function readLearn(): boolean;
+export function writeLearn(on: boolean): void;
 export function brandName(lang: string): string;
 export function paintMasthead(title: HTMLElement | null | undefined): void;

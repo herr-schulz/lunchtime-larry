@@ -18,8 +18,8 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=cd41fc59";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=6a602557";
+} from "./diceReel.js?v=2c89dacd";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=b7c71977";
 import { applyPenMark } from "./icons.js?v=b4c8150a";
 import {
   alarmLabel,
@@ -30,8 +30,8 @@ import {
   phraseDish,
   toggleLikeSet,
 } from "./likes.js?v=16f9871b";
-import { paintMasthead, plainWords, readLang, writeLang } from "./words.js?v=15c0153e";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=9451d7b6";
+import { paintMasthead, plainWords, readLang, readLearn, renderWords, writeLang, writeLearn } from "./words.js?v=c0e9c9cb";
+import { bindLarryCorner, readSpeak, sayLarry, writeSpeak } from "./larryCorner.js?v=b8664b99";
 import {
   favoritePoint,
   favoriteToday,
@@ -48,7 +48,7 @@ import {
 } from "./larryLines.js?v=e093dc99";
 import { LOCATIONS } from "./locations.js?v=e681f2b4";
 import { loadMenu } from "./menuFetch.js?v=64fd5683";
-import { watchSkin } from "./skinGuard.js?v=b968160f";
+import { watchSkin } from "./skinGuard.js?v=bf996988";
 import {
   berlinWeekday,
   isVoteDay,
@@ -103,7 +103,7 @@ import {
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=da36d154";
+} from "./updateShell.js?v=dc16d550";
 import {
   berlinAt,
   demoVotes,
@@ -1293,7 +1293,7 @@ function startVotes({ force = false } = {}) {
 }
 
 function glossNow() {
-  return { lang: readLang(), words: menuData?.words || {} };
+  return { lang: readLang(), learn: readLearn(), words: menuData?.words || {} };
 }
 
 function applyLikeState(dish, on) {
@@ -1428,26 +1428,141 @@ function syncLangSwitch() {
   }
 }
 
+function paintTitle() {
+  if (document.documentElement.classList.contains("is-hacktime")) return;
+  paintMasthead(document.querySelector(".masthead h1"));
+}
+
 function applyLang(lang) {
   writeLang(lang);
   syncLangSwitch();
-  if (!document.documentElement.classList.contains("is-hacktime")) {
-    paintMasthead(document.querySelector(".masthead h1"));
-  }
+  paintTitle();
   if (menuData) renderDay(menuData, currentDay);
   diceUi?.repaint?.();
 }
 
-function bindLangSwitch() {
-  const box = document.querySelector(".lang-switch");
-  syncLangSwitch();
-  if (!document.documentElement.classList.contains("is-hacktime")) {
-    paintMasthead(document.querySelector(".masthead h1"));
+function renderSettingsFavs() {
+  const box = document.querySelector("#settings-favs");
+  if (!box) return;
+  const saved = menuData ? listAllFavorites(likes, menuData.days, currentDay) : [];
+  if (!saved.length) {
+    setHtml(box, html`<p class="settings-empty">Noch kein Favorit. Herz am Gericht reicht.</p>`);
+    return;
   }
-  box?.addEventListener("click", (event) => {
+  const gloss = glossNow();
+  const rows = saved.map((item) => {
+    const label = item.label || item.name || "";
+    return html`<li class="settings-fav">
+      <span class="fav-row-name">${renderWords(label, gloss)}</span>
+      <button type="button" data-unlike="${item.name || ""}" data-canteen="${item.places?.[0] || ""}">Weg</button>
+    </li>`;
+  });
+  setHtml(box, html`<ul class="settings-favs">${rows}</ul>`);
+}
+
+function fillSettings() {
+  const nick = document.querySelector("#settings-nick");
+  const round = document.querySelector("#settings-round");
+  const learn = document.querySelector("#learn-toggle");
+  const speak = document.querySelector("#speak-toggle");
+  const leave = document.querySelector("#settings-leave");
+  if (nick) {
+    nick.value = loadNick();
+    nick.setCustomValidity("");
+  }
+  if (round) {
+    round.value = loadRoundCode();
+    round.setCustomValidity("");
+  }
+  if (learn) learn.checked = readLearn();
+  if (speak) speak.checked = readSpeak();
+  if (leave) leave.hidden = !loadRoundCode();
+  syncLangSwitch();
+  renderSettingsFavs();
+}
+
+function saveSettingsIdentity() {
+  const nick = document.querySelector("#settings-nick");
+  const round = document.querySelector("#settings-round");
+  const nickRaw = nick?.value || "";
+  const roundRaw = round?.value || "";
+  const nickClean = normalizeNick(nickRaw);
+  const roundClean = normalizeRoundCode(roundRaw);
+  if (nickRaw.trim() && !isValidNick(nickClean)) {
+    nick?.setCustomValidity("Nur Buchstaben, max. 20 Zeichen");
+    nick?.reportValidity();
+    return false;
+  }
+  if (roundRaw.trim() && !roundClean) {
+    round?.setCustomValidity("Teamname oder Code, zwei bis 8 Zeichen.");
+    round?.reportValidity();
+    return false;
+  }
+  nick?.setCustomValidity("");
+  round?.setCustomValidity("");
+  if (isValidNick(nickClean)) saveNick(nickClean);
+  if (roundClean) saveRoundCode(roundClean);
+  syncNickButton();
+  if (loadVoteOptIn() && loadNick() && loadRoundCode()) {
+    startVotes({ force: true });
+    if (menuData) renderDay(menuData, currentDay);
+  }
+  return true;
+}
+
+function bindSettings() {
+  const dialog = document.querySelector("#settings-dialog");
+  const form = document.querySelector("#settings-form");
+  const open = document.querySelector("#settings-open");
+  const learn = document.querySelector("#learn-toggle");
+  const speak = document.querySelector("#speak-toggle");
+  const leave = document.querySelector("#settings-leave");
+  const close = document.querySelector("#settings-close");
+  const roll = document.querySelector("#settings-round-roll");
+  const favs = document.querySelector("#settings-favs");
+  paintTitle();
+  syncLangSwitch();
+  open?.addEventListener("click", () => {
+    fillSettings();
+    dialog?.showModal();
+  });
+  dialog?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-lang]");
-    if (!button || button.dataset.lang === readLang()) return;
+    if (!button || !dialog.contains(button)) return;
+    if (button.dataset.lang === readLang()) return;
     applyLang(button.dataset.lang);
+    renderSettingsFavs();
+  });
+  learn?.addEventListener("change", () => {
+    writeLearn(learn.checked);
+    if (menuData) renderDay(menuData, currentDay);
+    diceUi?.repaint?.();
+    renderSettingsFavs();
+  });
+  speak?.addEventListener("change", () => {
+    writeSpeak(speak.checked);
+  });
+  roll?.addEventListener("click", () => {
+    const round = document.querySelector("#settings-round");
+    if (!round) return;
+    round.value = generateRoundCode();
+    round.setCustomValidity("");
+  });
+  leave?.addEventListener("click", () => {
+    leaveRound();
+    fillSettings();
+  });
+  favs?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-unlike]");
+    if (!button) return;
+    unlikeFavorite(button.dataset.unlike || "", button.dataset.canteen || "");
+    renderSettingsFavs();
+  });
+  form?.addEventListener("submit", (event) => {
+    if (!saveSettingsIdentity()) event.preventDefault();
+  });
+  close?.addEventListener("click", () => {
+    dialog?.close("cancel");
   });
 }
 
@@ -1455,7 +1570,7 @@ let diceUi = null;
 
 try {
   watchSkin();
-  bindLangSwitch();
+  bindSettings();
   bindLarryCorner();
   bindHits();
   bindUpdateBanner();

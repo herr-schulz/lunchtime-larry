@@ -1,7 +1,7 @@
 import { listReelDishes } from "./dice.js?v=d68df4b5";
 import { html, setHtml } from "./dom.js?v=d78812b6";
 import { dishKey, phraseDish } from "./likes.js?v=16f9871b";
-import { plainWords, renderWords } from "./words.js?v=15c0153e";
+import { plainWords, renderWords } from "./words.js?v=c0e9c9cb";
 import { berlinDate } from "./vote.js?v=9cf92e86";
 
 export const REEL_COPIES = 3;

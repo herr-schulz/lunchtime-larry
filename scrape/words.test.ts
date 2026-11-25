@@ -182,9 +182,21 @@ describe("dish words on the slip", () => {
   });
 
   it("puts the hover line on that one word", () => {
+    const plain = textOf(
+      formatDishName("Kuchen mit Tomate", "sodexo", {
+        lang: "en",
+        words: { Kuchen: cake, Tomate: tomato },
+      }),
+    );
+    const shown = [...plain.querySelectorAll(".food-text")].map((node) => node.textContent);
+    expect(shown).toEqual(["cake", "tomato"]);
+    expect(plain.querySelector(".food-gloss")).toBeNull();
+    expect(plain.querySelector(".dish-sides")?.textContent?.startsWith("mit ")).toBe(true);
+
     const english = textOf(
       formatDishName("Kuchen mit Tomate", "sodexo", {
         lang: "en",
+        learn: true,
         words: { Kuchen: cake, Tomate: tomato },
       }),
     );
@@ -193,39 +205,41 @@ describe("dish words on the slip", () => {
       line: node.querySelector(".food-gloss")?.textContent,
     }));
     expect(lines).toEqual([
-      { word: "cake", line: "Kuchen" },
-      { word: "tomato", line: "Tomate" },
+      { word: "Kuchen", line: "cake" },
+      { word: "Tomate", line: "tomato" },
     ]);
     expect(lines.every((item) => item.line && !item.line.includes(" "))).toBe(true);
     expect(english.querySelector(".food-gloss")?.textContent).not.toContain("mit");
-    expect(english.querySelector(".dish-sides")?.textContent?.startsWith("mit ")).toBe(true);
-    expect(english.querySelector(".food-word .food-text")?.textContent).not.toContain("Tomate");
+    expect(english.querySelector(".food-gloss")?.textContent).not.toContain("торт");
+    expect(english.querySelector(".dish-title")?.getAttribute("dir")).toBeNull();
 
     const german = textOf(
       formatDishName("Kuchen mit Tomate", "sodexo", {
         lang: "de",
+        learn: true,
         words: { Kuchen: cake, Tomate: tomato },
       }),
     );
-    const kuchen = german.querySelector(".food-word");
-    const gloss = kuchen?.querySelector(".food-gloss");
-    expect(kuchen?.querySelector(".food-text")?.textContent).toBe("Kuchen");
-    expect(gloss?.textContent).toContain("EN");
-    expect(gloss?.textContent).toContain("cake");
-    expect(gloss?.textContent).not.toContain("tomato");
-    expect(gloss?.textContent).not.toContain("Tomate");
-    expect(gloss?.textContent).not.toContain("mit");
-    expect(kuchen?.getAttribute("dir")).toBeNull();
-    expect(german.querySelector(".dish-title")?.getAttribute("dir")).toBeNull();
-    expect(gloss?.querySelector("bdi[dir='rtl'][lang='fa']")?.textContent).toBe(cake.fa);
+    expect(german.querySelector(".food-word")).toBeNull();
+    expect(german.querySelector(".food-gloss")).toBeNull();
+    expect(german.querySelector(".dish-mark")?.textContent).toContain("Kuchen");
 
     const persian = textOf(
       formatDishName("Kuchen", "sodexo", { lang: "fa", words: { Kuchen: cake } }),
     );
     const word = persian.querySelector(".food-word");
     expect(word?.getAttribute("dir")).toBe("rtl");
-    expect(word?.querySelector(".food-gloss")?.getAttribute("dir")).toBe("ltr");
-    expect(word?.querySelector(".food-gloss")?.textContent).toBe("Kuchen");
+    expect(word?.querySelector(".food-gloss")).toBeNull();
+    expect(word?.querySelector(".food-text")?.textContent).toBe(cake.fa);
     expect(persian.querySelector(".dish-title")?.getAttribute("dir")).toBeNull();
+
+    const learning = textOf(
+      formatDishName("Kuchen", "sodexo", { lang: "fa", learn: true, words: { Kuchen: cake } }),
+    );
+    const learned = learning.querySelector(".food-word");
+    expect(learned?.getAttribute("dir")).toBeNull();
+    expect(learned?.querySelector(".food-text")?.textContent).toBe("Kuchen");
+    expect(learned?.querySelector(".food-gloss")?.getAttribute("dir")).toBe("ltr");
+    expect(learned?.querySelector("bdi[dir='rtl'][lang='fa']")?.textContent).toBe(cake.fa);
   });
 });

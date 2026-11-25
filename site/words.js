@@ -4,10 +4,9 @@ import { html } from "./dom.js?v=d78812b6";
 import { displayDishName } from "./likes.js?v=16f9871b";
 
 const LANGS = ["de", "en", "ru", "fa", "ar"];
-const GLOSS_LANGS = ["en", "ru", "fa", "ar"];
 const RTL = new Set(["fa", "ar"]);
 const LANG_KEY = "larry-lang";
-const TAGS = { en: "EN", ru: "RU", fa: "FA", ar: "AR" };
+const LEARN_KEY = "larry-learn";
 
 export const BRAND = {
   de: "Lunchtime Larry",
@@ -56,6 +55,7 @@ export function foodWords(name) {
 function asGloss(gloss) {
   return {
     lang: LANGS.includes(gloss?.lang) ? gloss.lang : "de",
+    learn: Boolean(gloss?.learn),
     words: gloss?.words && typeof gloss.words === "object" ? gloss.words : {},
   };
 }
@@ -76,8 +76,8 @@ function cell(row, lang) {
 }
 
 export function shownWord(word, gloss) {
-  const { lang, words } = asGloss(gloss);
-  if (lang === "de" || isMit(word)) return word;
+  const { lang, learn, words } = asGloss(gloss);
+  if (learn || lang === "de" || isMit(word)) return word;
   const text = cell(lookupWord(words, word), lang);
   return text || word;
 }
@@ -88,38 +88,28 @@ export function plainWords(text, gloss) {
     .join("");
 }
 
-function germanGloss(word, words) {
-  const row = lookupWord(words, word);
-  const bits = [];
-  for (const lang of GLOSS_LANGS) {
-    const text = cell(row, lang);
-    if (!text) continue;
-    const tag = TAGS[lang];
-    bits.push(
-      RTL.has(lang)
-        ? html`<span class="food-gloss-bit"><span class="food-gloss-tag">${tag}</span> <bdi dir="rtl" lang="${lang}">${text}</bdi></span>`
-        : html`<span class="food-gloss-bit"><span class="food-gloss-tag">${tag}</span> ${text}</span>`,
-    );
+function glossLine(text, lang) {
+  if (!text) return null;
+  if (RTL.has(lang)) {
+    return html`<span class="food-gloss" dir="ltr"><bdi dir="rtl" lang="${lang}">${text}</bdi></span>`;
   }
-  if (!bits.length) return null;
-  return html`<span class="food-gloss" dir="ltr">${bits}</span>`;
+  return html`<span class="food-gloss" dir="ltr" lang="${lang}">${text}</span>`;
 }
 
 function wordSpan(word, gloss) {
-  const { lang, words } = asGloss(gloss);
+  const { lang, learn, words } = asGloss(gloss);
   if (isMit(word)) return word;
-  if (lang === "de") {
-    const line = germanGloss(word, words);
+  const translated = lang === "de" ? "" : cell(lookupWord(words, word), lang);
+  if (learn) {
+    const line = glossLine(translated, lang);
     if (!line) return word;
     return html`<span class="food-word" lang="de" tabindex="0"><span class="food-text">${word}</span>${line}</span>`;
   }
-  const text = cell(lookupWord(words, word), lang);
-  if (!text) return word;
-  const line = html`<span class="food-gloss" dir="ltr" lang="de">${word}</span>`;
+  if (!translated) return word;
   if (RTL.has(lang)) {
-    return html`<span class="food-word" lang="${lang}" dir="rtl" tabindex="0"><span class="food-text">${text}</span>${line}</span>`;
+    return html`<span class="food-word" lang="${lang}" dir="rtl"><span class="food-text">${translated}</span></span>`;
   }
-  return html`<span class="food-word" lang="${lang}" tabindex="0"><span class="food-text">${text}</span>${line}</span>`;
+  return html`<span class="food-word" lang="${lang}"><span class="food-text">${translated}</span></span>`;
 }
 
 /** One slip phrase: each food word on its own, „mit“ left in German. */
@@ -155,6 +145,22 @@ export function writeLang(lang) {
   if (!LANGS.includes(lang)) return;
   try {
     localStorage.setItem(LANG_KEY, lang);
+  } catch {
+    /* private mode */
+  }
+}
+
+export function readLearn() {
+  try {
+    return localStorage.getItem(LEARN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function writeLearn(on) {
+  try {
+    localStorage.setItem(LEARN_KEY, on ? "1" : "0");
   } catch {
     /* private mode */
   }
