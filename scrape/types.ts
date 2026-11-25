@@ -22,6 +22,13 @@ export interface Dish {
   category?: string;
 }
 
+export interface Gloss {
+  en: string;
+  ru: string;
+  fa: string;
+  ar: string;
+}
+
 export interface CanteenDay {
   id: CanteenId;
   dishes: Dish[];
@@ -44,6 +51,7 @@ export interface MenuData {
   lastSuccessAt?: string;
   sources: Record<CanteenId, SourceMeta>;
   days: Record<Weekday, DayMenu>;
+  words?: Record<string, Gloss>;
 }
 
 export const USER_AGENT =

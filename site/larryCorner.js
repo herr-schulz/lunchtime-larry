@@ -647,7 +647,26 @@ function bindLarryDrag() {
  * Show or replace the single bubble. Does not stack. Stays until dismiss.
  * @param {{ kicker?: string, line: string }} msg
  */
+const SPEAK_KEY = "larry-speak";
+
+export function readSpeak() {
+  try {
+    return localStorage.getItem(SPEAK_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+export function writeSpeak(on) {
+  try {
+    localStorage.setItem(SPEAK_KEY, on ? "1" : "0");
+  } catch {
+    /* private mode */
+  }
+}
+
 export function sayLarry(msg) {
+  if (!readSpeak()) return;
   if (!msg?.line) return;
   ensureDom();
   if (!presentLarry(root, safeStorage())) return;

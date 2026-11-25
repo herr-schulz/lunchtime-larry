@@ -2,7 +2,8 @@
 
 import { html, safeUrl } from "./dom.js?v=d78812b6";
 import { checkCircleSvg, heartIcon, heartIconFilled, heartIconSolid, penUnderlineSvg, settingsIcon } from "./icons.js?v=b4c8150a";
-import { dishKey, isLiked, joinDishSides, parkedFavorites, phraseDish } from "./likes.js?v=16f9871b";
+import { dishKey, isLiked, parkedFavorites, phraseDish } from "./likes.js?v=16f9871b";
+import { plainWords, renderSides, renderWords } from "./words.js?v=c0e9c9cb";
 
 const DIET = {
   vegan: "vegan",
@@ -11,16 +12,15 @@ const DIET = {
   fish: "Fisch",
 };
 
-export function formatDishName(name, canteenId) {
+export function formatDishName(name, canteenId, gloss) {
   const { title, sides } = phraseDish(name, { canteen: canteenId });
   const heart = heartIconFilled;
-  const titleRow = html`<span class="dish-title"><span class="dish-mark">${title}${penUnderlineSvg()}</span>${heart}</span>`;
-  const withSides = joinDishSides(sides);
-  if (!withSides) return titleRow;
-  return html`${titleRow}<span class="dish-sides">${withSides}</span>`;
+  const titleRow = html`<span class="dish-title"><span class="dish-mark">${renderWords(title, gloss)}${penUnderlineSvg()}</span>${heart}</span>`;
+  if (!sides.length) return titleRow;
+  return html`${titleRow}<span class="dish-sides">${renderSides(sides, gloss)}</span>`;
 }
 
-export function dishRow(dish, index, likes, canteenId) {
+export function dishRow(dish, index, likes, canteenId, gloss) {
   const key = dishKey(dish.name);
   const kept = isLiked(dish.name, likes);
   const diet =
@@ -31,10 +31,10 @@ export function dishRow(dish, index, likes, canteenId) {
     ? html`<span class="pill">${dish.category}</span>`
     : "";
   const price = dish.price ? html`<span class="price">${dish.price}</span>` : "";
-  const spoken = phraseDish(dish.name, { canteen: canteenId }).spoken;
+  const spoken = plainWords(phraseDish(dish.name, { canteen: canteenId }).spoken, gloss);
   const label = kept ? `${spoken}, Favorit` : spoken;
   return html`<article class="dish${kept ? " is-liked" : ""}" style="--dish-i:${index}" data-name="${dish.name}" data-key="${key}" role="button" tabindex="0" aria-pressed="${kept}" aria-label="${label}">
-    <div class="name">${formatDishName(dish.name, canteenId)}</div>
+    <div class="name">${formatDishName(dish.name, canteenId, gloss)}</div>
     ${price}
     <div class="meta">${category}${diet}</div>
   </article>`;
@@ -49,6 +49,7 @@ export function dishRow(dish, index, likes, canteenId) {
  * @param {boolean} opts.votingOpen
  * @param {boolean} [opts.showVotes]
  * @param {boolean} [opts.weekStale]
+ * @param {{ lang?: string, learn?: boolean, words?: Record<string, { en?: string, ru?: string, fa?: string, ar?: string }> }} [opts.gloss]
  */
 export function boardHtml({
   block,
@@ -58,6 +59,7 @@ export function boardHtml({
   votingOpen,
   showVotes = false,
   weekStale = false,
+  gloss,
 }) {
   const slips = (block?.canteens ?? []).map((canteen, slipIndex) => {
     const meta = canteens[canteen.id];
@@ -69,7 +71,7 @@ export function boardHtml({
     }
     const empty = !canteen.dishes?.length;
     const body = canteen.dishes?.length
-      ? canteen.dishes.map((dish, index) => dishRow(dish, index, likes, canteen.id))
+      ? canteen.dishes.map((dish, index) => dishRow(dish, index, likes, canteen.id, gloss))
       : html`<p class="note empty-menu"><a class="slip-menu-link" href="${href}" target="_blank" rel="noopener noreferrer">Zur Speisekarte</a> — heute nichts auf dem Zettel.</p>`;
     const pizza =
       canteen.id === "sodexo" && !empty
@@ -131,7 +133,7 @@ function sheetPlace(item, canteens) {
  * @param {Array<{ key?: string, name?: string, label: string, places?: string[], onWeek?: boolean }>} saved
  * @param {Record<string, { name: string }> | null | undefined} canteens
  */
-function favSheetHtml(saved, canteens, emptyHint) {
+function favSheetHtml(saved, canteens, emptyHint, gloss) {
   if (!saved?.length) {
     return emptyHint
       ? html`<p class="fav-empty">Noch kein Favorit. Herz am Gericht reicht.</p>`
@@ -139,17 +141,18 @@ function favSheetHtml(saved, canteens, emptyHint) {
   }
   const rows = saved.map((item) => {
     const where = sheetPlace(item, canteens);
-    const spoken = where ? `${item.label}, ${where}` : item.label;
+    const name = plainWords(item.label || "", gloss);
+    const spoken = where ? `${name}, ${where}` : name;
     const off = !item.places?.length;
     const place = where
       ? html`<span class="fav-row-place${off ? " is-off" : ""}">${where}</span>`
       : "";
     return html`<li class="fav-row" data-name="${item.name || ""}" data-key="${item.key || ""}" data-canteen="${item.places?.[0] || ""}" aria-label="${spoken}">
         <div class="fav-row-copy">
-          <span class="fav-row-name">${item.label}</span>
+          <span class="fav-row-name">${renderWords(item.label || "", gloss)}</span>
           ${place}
         </div>
-        <button type="button" class="fav-row-heart" aria-label="${item.label} vom Zettel streichen">${heartIconSolid}</button>
+        <button type="button" class="fav-row-heart" aria-label="${name} vom Zettel streichen">${heartIconSolid}</button>
       </li>`;
   });
   return html`<ul class="fav-sheet-list">${rows}</ul>`;
@@ -163,6 +166,7 @@ function favSheetHtml(saved, canteens, emptyHint) {
  * @param {Record<string, { name: string }> | null | undefined} opts.canteens
  * @param {boolean} [opts.weekStale]
  * @param {{ kicker?: string, line?: string } | null} [opts.staleNote]
+ * @param {{ lang?: string, learn?: boolean, words?: Record<string, { en?: string, ru?: string, fa?: string, ar?: string }> }} [opts.gloss]
  */
 export function hitsHtml({
   items,
@@ -171,6 +175,7 @@ export function hitsHtml({
   canteens,
   weekStale = false,
   staleNote = null,
+  gloss,
 }) {
   if (weekStale) {
     const kicker = staleNote?.kicker || "Kein neuer Plan";
@@ -184,15 +189,16 @@ export function hitsHtml({
   const rows = items.map((item) => {
     const places = item.places?.length ? item.places : item.canteen ? [item.canteen] : [];
     const where = placeAt(places, canteens);
-    const spoken = where ? `${item.label} ${where}` : item.label;
+    const name = plainWords(item.label || "", gloss);
+    const spoken = where ? `${name} ${where}` : name;
     const canteen = item.canteen || places[0] || "";
     const placeName = (places.map((id) => canteens?.[id]?.name).filter(Boolean).join(" und ")) || where;
     const place = where
       ? html`<span class="fav-row-place">${where}</span>`
       : "";
-    return html`<div class="toast-hit-item" data-name="${item.name || ""}" data-key="${item.key || ""}" data-canteen="${canteen}" data-label="${item.label}" data-place="${placeName}">
-        <button type="button" class="toast-hit-go" aria-label="${spoken}"><span class="fav-row-name">${item.label}</span>${place}</button>
-        <button type="button" class="fav-row-heart" aria-label="${item.label} vom Zettel streichen">${heartIconSolid}</button>
+    return html`<div class="toast-hit-item" data-name="${item.name || ""}" data-key="${item.key || ""}" data-canteen="${canteen}" data-label="${name}" data-place="${placeName}">
+        <button type="button" class="toast-hit-go" aria-label="${spoken}"><span class="fav-row-name">${renderWords(item.label || "", gloss)}</span>${place}</button>
+        <button type="button" class="fav-row-heart" aria-label="${name} vom Zettel streichen">${heartIconSolid}</button>
       </div>`;
   });
   return html`<div class="toast-head">
@@ -202,7 +208,7 @@ export function hitsHtml({
     <div class="toast-list">${rows}</div>
     <div id="fav-sheet" class="fav-sheet" ${sheetOpen ? "" : "inert"}>
       <div class="fav-sheet-inner">
-      ${favSheetHtml(parked, canteens, !items.length && !parked.length)}
+      ${favSheetHtml(parked, canteens, !items.length && !parked.length, gloss)}
       </div>
     </div>`;
 }

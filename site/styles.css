@@ -202,6 +202,190 @@ h1 {
   line-height: 0.9;
 }
 
+.masthead h1[lang="ru"] {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.masthead h1[lang="fa"],
+.masthead h1[lang="ar"] {
+  font-family: "Noto Naskh Arabic", "Noto Nastaliq Urdu", Tahoma, sans-serif;
+  letter-spacing: 0;
+}
+
+.lang-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+}
+
+.lang-switch button {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.lang-switch button[aria-checked="true"] {
+  color: var(--ink);
+  border-color: var(--stamp);
+  background: color-mix(in srgb, var(--stamp) 12%, transparent);
+}
+
+.nick-dialog.settings-dialog {
+  width: min(26rem, calc(100vw - 2.5rem));
+  text-align: left;
+}
+
+.settings-dialog form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+}
+
+.settings-dialog h2,
+.settings-dialog .nick-kicker {
+  margin: 0;
+}
+
+.settings-block {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.settings-block legend {
+  padding: 0;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.settings-hint {
+  display: block;
+  margin: 0.35rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.35;
+}
+
+.settings-dialog .settings-toggle {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-dialog form > label + label {
+  margin-top: 0;
+}
+
+.nick-dialog.settings-dialog .settings-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  appearance: auto;
+  -webkit-appearance: auto;
+}
+
+.settings-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 2.55rem;
+  height: 1.45rem;
+  margin-top: 0.12rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+}
+
+.settings-switch::after {
+  content: "";
+  position: absolute;
+  top: 0.14rem;
+  left: 0.14rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  transition: transform 0.16s ease;
+}
+
+.settings-toggle:has(input:checked) .settings-switch {
+  border-color: var(--stamp);
+  background: color-mix(in srgb, var(--stamp) 22%, var(--paper));
+}
+
+.settings-toggle:has(input:checked) .settings-switch::after {
+  transform: translateX(1.1rem);
+  background: var(--stamp);
+}
+
+.settings-toggle:has(input:focus-visible) .settings-switch {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.settings-favs,
+.settings-empty {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-empty {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  font-style: italic;
+}
+
+.settings-fav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.settings-fav button {
+  flex: 0 0 auto;
+  border: 0;
+  background: none;
+  color: var(--stamp);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.settings-dialog menu {
+  margin-top: 0.2rem;
+}
+
 .lede {
   margin: 0;
   font-style: italic;
@@ -2054,7 +2238,7 @@ button.escape-link {
 
 .reel-label {
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-display);
@@ -2818,6 +3002,8 @@ button.escape-link {
   border-bottom: 1px dotted var(--rule);
   cursor: pointer;
   touch-action: manipulation;
+  position: relative;
+  overflow: visible;
 }
 
 .dish:last-child {
@@ -2832,6 +3018,7 @@ button.escape-link {
   min-width: 0;
   font-weight: 600;
   line-height: 1.3;
+  overflow: visible;
 }
 
 .dish-title {
@@ -2847,6 +3034,88 @@ button.escape-link {
   display: inline-block;
   max-width: 100%;
   --pen-tilt: -0.8deg;
+}
+
+.food-word {
+  position: relative;
+  display: inline-block;
+  unicode-bidi: isolate;
+  outline: none;
+}
+
+.food-word[lang="ru"],
+.food-gloss [lang="ru"] {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.food-word[lang="fa"],
+.food-word[lang="ar"],
+.food-gloss [lang="fa"],
+.food-gloss [lang="ar"] {
+  font-family: "Noto Naskh Arabic", "Noto Nastaliq Urdu", Tahoma, sans-serif;
+  letter-spacing: 0;
+}
+
+.food-word:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.food-gloss {
+  display: none;
+  position: absolute;
+  z-index: 8;
+  left: 0;
+  top: calc(100% + 1px);
+  margin: 0;
+  padding: 0.05rem 0.28rem 0.08rem;
+  border-top: 1px solid currentColor;
+  gap: 0.45rem;
+  align-items: baseline;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--ink);
+  pointer-events: none;
+  background: var(--ticket);
+}
+
+.slip:has(.food-word:hover),
+.slip:has(.food-word:focus),
+.slip:has(.food-word:focus-visible),
+.dish:has(.food-word:hover),
+.dish:has(.food-word:focus),
+.dish:has(.food-word:focus-visible),
+.fav-row:has(.food-word:hover),
+.fav-row:has(.food-word:focus) {
+  z-index: 5;
+}
+
+.food-word[dir="rtl"] > .food-gloss {
+  left: auto;
+  right: 0;
+}
+
+.food-word:hover,
+.food-word:focus,
+.food-word:focus-visible {
+  z-index: 6;
+}
+
+.food-word:hover > .food-gloss,
+.food-word:focus > .food-gloss,
+.food-word:focus-visible > .food-gloss,
+.food-word:focus-within > .food-gloss {
+  display: flex;
+}
+
+.food-gloss-tag {
+  letter-spacing: 0.06em;
+  font-size: 0.62rem;
 }
 
 .pen-underline {

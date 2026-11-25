@@ -18,19 +18,20 @@ import {
   dishEntries,
   isStaleMenuWeek,
   mountDice,
-} from "./diceReel.js?v=abf5b839";
-import { boardHtml, hitsHtml } from "./boardRender.js?v=0d3c22fc";
+} from "./diceReel.js?v=f1b03e58";
+import { boardHtml, hitsHtml } from "./boardRender.js?v=908df58d";
 import { applyPenMark } from "./icons.js?v=b4c8150a";
 import {
   alarmLabel,
   dishKey,
-  displayDishName,
   findLikedDishes,
   isLiked,
   listAllFavorites,
+  phraseDish,
   toggleLikeSet,
 } from "./likes.js?v=16f9871b";
-import { bindLarryCorner, sayLarry } from "./larryCorner.js?v=9451d7b6";
+import { paintMasthead, plainWords, readLang, readLearn, renderWords, writeLang, writeLearn } from "./words.js?v=c0e9c9cb";
+import { bindLarryCorner, readSpeak, sayLarry, writeSpeak } from "./larryCorner.js?v=b8664b99";
 import {
   favoritePoint,
   favoriteToday,
@@ -47,7 +48,7 @@ import {
 } from "./larryLines.js?v=e093dc99";
 import { LOCATIONS } from "./locations.js?v=e681f2b4";
 import { loadMenu } from "./menuFetch.js?v=64fd5683";
-import { watchSkin } from "./skinGuard.js?v=61550f5d";
+import { watchSkin } from "./skinGuard.js?v=bf996988";
 import {
   berlinWeekday,
   isVoteDay,
@@ -102,7 +103,7 @@ import {
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=3262ed48";
+} from "./updateShell.js?v=8d97a540";
 import {
   berlinAt,
   demoVotes,
@@ -344,7 +345,7 @@ function renderHits(data, day) {
     return;
   }
   const sheetOpen = hits.classList.contains("is-sheet-open");
-  const trusted = hitsHtml({ items: found, saved, sheetOpen, canteens: CANTEENS });
+  const trusted = hitsHtml({ items: found, saved, sheetOpen, canteens: CANTEENS, gloss: glossNow() });
   const markup = String(trusted);
   const changed = hits.hidden || lastHitsMarkup !== markup;
   lastHitsMarkup = markup;
@@ -381,7 +382,7 @@ function unlikeFavorite(name, canteen) {
   saveLikes();
   syncDishHearts();
   if (menuData) renderHits(menuData, currentDay);
-  sayLarry(unlikeAck(alarmLabel(name, { canteen })));
+    sayLarry(unlikeAck(plainWords(alarmLabel(name, { canteen }), glossNow())));
 }
 
 function chromeOffset() {
@@ -499,6 +500,7 @@ function renderDay(data, day) {
       votingOpen: votingOpen(),
       showVotes: showVoteMarks(),
       weekStale,
+      gloss: glossNow(),
     }),
   );
   renderHits(data, day);
@@ -1290,8 +1292,14 @@ function startVotes({ force = false } = {}) {
   boot();
 }
 
+function glossNow() {
+  return { lang: readLang(), learn: readLearn(), words: menuData?.words || {} };
+}
+
 function applyLikeState(dish, on) {
-  const shown = displayDishName(dish.dataset.name || "");
+  const name = dish.dataset.name || "";
+  const canteen = dish.closest("[data-canteen]")?.dataset.canteen;
+  const shown = plainWords(phraseDish(name, { canteen }).spoken, glossNow());
   dish.classList.toggle("is-liked", on);
   dish.setAttribute("aria-pressed", String(on));
   dish.setAttribute("aria-label", on ? `${shown}, Favorit` : shown);
@@ -1320,14 +1328,14 @@ function toggleDishLike(data, dish) {
   renderHits(data, currentDay);
   if (on && !wasLiked) {
     const key = dishKey(name);
-    const label = alarmLabel(name, { canteen });
+    const label = plainWords(alarmLabel(name, { canteen }), glossNow());
     justLikedKey = key;
     sayLarry(likeAck(label));
     window.setTimeout(() => {
       if (justLikedKey === key) justLikedKey = "";
     }, 800);
   } else if (wasLiked && !on) {
-    sayLarry(unlikeAck(alarmLabel(name, { canteen })));
+    sayLarry(unlikeAck(plainWords(alarmLabel(name, { canteen }), glossNow())));
   }
 }
 
@@ -1348,7 +1356,7 @@ function maybeAnnounceFavoriteOnMenu(data, day) {
         : names.length > 2
           ? `${names.slice(0, -1).join(", ")} und ${names.at(-1)}`
           : names[0] || "der Kantine";
-    sayLarry(favoriteToday(item.label, place));
+    sayLarry(favoriteToday(plainWords(item.label, glossNow()), place));
     return;
   }
 }
@@ -1413,8 +1421,99 @@ function registerServiceWorker() {
     });
 }
 
+function syncLangSwitch() {
+  const lang = readLang();
+  for (const button of document.querySelectorAll(".lang-switch [data-lang]")) {
+    button.setAttribute("aria-checked", String(button.dataset.lang === lang));
+  }
+}
+
+function paintTitle() {
+  if (document.documentElement.classList.contains("is-hacktime")) return;
+  paintMasthead(document.querySelector(".masthead h1"));
+}
+
+function applyLang(lang) {
+  writeLang(lang);
+  syncLangSwitch();
+  paintTitle();
+  if (menuData) renderDay(menuData, currentDay);
+  diceUi?.repaint?.();
+}
+
+function renderSettingsFavs() {
+  const box = document.querySelector("#settings-favs");
+  if (!box) return;
+  const saved = menuData ? listAllFavorites(likes, menuData.days, currentDay) : [];
+  if (!saved.length) {
+    setHtml(box, html`<p class="settings-empty">Noch kein Favorit. Herz am Gericht reicht.</p>`);
+    return;
+  }
+  const gloss = glossNow();
+  const rows = saved.map((item) => {
+    const label = item.label || item.name || "";
+    return html`<li class="settings-fav">
+      <span class="fav-row-name">${renderWords(label, gloss)}</span>
+      <button type="button" data-unlike="${item.name || ""}" data-canteen="${item.places?.[0] || ""}">Weg</button>
+    </li>`;
+  });
+  setHtml(box, html`<ul class="settings-favs">${rows}</ul>`);
+}
+
+function fillSettings() {
+  const learn = document.querySelector("#learn-toggle");
+  const speak = document.querySelector("#speak-toggle");
+  if (learn) learn.checked = readLearn();
+  if (speak) speak.checked = readSpeak();
+  syncLangSwitch();
+  renderSettingsFavs();
+}
+
+function bindSettings() {
+  const dialog = document.querySelector("#settings-dialog");
+  const open = document.querySelector("#settings-open");
+  const learn = document.querySelector("#learn-toggle");
+  const speak = document.querySelector("#speak-toggle");
+  const close = document.querySelector("#settings-close");
+  const favs = document.querySelector("#settings-favs");
+  paintTitle();
+  syncLangSwitch();
+  open?.addEventListener("click", () => {
+    fillSettings();
+    dialog?.showModal();
+  });
+  dialog?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-lang]");
+    if (!button || !dialog.contains(button)) return;
+    if (button.dataset.lang === readLang()) return;
+    applyLang(button.dataset.lang);
+    renderSettingsFavs();
+  });
+  learn?.addEventListener("change", () => {
+    writeLearn(learn.checked);
+    if (menuData) renderDay(menuData, currentDay);
+    diceUi?.repaint?.();
+    renderSettingsFavs();
+  });
+  speak?.addEventListener("change", () => {
+    writeSpeak(speak.checked);
+  });
+  favs?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-unlike]");
+    if (!button) return;
+    unlikeFavorite(button.dataset.unlike || "", button.dataset.canteen || "");
+    renderSettingsFavs();
+  });
+  close?.addEventListener("click", () => {
+    dialog?.close("cancel");
+  });
+}
+
+let diceUi = null;
+
 try {
   watchSkin();
+  bindSettings();
   bindLarryCorner();
   bindHits();
   bindUpdateBanner();
@@ -1438,11 +1537,12 @@ try {
   bindBoardGestures(data);
   bindNickUi();
   bindMascotEgg();
-  mountDice({
+  diceUi = mountDice({
     openButton: document.querySelector("#dice-open"),
     dialog: document.querySelector("#dice-dialog"),
     modes: true,
     showStale: isStaleMenuWeek(data.weekStart, berlinWeekMonday()),
+    getGloss: glossNow,
     getEntries(mode) {
       const block = data.days?.[todayKey()];
       return mode === "canteen" ? canteenEntries(block, CANTEENS) : dishEntries(block, CANTEENS);

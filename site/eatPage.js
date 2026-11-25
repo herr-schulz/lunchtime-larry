@@ -5,7 +5,8 @@ import {
   isPlateId,
   playableMembers,
 } from "./eat.js?v=4c1eats1";
-import { joinDishSides, phraseDish } from "./likes.js?v=9db8d9ec";
+import { phraseDish } from "./likes.js?v=16f9871b";
+import { readLang, readLearn, renderSides, renderWords } from "./words.js?v=c0e9c9cb";
 import {
   LOTTERY_NEEDS_ROUND,
   pointsBoardText,
@@ -61,6 +62,7 @@ let mineDish = "";
 let placed = {};
 let pendingAt = 0;
 let mains = [];
+let menuWords = {};
 let closed = false;
 let online = {};
 let lotteryPoints = {};
@@ -180,7 +182,8 @@ function handStampHtml(name, { uid = "" } = {}) {
 
 function dishHtml(row) {
   const phrase = phraseDish(row.dish.name, { canteen: row.canteenId });
-  const sides = joinDishSides(phrase.sides);
+  const gloss = { lang: readLang(), learn: readLearn(), words: menuWords };
+  const sides = phrase.sides?.length ? renderSides(phrase.sides, gloss) : "";
   const diet =
     row.dish.diet && DIET[row.dish.diet]
       ? html`<span class="pill ${row.dish.diet}">${DIET[row.dish.diet]}</span>`
@@ -198,7 +201,7 @@ function dishHtml(row) {
   const pointed = row.id === mineDish ? " is-pointed" : "";
   return html`<article class="dish${pointed}" data-plate="${row.id}" role="button" tabindex="0">
     <div class="name">
-      <span class="dish-title"><span class="dish-mark">${phrase.title}${PEN}</span></span>
+      <span class="dish-title"><span class="dish-mark">${renderWords(phrase.title, gloss)}${PEN}</span></span>
       ${sides ? html`<span class="dish-sides">${sides}</span>` : ""}
       ${who}
     </div>
@@ -461,8 +464,9 @@ board?.addEventListener("click", (event) => {
 
 board?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
+  if (event.target.closest(".food-word")) return;
   const dish = event.target.closest("[data-plate]");
-  if (!dish) return;
+  if (!dish || event.target !== dish) return;
   event.preventDefault();
   pickDish(dish.dataset.plate || "");
 });
@@ -565,6 +569,7 @@ if (probe) {
 
 try {
   const menu = await loadMenu();
+  menuWords = menu?.words && typeof menu.words === "object" ? menu.words : {};
   const block = menu?.days?.[menuDay()];
   mains = gameMains(block);
 } catch {
