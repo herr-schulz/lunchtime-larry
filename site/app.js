@@ -103,7 +103,7 @@ import {
   remoteBuildFrom,
   SHELL_BUILD,
   staleShellCopy,
-} from "./updateShell.js?v=8d97a540";
+} from "./updateShell.js?v=316ca6ae";
 import {
   berlinAt,
   demoVotes,
